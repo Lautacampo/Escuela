@@ -1,245 +1,155 @@
-<!DOCTYPE html>
+<!doctype html>
 
 <html lang="es">
+  <head>
+    <meta charset="UTF-8" />
 
-<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <meta charset="UTF-8">
+    <title>Asistencia - Sistema de Gestión Académica</title>
+  </head>
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>
-        Asistencia - Sistema de Gestión Académica
-    </title>
-
-</head>
-
-
-<body>
-
-
+  <body>
     <header id="inicio">
+      <h1>Registro de Asistencia</h1>
 
-        <h1>Registro de Asistencia</h1>
-
-        <p>
-            Sistema de Gestión Académica
-        </p>
-
+      <p>Sistema de Gestión Académica</p>
     </header>
 
-
     <nav>
+      <ul>
+        <li>
+          <a href="index.html"> Inicio </a>
+        </li>
 
-        <ul>
+        <li>
+          <a href="alumnos.html"> Alumnos </a>
+        </li>
 
-            <li>
-                <a href="index.html">
-                    Inicio
-                </a>
-            </li>
+        <li>
+          <a href="asistencia.html"> Asistencia </a>
+        </li>
 
-            <li>
-                <a href="alumnos.html">
-                    Alumnos
-                </a>
-            </li>
-
-            <li>
-                <a href="asistencia.html">
-                    Asistencia
-                </a>
-            </li>
-
-            <li>
-                <a href="calificaciones.html">
-                    Calificaciones
-                </a>
-            </li>
-
-        </ul>
-
+        <li>
+          <a href="calificaciones.html"> Calificaciones </a>
+        </li>
+      </ul>
     </nav>
 
-
     <main>
+      <section>
+        <h2>Asistencia de alumnos</h2>
 
+        <p>
+          En esta sección los preceptores podrán registrar y consultar la
+          asistencia de los estudiantes.
+        </p>
 
-        <section>
+        <p>
+          También permitirá realizar el seguimiento de las faltas acumuladas de
+          cada alumno y consultar su condición académica.
+        </p>
 
-            <h2>Asistencia de alumnos</h2>
+        <p>
+          <a href="#listado-asistencia"> Ir al listado de asistencia </a>
+        </p>
+      </section>
 
-            <p>
-                En esta sección los preceptores podrán
-                registrar y consultar la asistencia
-                de los estudiantes.
-            </p>
+      <section id="listado-asistencia">
+        <h2>Listado de asistencia</h2>
 
-            <p>
-                También permitirá realizar el seguimiento
-                de las faltas acumuladas de cada alumno
-                y consultar su condición académica.
-            </p>
+        <table>
+          <caption>
+            Asistencia - Primer Año
+          </caption>
 
-            <p>
-                <a href="#listado-asistencia">
-                    Ir al listado de asistencia
-                </a>
-            </p>
+          <thead>
+            <tr>
+              <th>Alumno</th>
 
-        </section>
+              <th>DNI</th>
 
+              <th>Curso</th>
 
+              <th>Asistencia</th>
 
-        <section id="listado-asistencia">
+              <th>Faltas acumuladas</th>
 
-            <h2>Listado de asistencia</h2>
+              <th>Condición</th>
+            </tr>
+          </thead>
 
-            <table>
+          <tbody>
+            <tr>
+              <td>Juan Pérez</td>
 
+              <td>40123456</td>
 
-                <caption>
-                    Asistencia - Primer Año
-                </caption>
+              <td>1° Año</td>
 
+              <td>Presente</td>
 
-                <thead>
+              <td>4</td>
 
-                    <tr>
+              <td>Regular</td>
+            </tr>
 
-                        <th>Alumno</th>
+            <tr>
+              <td>María González</td>
 
-                        <th>DNI</th>
+              <td>38987654</td>
 
-                        <th>Curso</th>
+              <td>1° Año</td>
 
-                        <th>Asistencia</th>
+              <td>Ausente</td>
 
-                        <th>Faltas acumuladas</th>
+              <td>12</td>
 
-                        <th>Condición</th>
+              <td>Regular</td>
+            </tr>
 
-                    </tr>
+            <tr>
+              <td>Carlos López</td>
 
-                </thead>
+              <td>41567890</td>
 
+              <td>1° Año</td>
 
-                <tbody>
+              <td>Ausente</td>
 
+              <td>24</td>
 
-                    <tr>
+              <td>Regular</td>
+            </tr>
 
-                        <td>Juan Pérez</td>
+            <tr>
+              <td>Laura Rodríguez</td>
 
-                        <td>40123456</td>
+              <td>37543210</td>
 
-                        <td>1° Año</td>
+              <td>1° Año</td>
 
-                        <td>Presente</td>
+              <td>Ausente</td>
 
-                        <td>4</td>
+              <td>25</td>
 
-                        <td>Regular</td>
+              <td>Libre</td>
+            </tr>
+          </tbody>
+        </table>
 
-                    </tr>
-
-
-
-                    <tr>
-
-                        <td>María González</td>
-
-                        <td>38987654</td>
-
-                        <td>1° Año</td>
-
-                        <td>Ausente</td>
-
-                        <td>12</td>
-
-                        <td>Regular</td>
-
-                    </tr>
-
-
-
-                    <tr>
-
-                        <td>Carlos López</td>
-
-                        <td>41567890</td>
-
-                        <td>1° Año</td>
-
-                        <td>Ausente</td>
-
-                        <td>24</td>
-
-                        <td>Regular</td>
-
-                    </tr>
-
-
-
-                    <tr>
-
-                        <td>Laura Rodríguez</td>
-
-                        <td>37543210</td>
-
-                        <td>1° Año</td>
-
-                        <td>Ausente</td>
-
-                        <td>25</td>
-
-                        <td>Libre</td>
-
-                    </tr>
-
-
-                </tbody>
-
-
-            </table>
-
-
-            <p>
-
-                <a href="#inicio">
-                    Volver arriba
-                </a>
-
-            </p>
-
-        </section>
-
-
+        <p>
+          <a href="#inicio"> Volver arriba </a>
+        </p>
+      </section>
     </main>
 
-
-
     <footer>
+      <p>
+        <a href="index.html"> Volver a la página principal </a>
+      </p>
 
-        <p>
-
-            <a href="index.html">
-                Volver a la página principal
-            </a>
-
-        </p>
-
-        <p>
-            Sistema de Gestión Académica -
-            Laboratorio de Tecnologías 2026
-        </p>
-
+      <p>Sistema de Gestión de Asistencia</p>
     </footer>
-
-
-</body>
-
+  </body>
 </html>
