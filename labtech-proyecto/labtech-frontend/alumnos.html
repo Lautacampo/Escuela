@@ -7,38 +7,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Alumnos - Sistema de Gestión Académica</title>
+
+    <link rel="stylesheet" href="css/estilos.css" />
   </head>
 
   <body>
-    <header>
-      <h1>Gestión de Alumnos</h1>
+    <!-- ENCABEZADO -->
+
+    <header id="inicio">
+      <section class="encabezado-principal">
+        <img
+          src="imagenes/logo-tomas-baras.png"
+          alt="Logo de la Escuela N° 3 Tomás Baras"
+          class="logo-escuela"
+        />
+
+        <section class="encabezado-texto">
+          <h1>Gestión de Alumnos</h1>
+
+          <p class="subtitulo">
+            Sistema de Gestión Académica - Escuela Nocturna Secundaria de
+            Adultos N° 3 "Tomás Baras"
+          </p>
+        </section>
+      </section>
     </header>
 
-    <nav>
-      <ul>
+    <!-- MENÚ DE NAVEGACIÓN -->
+
+    <nav class="navbar">
+      <ul class="navlinks">
         <li>
-          <a href="index.html">Inicio</a>
+          <a href="index.html"> Inicio </a>
         </li>
 
         <li>
-          <a href="alumnos.html">Alumnos</a>
+          <a href="alumnos.html"> Alumnos </a>
         </li>
 
         <li>
-          <a href="asistencia.html">Asistencia</a>
+          <a href="asistencia.html"> Asistencia </a>
         </li>
 
         <li>
-          <a href="calificaciones.html">Calificaciones</a>
+          <a href="calificaciones.html"> Calificaciones </a>
+        </li>
+
+        <li>
+          <a href="#contacto"> Contacto </a>
         </li>
       </ul>
     </nav>
 
+    <!-- CONTENIDO PRINCIPAL -->
+
     <main>
-      <section>
+      <section class="seccion-contenido">
+        <h2>Gestión de alumnos</h2>
+
+        <p>
+          En esta sección se podrá registrar y gestionar la información de los
+          alumnos de la institución.
+        </p>
+      </section>
+
+      <!-- FORMULARIO -->
+
+      <section class="formulario-alumno">
         <h2>Registrar alumno</h2>
 
-        <form action="#" method="post">
+        <form class="formulario" action="#" method="post">
           <p>
             <label for="nombre"> Nombre: </label>
 
@@ -99,35 +137,72 @@
 
           <p>
             <label for="observaciones"> Observaciones: </label>
-          </p>
 
-          <p>
             <textarea
               id="observaciones"
               name="observaciones"
               rows="5"
-              cols="40"
             ></textarea>
           </p>
 
-          <p>
-            <button type="submit">Registrar alumno</button>
+          <p class="acciones-formulario">
+            <button class="boton-primario" type="submit">
+              Registrar alumno
+            </button>
 
-            <button type="reset">Limpiar formulario</button>
+            <button class="boton-secundario" type="reset">
+              Limpiar formulario
+            </button>
           </p>
         </form>
       </section>
     </main>
 
-    <footer>
-      <p>
-        <a href="index.html"> Volver a la página principal </a>
-      </p>
+    <!-- FOOTER -->
 
-      <p>
-        Sistema de Gestión Académica Escuela Nocturna Secundaria de Adultos N° 3
-        "Tomás Baras"
-      </p>
+    <footer>
+      <section class="footcontent">
+        <section id="contacto" class="footsection">
+          <h2>Contacto</h2>
+
+          <p>Dirección</p>
+
+          <a
+            href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu"
+            target="_blank"
+          >
+            Av. Pte. Juan Domingo Perón, San Luis
+          </a>
+
+          <p>Teléfono</p>
+
+          <a href="tel:+542664302010"> 2664302010 </a>
+        </section>
+
+        <section class="footsection">
+          <h2>Nuestras Redes</h2>
+
+          <a href="https://www.facebook.com/tomas.baras.9" target="_blank">
+            Facebook
+          </a>
+
+          <a
+            href="https://www.instagram.com/colegio3tomas_baras/"
+            target="_blank"
+          >
+            Instagram
+          </a>
+        </section>
+      </section>
+
+      <section class="footbottom">
+        <p>
+          Sistema de Gestión Académica - Escuela Nocturna Secundaria de Adultos
+          N° 3 "Tomás Baras"
+        </p>
+
+        <p>&copy; 2026 Colegio Tomás Baras</p>
+      </section>
     </footer>
   </body>
 </html>
