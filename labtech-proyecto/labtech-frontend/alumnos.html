@@ -18,18 +18,33 @@
 
     <header>
         <nav class="navbar">
-            <h1>Gestión de Alumnos</h1>
+            <div class="navlogo">
+                <img src="imagenes/Logo Tomas Baras.png" alt="Logo del Sitio">
+                <span> Gestión de Alumnos </span>
+            </div>
             <ul class="navlinks">
-                <li><a href="index.html">Inicio</a></li>
-                <li><a href="alumnos.html">Alumnos</a></li>
-                <li><a href="asistencia.html">Asistencia</a></li>
-                <li><a href="calificaciones.html">Calificaciones</a></li>
+                <li>
+                    <a href="index.html">Inicio</a>
+                </li>
+
+                <li>
+                    <a href="alumnos.html">Alumnos</a>
+                </li>
+
+                <li>
+                    <a href="asistencia.html">Asistencia</a>
+                </li>
+
+                <li>
+                    <a href="calificaciones.html">Calificaciones</a>
+                </li>
+
+                <li>
+                    <a href="#contacto">Contacto</a>
+                </li>
             </ul>
         </nav>
     </header>
-
-
-    
 
 
     <main>
@@ -38,7 +53,138 @@
 
             <h2>Registrar alumno</h2>
 
-        
+            <form action="#" method="post">
+
+                <p>
+                    <label for="nombre">
+                        Nombre:
+                    </label>
+
+                    <input
+                        type="text"
+                        id="nombre"
+                        name="nombre"
+                        required
+                    >
+                </p>
+
+
+                <p>
+                    <label for="apellido">
+                        Apellido:
+                    </label>
+
+                    <input
+                        type="text"
+                        id="apellido"
+                        name="apellido"
+                        required
+                    >
+                </p>
+
+
+                <p>
+                    <label for="dni">
+                        DNI:
+                    </label>
+
+                    <input
+                        type="number"
+                        id="dni"
+                        name="dni"
+                        min="1000000"
+                        max="99999999"
+                        required
+                    >
+                </p>
+
+
+                <p>
+                    <label for="email">
+                        Correo electrónico:
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        required
+                    >
+                </p>
+
+
+                <p>
+                    <label for="fechaNacimiento">
+                        Fecha de nacimiento:
+                    </label>
+
+                    <input
+                        type="date"
+                        id="fechaNacimiento"
+                        name="fechaNacimiento"
+                        min="1900-01-01"
+                        max="2008-12-31"
+                        required
+                    >
+                </p>
+
+
+                <p>
+                    <label for="curso">
+                        Curso:
+                    </label>
+
+                    <select
+                        id="curso"
+                        name="curso"
+                        required
+                    >
+                        <option value="">
+                            Seleccione un curso
+                        </option>
+
+                        <option value="primero">
+                            Primer año
+                        </option>
+
+                        <option value="segundo">
+                            Segundo año
+                        </option>
+
+                        <option value="tercero">
+                            Tercer año
+                        </option>
+                    </select>
+                </p>
+
+
+                <p>
+                    <label for="observaciones">
+                        Observaciones:
+                    </label>
+                </p>
+
+                <p>
+                    <textarea
+                        id="observaciones"
+                        name="observaciones"
+                        rows="5"
+                        cols="40"
+                    ></textarea>
+                </p>
+
+
+                <p>
+                    <button type="submit">
+                        Registrar alumno
+                    </button>
+
+                    <button type="reset">
+                        Limpiar formulario
+                    </button>
+                </p>
+
+            </form>
 
         </section>
 
@@ -46,20 +192,55 @@
 
 
     <footer>
-        <section id="contacto">
-          <h4>Contacto</h4>
-          <p>Direccion :<a href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D" >Av. Pte. Juan Domingo Perón, San Luis</a></p>
-          <p>Telefono : <a href="tel:+542664302010">2664302010</a></p>
+      <div class="footcontent">
+        <section class="footsection" id="contacto">
+          <h2>Contacto</h2>
+
+          <p>
+            Dirección:
+
+            <a
+              href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D"
+              target="_blank"
+            >
+              Av. Pte. Juan Domingo Perón, San Luis
+            </a>
+          </p>
+
+          <p>
+            Teléfono:
+
+            <a href="tel:+542664302010"> 2664302010 </a>
+          </p>
         </section>
 
-        <section id="redes">
-          <h4>Nuestras Redes</h4>
-          <a href="https://www.facebook.com/tomas.baras.9" target="_blank">Facebook</a>
-          <a href="https://www.instagram.com/colegio3tomas_baras/" target="_blank">Instagram</a>
+        <section class="footsection" id="redes">
+          <h2>Nuestras Redes</h2>
+
+          <p>
+            <a href="https://www.facebook.com/tomas.baras.9" target="_blank">
+              Facebook
+            </a>
+          </p>
+          <p>
+            <a
+              href="https://www.instagram.com/colegio3tomas_baras/"
+              target="_blank"
+            >
+              Instagram
+            </a>
+          </p>
         </section>
+      </div>
+      
+      <div class="footbottom">
+        <p>
+          Sistema de Gestión Académica - Escuela Nocturna Secundaria de Adultos N°
+          3 "Tomás Baras"
+        </p>
 
-        <p>&copy; 2026 Colegio Tomas Baras</p>
-
+        <p>&copy; 2026 Colegio Tomás Baras</p>
+      </div>
     </footer>
 
 </body>
