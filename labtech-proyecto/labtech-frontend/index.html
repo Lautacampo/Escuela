@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 
 <html lang="es">
   <head>
@@ -7,63 +7,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Sistema de Gestión Académica</title>
+
+    <link rel="stylesheet" href="css/estilos.css" />
   </head>
 
   <body>
     <header id="inicio">
-      <h1>Sistema de Gestión Académica</h1>
+      <section class="encabezado-principal">
+        <img
+          src="imagenes/logo-tomas-baras.png"
+          alt="Logo de la Escuela N° 3 Tomás Baras"
+          class="logo-escuela"
+        />
 
-      <p>Escuela Nocturna Secundaria de Adultos</p>
+        <section class="encabezado-texto">
+          <h1>Sistema de Gestión Académica</h1>
+
+          <p class="subtitulo">
+            Escuela Nocturna Secundaria de Adultos N° 3 "Tomás Baras"
+          </p>
+        </section>
+      </section>
     </header>
 
-    <nav>
-      <ul>
+    <nav class="navbar">
+      <ul class="navlinks">
         <li>
-          <a href="index.html">Inicio</a>
+          <a href="index.html"> Inicio </a>
         </li>
 
         <li>
-          <a href="alumnos.html">Alumnos</a>
+          <a href="alumnos.html"> Alumnos </a>
         </li>
 
         <li>
-          <a href="asistencia.html">Asistencia</a>
+          <a href="asistencia.html"> Asistencia </a>
         </li>
 
         <li>
           <a href="calificaciones.html"> Calificaciones </a>
         </li>
+
+        <li>
+          <a href="#contacto"> Contacto </a>
+        </li>
       </ul>
     </nav>
 
     <main>
-      <section>
-        <h2>
-          Bienvenidos al Sistema de Gestión Académica de la Escuela N°3 Tomas
-          Baras
-        </h2>
+      <section class="seccion-contenido">
+        <h2>Bienvenidos</h2>
 
         <p>
           Este sistema está destinado a facilitar la gestión de la información
-          académica de una escuela secundaria de adultos.
+          académica de la Escuela Nocturna Secundaria de Adultos N° 3 "Tomás
+          Baras".
         </p>
 
         <p>
           Permitirá gestionar información de alumnos, docentes, preceptores,
-          materias, asistencias y calificaciones.
-        </p>
-
-        <p>
-          <a href="#funciones"> Ir a las funciones principales </a>
+          materias, módulos, asistencias y calificaciones, facilitando el
+          seguimiento académico de los estudiantes.
         </p>
       </section>
 
-      <section id="funciones">
+      <section id="funciones" class="seccion-contenido">
         <h2>Funciones principales del sistema</h2>
 
-        <ol>
+        <ol class="lista-funciones">
           <li>
-            Gestión de personas
+            <strong> Gestión de personas </strong>
 
             <ul>
               <li>Alumnos</li>
@@ -73,7 +86,7 @@
           </li>
 
           <li>
-            Gestión académica
+            <strong> Gestión académica </strong>
 
             <ul>
               <li>Materias</li>
@@ -83,7 +96,7 @@
           </li>
 
           <li>
-            Seguimiento académico
+            <strong> Seguimiento académico </strong>
 
             <ul>
               <li>Asistencias</li>
@@ -92,15 +105,89 @@
             </ul>
           </li>
         </ol>
+      </section>
 
-        <p>
-          <a href="#inicio"> Volver arriba </a>
-        </p>
+      <section id="usuarios" class="seccion-contenido">
+        <h2>Usuarios del sistema</h2>
+
+        <section class="contenedor-usuarios">
+          <article class="tarjeta">
+            <h3>Directivos</h3>
+
+            <p>
+              Son los principales administradores del sistema. Podrán gestionar
+              alumnos, docentes, preceptores, materias y módulos, además de
+              realizar el seguimiento académico de los estudiantes.
+            </p>
+          </article>
+
+          <article class="tarjeta">
+            <h3>Docentes</h3>
+
+            <p>
+              Podrán consultar y registrar las calificaciones correspondientes a
+              los módulos cursados por los alumnos.
+            </p>
+          </article>
+
+          <article class="tarjeta">
+            <h3>Preceptores</h3>
+
+            <p>
+              Podrán registrar y consultar la asistencia de los estudiantes y
+              realizar el seguimiento de las faltas acumuladas.
+            </p>
+          </article>
+        </section>
       </section>
     </main>
 
     <footer>
-      <p>Gestión Académica Escuela N°3Tomas Baras</p>
+      <section class="footcontent">
+        <!-- CONTACTO -->
+
+        <section id="contacto" class="footsection">
+          <h2>Contacto</h2>
+
+          <p>Dirección:</p>
+
+          <a
+            href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D"
+            target="_blank"
+          >
+            Av. Pte. Juan Domingo Perón, San Luis
+          </a>
+
+          <p>Teléfono:</p>
+
+          <a href="tel:+542664302010"> 2664302010 </a>
+        </section>
+
+        <section id="redes" class="footsection">
+          <h2>Nuestras Redes</h2>
+
+          <a href="https://www.facebook.com/tomas.baras.9" target="_blank">
+            Facebook
+          </a>
+
+          <a
+            href="https://www.instagram.com/colegio3tomas_baras/"
+            target="_blank"
+          >
+            Instagram
+          </a>
+        </section>
+      </section>
+
+      <section class="footbottom">
+        <p>
+          Sistema de Gestión Académica - Escuela Nocturna Secundaria de Adultos
+          N° 3 "Tomás Baras"
+        </p>
+
+        <p>&copy; 2026 Colegio Tomás Baras</p>
+      </section>
     </footer>
   </body>
 </html>
+
