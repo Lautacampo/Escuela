@@ -2,7 +2,7 @@
     /* Colores */
     --color-primario: #bf1b1b;
     --color-primario-hover: #8c0f0f;
-    --color-fondo: #f2d9d5;
+    --color-fondo: #f1e0de;
     --color-texto: #444444;
 
     /* Otros */
@@ -49,6 +49,7 @@ h1, h2, h3, h4 {
 
     max-height: 70px;
     padding: 10px;
+    box-sizing: border-box;
 
     background-color: var(--color-fondo);
     border-radius: var(--radio-borde);
@@ -61,7 +62,7 @@ h1, h2, h3, h4 {
 
     color: var(--color-primario);
     font-family: var(--fuente-encabezados);
-    font-size: 32px;
+    font-size: 2rem;
     font-weight: bold;
 }
 
@@ -77,6 +78,7 @@ h1, h2, h3, h4 {
 
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
 
     list-style: none;
 }
@@ -85,13 +87,14 @@ h1, h2, h3, h4 {
     display: block;
 
     padding: 10px;
+    box-sizing: border-box;
 
     background-color: var(--color-primario);
     border-radius: var(--radio-borde);
 
     color: white;
     font-family: var(--fuente-encabezados);
-    font-size: 20px;
+    font-size: 1.1rem;
 }
 
 .navlinks a:hover {
@@ -103,8 +106,11 @@ h1, h2, h3, h4 {
 
 main {
     flex: 1;
-    max-width: 1000px;
-    margin-left: 4rem;
+    width: 90%;
+    max-width: 75rem;
+    margin: 0 auto;
+    padding: 40px;
+    box-sizing: border-box;
 }
 
 main p {
@@ -124,6 +130,152 @@ main h1, main h2, main h3 {
     color: var(--color-primario);
 }
 
+/* ==================== FORMULARIO ==================== */
+
+main form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    width:100%;
+    max-width: 44rem;
+    margin: 30px auto;
+    padding: 30px;
+    box-sizing: border-box;
+
+    background-color: var(--color-fondo);
+    border-radius: var(--radio-borde);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+main form p {
+    margin: 0 0 20px;
+}
+
+main form label {
+    display: block;
+    margin-bottom: 6px;
+
+    color:var(--color-texto);
+    font-weight: bold;
+    font-family: var(--fuente-principal);
+}
+
+main form input, main form select, main form textarea {
+    box-sizing: border-box;
+    width: 100%;
+    
+    padding: 10px;
+
+    border: 1px solid #CCCCCC;
+    border-radius: var(--radio-borde);
+
+    background-color: white;
+    color: var(--color-texto);
+
+    font-family: var(--fuente-principal);
+    font-size: 1rem;
+
+    transition: border-color 0.2, box-shadow 0.2s;
+}
+
+main form input:focus, main form select:focus, main form textarea:focus {
+    outline: none;
+    border-color: var(--color-primario);
+    box-shadow: 0 0 0 2px rgba(191,27,27,0.15);
+}
+
+main form textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+main form button {
+    padding: 10px 18px;
+    box-sizing: border-box;
+    
+    border: none;
+    border-radius: var(--radio-borde);
+
+    background-color: var(--color-primario);
+    color: white;
+
+    font-family: var(--fuente-encabezados);
+    font-size: 1rem;
+
+    cursor: pointer;
+
+    transition: background-color 0.2s;
+}
+
+main form button:hover {
+    background-color: var(--color-primario-hover);
+}
+
+#limpiar {
+    background-color: #777;
+}
+
+#limpiar:hover {
+    background-color: #555;
+}
+
+/* ==================== TABLAS ==================== */
+
+#listado-asistencia, #tabla-calificaciones {
+    overflow-x: auto;
+}
+
+main table {
+    width: 100%;
+    margin-top: 25px;
+
+    border-collapse: collapse;
+
+    background-color: var(--color-fondo);
+    border-radius: var(--radio-borde);
+    overflow: hidden;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    font-family: var(--fuente-principal);
+}
+
+main caption {
+    margin-bottom: 10px;
+
+    color: var(--color-texto);
+
+    font-family: var(--fuente-encabezados);
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+main th {
+    padding: 14px 12px;
+    box-sizing: border-box;
+
+    background-color: var(--color-primario);
+    color: white;
+
+    text-align: left;
+    font-family: var(--fuente-encabezados);
+}
+
+main td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+    box-sizing: border-box;
+    color: var(--color-texto);
+}
+
+main tbody tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+main tbody tr:last-child td {
+    border-bottom: none;
+}
 
 /* ==================== FOOTER ==================== */
 
@@ -138,6 +290,7 @@ footer {
     gap: 30px;
 
     padding: 20px;
+    box-sizing: border-box;
 }
 
 .footsection {
@@ -149,7 +302,7 @@ footer {
 
 .footsection h1, .footsection h2, .footsection h3, .footsection h4 {
     margin: 10px 0;
-    font-size: 16px;
+    font-size: 1rem;
 }
 
 .footsection p {
@@ -167,6 +320,52 @@ footer {
 .footbottom {
     padding: 5px;
     text-align: center;
-    font-size: 10px;
+    font-size: 0.625rem;
     font-weight: bold;
+    box-sizing: border-box;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+@media (max-width: 48rem){
+    .navbar {
+        flex-direction: column;
+        max-height: none;
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .navlogo{
+        font-size: 1.5rem;
+    }
+
+    .navlinks{
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .navlinks a{
+        width: 100%;
+        text-align: center;
+        font-size: 1rem;
+    }
+
+    main {
+        width: 100%;
+        padding: 2rem 1rem;
+    }
+
+    .footcontent {
+        flex-direction: column;
+        align-items: center;
+        gap: 25px;
+        text-align: center;
+    }
 }
