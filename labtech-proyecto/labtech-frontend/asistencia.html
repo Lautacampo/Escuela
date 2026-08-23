@@ -7,17 +7,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Asistencia - Sistema de Gestión Académica</title>
+
+    <link rel="stylesheet" href="css/estilos.css" />
   </head>
 
   <body>
-    <header id="inicio">
-      <h1>Registro de Asistencia</h1>
+    <!-- ENCABEZADO -->
 
-      <p>Sistema de Gestión Académica</p>
+    <header id="inicio">
+      <section class="encabezado-principal">
+        <img
+          src="imagenes/logo-tomas-baras.png"
+          alt="Logo de la Escuela N° 3 Tomás Baras"
+          class="logo-escuela"
+        />
+
+        <section class="encabezado-texto">
+          <h1>Registro de Asistencia</h1>
+
+          <p class="subtitulo">
+            Sistema de Gestión Académica - Escuela Nocturna Secundaria de
+            Adultos N° 3 "Tomás Baras"
+          </p>
+        </section>
+      </section>
     </header>
 
-    <nav>
-      <ul>
+    <!-- MENÚ DE NAVEGACIÓN -->
+
+    <nav class="navbar">
+      <ul class="navlinks">
         <li>
           <a href="index.html"> Inicio </a>
         </li>
@@ -33,11 +52,17 @@
         <li>
           <a href="calificaciones.html"> Calificaciones </a>
         </li>
+
+        <li>
+          <a href="#contacto"> Contacto </a>
+        </li>
       </ul>
     </nav>
 
+    <!-- CONTENIDO PRINCIPAL -->
+
     <main>
-      <section>
+      <section class="seccion-contenido">
         <h2>Asistencia de alumnos</h2>
 
         <p>
@@ -51,109 +76,150 @@
         </p>
 
         <p>
-          <a href="#listado-asistencia"> Ir al listado de asistencia </a>
+          <a class="enlace-interno" href="#listado-asistencia">
+            Ir al listado de asistencia
+          </a>
         </p>
       </section>
 
-      <section id="listado-asistencia">
+      <!-- LISTADO DE ASISTENCIA -->
+
+      <section id="listado-asistencia" class="seccion-contenido">
         <h2>Listado de asistencia</h2>
 
-        <table>
-          <caption>
-            Asistencia - Primer Año
-          </caption>
+        <div class="tabla-contenedor">
+          <table class="tabla-asistencia">
+            <caption>
+              Asistencia - Primer Año
+            </caption>
 
-          <thead>
-            <tr>
-              <th>Alumno</th>
+            <thead>
+              <tr>
+                <th>Alumno</th>
 
-              <th>DNI</th>
+                <th>DNI</th>
 
-              <th>Curso</th>
+                <th>Curso</th>
 
-              <th>Asistencia</th>
+                <th>Asistencia</th>
 
-              <th>Faltas acumuladas</th>
+                <th>Faltas acumuladas</th>
 
-              <th>Condición</th>
-            </tr>
-          </thead>
+                <th>Condición</th>
+              </tr>
+            </thead>
 
-          <tbody>
-            <tr>
-              <td>Juan Pérez</td>
+            <tbody>
+              <tr>
+                <td>Juan Pérez</td>
 
-              <td>40123456</td>
+                <td>40123456</td>
 
-              <td>1° Año</td>
+                <td>1° Año</td>
 
-              <td>Presente</td>
+                <td>Presente</td>
 
-              <td>4</td>
+                <td>4</td>
 
-              <td>Regular</td>
-            </tr>
+                <td>Regular</td>
+              </tr>
 
-            <tr>
-              <td>María González</td>
+              <tr>
+                <td>María González</td>
 
-              <td>38987654</td>
+                <td>38987654</td>
 
-              <td>1° Año</td>
+                <td>1° Año</td>
 
-              <td>Ausente</td>
+                <td>Ausente</td>
 
-              <td>12</td>
+                <td>12</td>
 
-              <td>Regular</td>
-            </tr>
+                <td>Regular</td>
+              </tr>
 
-            <tr>
-              <td>Carlos López</td>
+              <tr>
+                <td>Carlos López</td>
 
-              <td>41567890</td>
+                <td>41567890</td>
 
-              <td>1° Año</td>
+                <td>1° Año</td>
 
-              <td>Ausente</td>
+                <td>Ausente</td>
 
-              <td>24</td>
+                <td>24</td>
 
-              <td>Regular</td>
-            </tr>
+                <td>Regular</td>
+              </tr>
 
-            <tr>
-              <td>Laura Rodríguez</td>
+              <tr>
+                <td>Laura Rodríguez</td>
 
-              <td>37543210</td>
+                <td>37543210</td>
 
-              <td>1° Año</td>
+                <td>1° Año</td>
 
-              <td>Ausente</td>
+                <td>Ausente</td>
 
-              <td>25</td>
+                <td>25</td>
 
-              <td>Libre</td>
-            </tr>
-          </tbody>
-        </table>
+                <td class="estado-libre">Libre</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <p>
-          <a href="#inicio"> Volver arriba </a>
+          <a class="enlace-interno" href="#inicio"> Volver arriba </a>
         </p>
       </section>
     </main>
 
-    <footer>
-      <p>
-        <a href="index.html"> Volver a la página principal </a>
-      </p>
+    <!-- FOOTER -->
 
-      <p>
-        Sistema de Gestión Académica Escuela Nocturna Secundaria de Adultos N° 3
-        "Tomás Baras"
-      </p>
+    <footer>
+      <section class="footcontent">
+        <section id="contacto" class="footsection">
+          <h2>Contacto</h2>
+
+          <p>Dirección</p>
+
+          <a
+            href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu"
+            target="_blank"
+          >
+            Av. Pte. Juan Domingo Perón, San Luis
+          </a>
+
+          <p>Teléfono</p>
+
+          <a href="tel:+542664302010"> 2664302010 </a>
+        </section>
+
+        <section class="footsection">
+          <h2>Nuestras Redes</h2>
+
+          <a href="https://www.facebook.com/tomas.baras.9" target="_blank">
+            Facebook
+          </a>
+
+          <a
+            href="https://www.instagram.com/colegio3tomas_baras/"
+            target="_blank"
+          >
+            Instagram
+          </a>
+        </section>
+      </section>
+
+      <section class="footbottom">
+        <p>
+          Sistema de Gestión Académica - Escuela Nocturna Secundaria de Adultos
+          N° 3 "Tomás Baras"
+        </p>
+
+        <p>&copy; 2026 Colegio Tomás Baras</p>
+      </section>
     </footer>
   </body>
 </html>
-
