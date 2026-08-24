@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 
 <html lang="es">
   <head>
@@ -6,135 +6,130 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Sistema de Gestión Académica</title>
-
+    <title>Alumnos - Sistema de Gestión Académica</title>
     <link rel="stylesheet" href="css/estilos.css" />
   </head>
 
   <body>
-    <header id="inicio">
-      <img
-        src="imagenes/logo-tomas-baras.png"
-        alt="Logo de la Escuela Tomás Baras"
-        class="logo-header"
-      />
-
-      <div class="titulos-header">
-        <h1>Sistema de Gestión Académica</h1>
-        <p class="subtitulo">
-          Escuela Nocturna Secundaria de Adultos N° 3 "Tomás Baras"
-        </p>
-      </div>
+    <header>
+      <h1>Gestión de Alumnos</h1>
     </header>
 
     <nav>
       <ul>
         <li>
-          <a href="index.html"> Inicio </a>
+          <a href="index.html">Inicio</a>
         </li>
 
         <li>
-          <a href="alumnos.html"> Alumnos </a>
+          <a href="alumnos.html">Alumnos</a>
         </li>
 
         <li>
-          <a href="asistencia.html"> Asistencia </a>
+          <a href="asistencia.html">Asistencia</a>
         </li>
 
         <li>
-          <a href="calificaciones.html"> Calificaciones </a>
-        </li>
-
-        <li>
-          <a href="#contacto"> Contacto </a>
+          <a href="calificaciones.html">Calificaciones</a>
         </li>
       </ul>
     </nav>
 
     <main>
       <section>
-        <h2>Bienvenidos</h2>
+        <h2>Registrar alumno</h2>
 
-        <p>
-          Este sistema está destinado a facilitar la gestión de la información
-          académica de la Escuela Nocturna Secundaria de Adultos N° 3 "Tomás
-          Baras".
-        </p>
+        <form action="#" method="post">
+          <p>
+            <label for="nombre"> Nombre: </label>
 
-        <p>
-          Permitirá gestionar información de alumnos, docentes, preceptores,
-          materias, módulos, asistencias y calificaciones, facilitando el
-          seguimiento académico de los estudiantes.
-        </p>
-      </section>
-
-      <section id="funciones">
-        <h2>Índice de contenido</h2>
-
-        <ol>
-          <li>
-            <a href="#usuarios">Usuarios del sistema</a>
-            <ul>
-              <li>Directivos</li>
-              <li>Docentes</li>
-              <li>Preceptores</li>
-            </ul>
-          </li>
-
-          <li>
-            <a href="alumnos.html">Gestión de personas (Alumnos)</a>
-          </li>
-
-          <li>
-            <a href="calificaciones.html">Gestión académica (Calificaciones)</a>
-          </li>
-
-          <li>
-            <a href="asistencia.html">Seguimiento académico (Asistencias)</a>
-          </li>
-        </ol>
-      </section>
-
-      <section id="usuarios">
-        <h2>Usuarios del sistema</h2>
-
-        <article>
-          <h3>Directivos</h3>
+            <input type="text" id="nombre" name="nombre" required />
+          </p>
 
           <p>
-            Son los principales administradores del sistema. Podrán gestionar
-            alumnos, docentes, preceptores, materias y módulos, además de
-            realizar el seguimiento académico de los estudiantes.
-          </p>
-        </article>
+            <label for="apellido"> Apellido: </label>
 
-        <article>
-          <h3>Docentes</h3>
+            <input type="text" id="apellido" name="apellido" required />
+          </p>
 
           <p>
-            Podrán consultar y registrar las calificaciones correspondientes a
-            los módulos cursados por los alumnos.
-          </p>
-        </article>
+            <label for="dni"> DNI: </label>
 
-        <article>
-          <h3>Preceptores</h3>
+            <input
+              type="number"
+              id="dni"
+              name="dni"
+              min="1000000"
+              max="99999999"
+              required
+            />
+          </p>
 
           <p>
-            Podrán registrar y consultar la asistencia de los estudiantes y
-            realizar el seguimiento de las faltas acumuladas.
+            <label for="email"> Correo electrónico: </label>
+
+            <input type="email" id="email" name="email" required />
           </p>
-        </article>
+
+          <p>
+            <label for="fechaNacimiento"> Fecha de nacimiento: </label>
+
+            <input
+              type="date"
+              id="fechaNacimiento"
+              name="fechaNacimiento"
+              min="1900-01-01"
+              max="2008-12-31"
+              required
+            />
+          </p>
+
+          <p>
+            <label for="curso"> Curso: </label>
+
+            <select id="curso" name="curso" required>
+              <option value="">Seleccione un curso</option>
+
+              <option value="primero">Primer año</option>
+
+              <option value="segundo">Segundo año</option>
+
+              <option value="tercero">Tercer año</option>
+            </select>
+          </p>
+
+          <p>
+            <label for="observaciones"> Observaciones: </label>
+          </p>
+
+          <p>
+            <textarea
+              id="observaciones"
+              name="observaciones"
+              rows="5"
+              cols="40"
+            ></textarea>
+          </p>
+
+          <p>
+            <button type="submit">Registrar alumno</button>
+
+            <button type="reset">Limpiar formulario</button>
+          </p>
+        </form>
       </section>
     </main>
 
     <footer>
+      <p>
+        <a href="index.html"> Volver a la página principal </a>
+      </p>
+
       <section id="contacto">
         <h2>Contacto</h2>
 
         <p>
           Dirección:
-
           <a
             href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D"
             target="_blank"
@@ -145,7 +140,6 @@
 
         <p>
           Teléfono:
-
           <a href="tel:+542664302010"> 2664302010 </a>
         </p>
       </section>
