@@ -1,277 +1,209 @@
-<!DOCTYPE html>
+<!doctype html>
 
 <html lang="es">
+  <head>
+    <meta charset="UTF-8" />
 
-<head>
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Asistencia - Sistema de Gestión Académica</title>
     <link rel="stylesheet" href="css/estilos.css" />
-</head>
+  </head>
 
-
-<body>
-
+  <body>
     <header id="inicio">
+      <h1>Registro de Asistencia</h1>
 
-        <h1>Registro de Asistencia</h1>
-
-        <p>
-            Sistema de Gestión Académica
-        </p>
-
+      <p>Sistema de Gestión Académica</p>
     </header>
 
+    <nav class="navbar">
+      <a href="index.html" class="navlogo">
+        <img
+          src="imagenes/logo-tomas-baras.png"
+          alt="Logo de la Escuela Tomás Baras"
+        />
+        <span>S.G.A.</span>
+      </a>
 
-    <nav>
+      <ul class="navlinks">
+        <li>
+          <a href="index.html"> Inicio </a>
+        </li>
 
-        <ul>
+        <li>
+          <a href="alumnos.html"> Alumnos </a>
+        </li>
 
-            <li>
-                <a href="index.html">
-                    Inicio
-                </a>
-            </li>
+        <li>
+          <a href="asistencia.html"> Asistencia </a>
+        </li>
 
-            <li>
-                <a href="alumnos.html">
-                    Alumnos
-                </a>
-            </li>
+        <li>
+          <a href="calificaciones.html"> Calificaciones </a>
+        </li>
 
-            <li>
-                <a href="asistencia.html">
-                    Asistencia
-                </a>
-            </li>
-
-            <li>
-                <a href="calificaciones.html">
-                    Calificaciones
-                </a>
-            </li>
-
-        </ul>
-
+        <li>
+          <a href="#contacto"> Contacto </a>
+        </li>
+      </ul>
     </nav>
 
-
     <main>
+      <section>
+        <h2>Asistencia de alumnos</h2>
 
-        <section>
+        <p>
+          En esta sección los preceptores podrán registrar y consultar la
+          asistencia de los estudiantes.
+        </p>
 
-            <h2>Asistencia de alumnos</h2>
+        <p>
+          También permitirá realizar el seguimiento de las faltas acumuladas de
+          cada alumno y consultar su condición académica.
+        </p>
 
-            <p>
-                En esta sección los preceptores podrán registrar
-                y consultar la asistencia de los estudiantes.
-            </p>
+        <p>
+          <a href="#listado-asistencia"> Ir al listado de asistencia </a>
+        </p>
+      </section>
 
-            <p>
-                También permitirá realizar el seguimiento de las
-                faltas acumuladas de cada alumno y consultar su
-                condición académica.
-            </p>
+      <section id="listado-asistencia">
+        <h2>Listado de asistencia</h2>
 
-            <p>
-                <a href="#listado-asistencia">
-                    Ir al listado de asistencia
-                </a>
-            </p>
+        <table>
+          <caption>
+            Asistencia - Primer Año
+          </caption>
 
-        </section>
+          <thead>
+            <tr>
+              <th>Alumno</th>
 
+              <th>DNI</th>
 
-        <section id="listado-asistencia">
+              <th>Curso</th>
 
-            <h2>Listado de asistencia</h2>
+              <th>Asistencia</th>
 
-            <table>
+              <th>Faltas acumuladas</th>
 
-                <caption>
-                    Asistencia - Primer Año
-                </caption>
+              <th>Condición</th>
+            </tr>
+          </thead>
 
+          <tbody>
+            <tr>
+              <td>Juan Pérez</td>
 
-                <thead>
+              <td>40123456</td>
 
-                    <tr>
+              <td>1° Año</td>
 
-                        <th>Alumno</th>
+              <td>Presente</td>
 
-                        <th>DNI</th>
+              <td>4</td>
 
-                        <th>Curso</th>
+              <td>Regular</td>
+            </tr>
 
-                        <th>Asistencia</th>
+            <tr>
+              <td>María González</td>
 
-                        <th>Faltas acumuladas</th>
+              <td>38987654</td>
 
-                        <th>Condición</th>
+              <td>1° Año</td>
 
-                    </tr>
+              <td>Ausente</td>
 
-                </thead>
+              <td>12</td>
 
+              <td>Regular</td>
+            </tr>
 
-                <tbody>
+            <tr>
+              <td>Carlos López</td>
 
-                    <tr>
+              <td>41567890</td>
 
-                        <td>Juan Pérez</td>
+              <td>1° Año</td>
 
-                        <td>40123456</td>
+              <td>Ausente</td>
 
-                        <td>1° Año</td>
+              <td>24</td>
 
-                        <td>Presente</td>
+              <td>Regular</td>
+            </tr>
 
-                        <td>4</td>
+            <tr>
+              <td>Laura Rodríguez</td>
 
-                        <td>Regular</td>
+              <td>37543210</td>
 
-                    </tr>
+              <td>1° Año</td>
 
+              <td>Ausente</td>
 
-                    <tr>
+              <td>25</td>
 
-                        <td>María González</td>
+              <td>Libre</td>
+            </tr>
+          </tbody>
+        </table>
 
-                        <td>38987654</td>
-
-                        <td>1° Año</td>
-
-                        <td>Ausente</td>
-
-                        <td>12</td>
-
-                        <td>Regular</td>
-
-                    </tr>
-
-
-                    <tr>
-
-                        <td>Carlos López</td>
-
-                        <td>41567890</td>
-
-                        <td>1° Año</td>
-
-                        <td>Ausente</td>
-
-                        <td>24</td>
-
-                        <td>Regular</td>
-
-                    </tr>
-
-
-                    <tr>
-
-                        <td>Laura Rodríguez</td>
-
-                        <td>37543210</td>
-
-                        <td>1° Año</td>
-
-                        <td>Ausente</td>
-
-                        <td>25</td>
-
-                        <td>Libre</td>
-
-                    </tr>
-
-                </tbody>
-
-            </table>
-
-
-            <p>
-                <a href="#inicio">
-                    Volver arriba
-                </a>
-            </p>
-
-        </section>
-
+        <p>
+          <a href="#inicio"> Volver arriba </a>
+        </p>
+      </section>
     </main>
 
-
     <footer>
+      <p>
+        <a href="index.html"> Volver a la página principal </a>
+      </p>
+
+      <section id="contacto">
+        <h2>Contacto</h2>
 
         <p>
-            <a href="index.html">
-                Volver a la página principal
-            </a>
-        </p>
-
-
-        <section id="contacto">
-
-            <h2>Contacto</h2>
-
-            <p>
-                Dirección:
-                <a
-                    href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D"
-                    target="_blank"
-                >
-                    Av. Pte. Juan Domingo Perón, San Luis
-                </a>
-            </p>
-
-            <p>
-                Teléfono:
-                <a href="tel:+542664302010">
-                    2664302010
-                </a>
-            </p>
-
-        </section>
-
-
-        <section id="redes">
-
-            <h2>Nuestras Redes</h2>
-
-            <p>
-                <a
-                    href="https://www.facebook.com/tomas.baras.9"
-                    target="_blank"
-                >
-                    Facebook
-                </a>
-
-                <a
-                    href="https://www.instagram.com/colegio3tomas_baras/"
-                    target="_blank"
-                >
-                    Instagram
-                </a>
-            </p>
-
-        </section>
-
-
-        <p>
-            Sistema de Gestión Académica -
-            Escuela Nocturna Secundaria de Adultos N° 3
-            "Tomás Baras"
+          Dirección:
+          <a
+            href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D"
+            target="_blank"
+          >
+            Av. Pte. Juan Domingo Perón, San Luis
+          </a>
         </p>
 
         <p>
-            &copy; 2026 Colegio Tomás Baras
+          Teléfono:
+          <a href="tel:+542664302010"> 2664302010 </a>
         </p>
+      </section>
 
+      <section id="redes">
+        <h2>Nuestras Redes</h2>
+
+        <p>
+          <a href="https://www.facebook.com/tomas.baras.9" target="_blank">
+            Facebook
+          </a>
+
+          <a
+            href="https://www.instagram.com/colegio3tomas_baras/"
+            target="_blank"
+          >
+            Instagram
+          </a>
+        </p>
+      </section>
+
+      <p>
+        Sistema de Gestión Académica - Escuela Nocturna Secundaria de Adultos N°
+        3 "Tomás Baras"
+      </p>
+
+      <p>&copy; 2026 Colegio Tomás Baras</p>
     </footer>
-
-</body>
-
+  </body>
 </html>
