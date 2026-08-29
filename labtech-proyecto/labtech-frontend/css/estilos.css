@@ -1,440 +1,503 @@
 :root {
-    /* Colores */
-    --color-primario: #253c68;
-    --color-secundario: #8c0f0f;
-    --color-fondo: #F9F6EE;
-    --color-tercero: #d5f2ef;
-    --color-texto: #444444;
+  /* Colores */
+  --color-primario: #253c68;
+  --color-secundario: #8c0f0f;
+  --color-fondo: #f9f6ee;
+  --color-tercero: #d5f2ef;
+  --color-texto: #444444;
 
-    /* Otros */
-    --radio-borde: 8px;
+  /* Otros */
+  --radio-borde: 8px;
 
-    /* Fuentes */
-    --fuente-principal: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    --fuente-encabezados: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-    --fuente-alternativa:'Roboto', sans-serif;
+  /* Fuentes */
+  --fuente-principal: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --fuente-encabezados:
+    "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+  --fuente-alternativa: "Roboto", sans-serif;
 }
 
-
 /* ==================== GENERAL ==================== */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
 
-html, body {
-    margin: 0.2px;
-    min-height: 100%;
+*,
+*::before,
+*::after {
+  box-sizing: border-box; /* Previene desbordes en todo el documento */
 }
 
 body {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--color-fondo);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-fondo);
 }
 
 a {
-    text-decoration: none;
+  text-decoration: none;
+  transition: color 0.3s ease;
 }
 
-p, li {
-    font-family: var(--fuente-principal);
+p,
+li {
+  font-family: var(--fuente-principal);
 }
 
-h1, h2, h3, h4 {
-    font-family: var(--fuente-encabezados);
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--fuente-encabezados);
 }
-
-
 
 /* ==================== NAVBAR ==================== */
-
-nav{
-    position: fixed;
-    top: 0;
-    width: 100%;
-    z-index: 1000;
-   
-    /* nav fijop */
+nav {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra para el menú fijo */
 }
 
 .navbar {
-    
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-height: 90px;
-    padding: 0 5%;/*0arriba/abajo 5% lados*/
-    width: 100%;
-    box-sizing: border-box;
-    background-color:white;
-    
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-height: 90px;
+  padding: 0 5%;
+  width: 100%;
+  background-color: white;
 }
 
 .navlogo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--color-primario);
-    font-family: var(--fuente-encabezados);
-    font-size: 2rem;
-    font-weight: bold;
-    
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 170px;
+  gap: 10px;
+  color: var(--color-primario);
+  font-family: var(--fuente-encabezados);
+  font-size: 2rem;
+  font-weight: bold;
 }
 
 .navlogo img {
-    display: block;
-    width: 170px;
-    max-width: 100%;
-    height: auto;
-    object-fit: contain;
-    margin: 0;
-}
-
-.navlogo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 170px;
+  display: block;
+  width: 170px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  margin: 0;
 }
 
 .navlinks {
-    display: flex;
-    gap: 80px;
-    margin: 10px;
-    padding: 0;
-    list-style: none;
+  display: flex;
+  gap: 80px;
+  margin: 10px;
+  padding: 0;
+  list-style: none;
 }
 
 .navlinks a {
-    color: var(--color-texto);
-    font-family:var(--fuente-alternativa);
-    font-size: 1.2rem;
+  color: var(--color-texto);
+  font-family: var(--fuente-alternativa);
+  font-size: 1.2rem;
 }
 
 .navlinks a:hover {
-    color: var(--color-primario);
+  color: var(--color-primario);
 }
 
+/* ==================== HERO BANNER ==================== */
+.hero {
+  /* Compensa el nav fijo para que no quede detrás */
+  margin-top: 90px;
+
+  /* Reemplazá 'fondo-escuela.jpg' con una imagen real del colegio */
+  background-image:
+    linear-gradient(rgba(37, 60, 104, 0.8), rgba(37, 60, 104, 0.8)),
+    url("../imagenes/fondo-escuela.jpg");
+  background-size: cover;
+  background-position: center;
+
+  height: 60vh;
+  min-height: 400px;
+  border-radius: var(--radio-borde);
+  margin-bottom: 2rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+
+.hero-contenido h1 {
+  color: white;
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  margin-top: 0;
+}
+
+.hero-contenido p {
+  color: var(--color-tercero);
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.btn-principal {
+  background-color: var(--color-secundario);
+  color: white !important;
+  padding: 15px 35px;
+  font-size: 1.2rem;
+  border-radius: 30px;
+  font-family: var(--fuente-encabezados);
+  font-weight: bold;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.btn-principal:hover {
+  background-color: #a81212;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
 
 /* ==================== CONTENIDO PRINCIPAL ==================== */
-
 main {
-    flex: 1;
-    width: 90%;
-    max-width: 75rem;
-    margin: 0 auto;
-    padding: 40px;
-    box-sizing: border-box;
-    margin-top: 2%;
+  flex: 1;
+  width: 90%;
+  max-width: 75rem;
+  margin: 0 auto;
+  padding: 0 0 40px 0; /* Padding ajustado */
+}
+
+/* Diseño de "Tarjetas" para las secciones dentro del main (excepto el hero) */
+main section:not(.hero) {
+  background-color: white;
+  padding: 40px;
+  border-radius: var(--radio-borde);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 30px;
 }
 
 main p {
-    margin-top: 0.5rem;
-    color: var(--color-texto);
-    line-height: 1.6;
+  margin-top: 0.5rem;
+  color: var(--color-texto);
+  line-height: 1.6;
 }
 
 main li {
-    color: var(--color-texto);
+  color: var(--color-texto);
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
 }
 
-main h1, main h2, main h3 {
-    margin-top: 2rem;
-    margin-bottom: 0;
+main h2,
+main h3 {
+  margin-top: 0; /* Reseteamos el margen superior para que se alineen bien en la tarjeta */
+  margin-bottom: 1.5rem;
+  color: var(--color-primario);
+}
 
-    color: var(--color-primario);
+/* ==================== PREINSCRIPCION ==================== */
+#preinscripcion {
+  text-align: center;
+}
+
+#preinscripcion img {
+  height: 4rem;
+  width: 4rem;
+  background-color: var(--color-fondo);
+  border: solid 2px var(--color-primario);
+  border-radius: 50%; /* Más prolijo para íconos circulares */
+  display: block;
+  margin: 1.5rem auto;
+  padding: 10px;
+  transition: transform 0.3s ease;
+}
+
+#preinscripcion img:hover {
+  transform: scale(1.1);
+}
+
+#formulariopreinscripcion {
+  font-weight: bold;
+  color: var(--color-primario);
 }
 
 /* ==================== FORMULARIO ==================== */
-
 main form {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-
-    width:100%;
-    max-width: 44rem;
-    margin: 30px auto;
-    padding: 30px;
-    box-sizing: border-box;
-
-    background-color: var(--color-fondo);
-    border-radius: var(--radio-borde);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  max-width: 44rem;
+  margin: 0 auto;
 }
 
 main form p {
-    margin: 0 0 20px;
+  margin: 0 0 20px;
 }
 
 main form label {
-    display: block;
-    margin-bottom: 6px;
-
-    color:var(--color-texto);
-    font-weight: bold;
-    font-family: var(--fuente-principal);
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-texto);
+  font-weight: bold;
+  font-family: var(--fuente-principal);
 }
 
-main form input, main form select, main form textarea {
-    box-sizing: border-box;
-    width: 100%;
-    
-    padding: 10px;
-
-    border: 1px solid #CCCCCC;
-    border-radius: var(--radio-borde);
-
-    background-color: white;
-    color: var(--color-texto);
-
-    font-family: var(--fuente-principal);
-    font-size: 1rem;
-
-    transition: border-color 0.2, box-shadow 0.2s;
+main form input,
+main form select,
+main form textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cccccc;
+  border-radius: var(--radio-borde);
+  background-color: white;
+  color: var(--color-texto);
+  font-family: var(--fuente-principal);
+  font-size: 1rem;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
-main form input:focus, main form select:focus, main form textarea:focus {
-    outline: none;
-    border-color: var(--color-primario);
-    box-shadow: 0 0 0 2px rgba(191,27,27,0.15);
+main form input:focus,
+main form select:focus,
+main form textarea:focus {
+  outline: none;
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 2px rgba(37, 60, 104, 0.15); /* Sombreado azulado */
 }
 
 main form textarea {
-    min-height: 120px;
-    resize: vertical;
+  min-height: 120px;
+  resize: vertical;
 }
 
-main form button {
-    padding: 10px 18px;
-    box-sizing: border-box;
-    
-    border: none;
-    border-radius: var(--radio-borde);
-
-    background-color: var(--color-primario);
-    color: white;
-
-    font-family: var(--fuente-encabezados);
-    font-size: 1rem;
-
-    cursor: pointer;
-
-    transition: background-color 0.2s;
+main form button,
+main form input[type="submit"] {
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--radio-borde);
+  background-color: var(--color-primario);
+  color: white;
+  font-family: var(--fuente-encabezados);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-right: 10px;
 }
 
-main form button:hover {
-    background-color: var(--color-primario-hover);
+main form button:hover,
+main form input[type="submit"]:hover {
+  background-color: #172643;
 }
 
 #limpiar {
-    background-color: #777;
+  background-color: #777;
 }
 
 #limpiar:hover {
-    background-color: #555;
+  background-color: #555;
 }
 
 /* ==================== TABLAS ==================== */
-
-#listado-asistencia, #tabla-calificaciones {
-    overflow-x: auto;
+#listado-asistencia,
+#tabla-calificaciones {
+  overflow-x: auto;
 }
 
 main table {
-    width: 100%;
-    margin-top: 25px;
-
-    border-collapse: collapse;
-
-    background-color: var(--color-fondo);
-    border-radius: var(--radio-borde);
-    overflow: hidden;
-
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-    font-family: var(--fuente-principal);
+  width: 100%;
+  margin-top: 15px;
+  border-collapse: collapse;
+  background-color: white;
+  border-radius: var(--radio-borde);
+  overflow: hidden;
+  border: 1px solid #eee;
+  font-family: var(--fuente-principal);
 }
 
 main caption {
-    margin-bottom: 10px;
-
-    color: var(--color-texto);
-
-    font-family: var(--fuente-encabezados);
-    font-size: 1.25rem;
-    font-weight: bold;
+  margin-bottom: 10px;
+  color: var(--color-texto);
+  font-family: var(--fuente-encabezados);
+  font-size: 1.25rem;
+  font-weight: bold;
+  text-align: left;
 }
 
 main th {
-    padding: 14px 12px;
-    box-sizing: border-box;
-
-    background-color: var(--color-primario);
-    color: white;
-
-    text-align: left;
-    font-family: var(--fuente-encabezados);
+  padding: 14px 12px;
+  background-color: var(--color-primario);
+  color: white;
+  text-align: left;
+  font-family: var(--fuente-encabezados);
 }
 
 main td {
-    padding: 12px;
-    border-bottom: 1px solid #ddd;
-    box-sizing: border-box;
-    color: var(--color-texto);
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  color: var(--color-texto);
 }
 
 main tbody tr:nth-child(even) {
-    background-color: #fafafa;
+  background-color: #fcfcfc;
 }
 
-main tbody tr:last-child td {
-    border-bottom: none;
+main tbody tr:hover {
+  background-color: #f1f5fa; /* Efecto hover en las filas de la tabla */
 }
-
-/* preinscripcion agregado  */
-#preinscripcion h2{
-    text-align: center;
-
-}
-
-#preinscripcion img{
-    height: 4rem;
-    width: 4rem;
-    align-items: center;
-    background-color: var(--color-fondo);
-    border: solid var(--color-primario);
-    border-radius: 100%;
-    display: flex;
-    margin-left: auto;
-    margin-right: auto;
-
-}
-
-#formulariopreinscripcion{
-    text-align: center;
-
-
-}
-
 
 /* ==================== FOOTER ==================== */
-
-
-
 footer {
-    display: grid;
-    grid-template-columns: 1.5fr 1fr;
-    gap: 1rem 2rem;
-    align-items: start;
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    padding: 1.5rem 2rem 0.75rem;
-    background-color: var(--color-primario);
-    margin-top: auto;
-    color: var(--color-tercero);
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1rem 2rem;
+  align-items: start;
+  width: 100%;
+  padding: 3rem 5% 1.5rem;
+  background-color: var(--color-primario);
+  margin-top: auto;
+  color: var(--color-tercero);
 }
 
 #contacto {
-    grid-column: 1;
-    grid-row: 1;
+  grid-column: 1;
+  grid-row: 1;
 }
 
-#contacto a{
-    color: var(--color-tercero);
+#contacto a {
+  color: var(--color-tercero);
+}
+
+#contacto a:hover,
+#redes a:hover {
+  color: white;
+  text-decoration: underline;
 }
 
 #redes {
-    grid-column: 1;
-    grid-row: 2;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 #redes a {
-    color: var(--color-tercero);
+  color: var(--color-tercero);
 }
 
 #imgfooter {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 #imgfooter img {
-    width: 300px;
-    max-width: 100%;
-    height: auto;
-    object-fit: contain;
-    opacity: 0.92;
+  width: 250px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  opacity: 0.95;
 }
 
 #finfooter {
-    grid-column: 1 / -1;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    text-align: center;
-    border-top: 1px solid #d3cfc7;
+  grid-column: 1 / -1;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 #finfooter p {
-    margin: 0.4rem 0;
+  margin: 0.4rem 0;
+  font-size: 0.9rem;
 }
 
 #contacto h2,
 #redes h2 {
-    margin: 0 0 0.6rem;
-    color: var(--color-tercero);
-}
-
-#contacto p,
-#redes p {
-    margin: 0.3rem 0;
+  margin: 0 0 0.8rem;
+  color: white;
 }
 
 /* ==================== RESPONSIVE ==================== */
-
 img {
-    max-width: 100%;
-    height: auto;
+  max-width: 100%;
+  height: auto;
 }
 
-@media (max-width: 48rem){
-    .navbar {
-        flex-direction: column;
-        max-height: none;
-        gap: 15px;
-        padding: 15px;
-    }
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    max-height: none;
+    padding: 15px;
+    gap: 15px;
+  }
 
-    .navlogo{
-        font-size: 1.5rem;
-    }
+  .navlogo {
+    font-size: 1.5rem;
+  }
 
-    .navlinks{
-        width: 100%;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-    }
+  .navlinks {
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
 
-    .navlinks a{
-        width: 100%;
-        text-align: center;
-        font-size: 1rem;
-    }
+  .hero {
+    margin-top: 180px; /* Compensa el menú expandido en celulares */
+    min-height: 350px;
+  }
 
-    main {
-        width: 100%;
-        padding: 2rem 1rem;
-    }
+  .hero-contenido h1 {
+    font-size: 2.2rem;
+  }
 
-    .footcontent {
-        flex-direction: column;
-        align-items: center;
-        gap: 25px;
-        text-align: center;
-    }
+  .hero-contenido p {
+    font-size: 1.1rem;
+  }
+
+  main {
+    width: 95%;
+    padding-top: 10px;
+  }
+
+  main section:not(.hero) {
+    padding: 25px 15px;
+  }
+
+  footer {
+    grid-template-columns: 1fr;
+    text-align: center;
+    padding: 2rem 20px 1rem;
+  }
+
+  #contacto,
+  #redes,
+  #imgfooter,
+  #finfooter {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  #imgfooter img {
+    margin-top: 20px;
+  }
 }
