@@ -1,10 +1,10 @@
 :root {
-  /* Colores */
-  --color-primario: #253c68;
-  --color-secundario: #8c0f0f;
-  --color-fondo: #f9f6ee;
-  --color-tercero: #d5f2ef;
-  --color-texto: #444444;
+  --color-primario: #425b8c; /* Azul oscuro - menú y footer */
+  --color-secundario: #bf1b1b; /* Rojo vibrante - botones y destacados */
+  --color-secundario-hover: #8c0f0f; /* Rojo oscuro - hover de botones */
+  --color-fondo: #d5f2ef; /* Celeste pastel clarito - fondo general */
+  --color-tercero: #49bfbf; /* Turquesa - detalles y hovers secundarios */
+  --color-texto: #444444; /* Gris oscuro para el texto (mejor legibilidad) */
 
   /* Otros */
   --radio-borde: 8px;
@@ -27,7 +27,7 @@ body {
 *,
 *::before,
 *::after {
-  box-sizing: border-box; /* Previene desbordes en todo el documento */
+  box-sizing: border-box;
 }
 
 body {
@@ -60,7 +60,7 @@ nav {
   top: 0;
   width: 100%;
   z-index: 1000;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra para el menú fijo */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 .navbar {
@@ -70,7 +70,8 @@ nav {
   max-height: 90px;
   padding: 0 5%;
   width: 100%;
-  background-color: white;
+  background-color: var(--color-primario);
+  border-bottom: 4px solid var(--color-tercero);
 }
 
 .navlogo {
@@ -79,7 +80,6 @@ nav {
   justify-content: center;
   min-width: 170px;
   gap: 10px;
-  color: var(--color-primario);
   font-family: var(--fuente-encabezados);
   font-size: 2rem;
   font-weight: bold;
@@ -103,37 +103,34 @@ nav {
 }
 
 .navlinks a {
-  color: var(--color-texto);
+  color: white;
   font-family: var(--fuente-alternativa);
   font-size: 1.2rem;
+  transition: color 0.2s;
 }
 
 .navlinks a:hover {
-  color: var(--color-primario);
+  color: var(--color-tercero); /* Hover turquesa */
 }
 
 /* ==================== HERO BANNER ==================== */
 .hero {
-  /* Compensa el nav fijo para que no quede detrás */
   margin-top: 90px;
-
-  /* Reemplazá 'fondo-escuela.jpg' con una imagen real del colegio */
   background-image:
-    linear-gradient(rgba(37, 60, 104, 0.8), rgba(37, 60, 104, 0.8)),
+    linear-gradient(rgba(66, 91, 140, 0.8), rgba(66, 91, 140, 0.8)),
     url("../imagenes/fondo-escuela.jpg");
   background-size: cover;
   background-position: center;
-
   height: 60vh;
   min-height: 400px;
   border-radius: var(--radio-borde);
   margin-bottom: 2rem;
-
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .hero-contenido h1 {
@@ -167,7 +164,7 @@ nav {
 }
 
 .btn-principal:hover {
-  background-color: #a81212;
+  background-color: var(--color-secundario-hover);
   transform: translateY(-3px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
@@ -178,10 +175,9 @@ main {
   width: 90%;
   max-width: 75rem;
   margin: 0 auto;
-  padding: 0 0 40px 0; /* Padding ajustado */
+  padding: 0 0 40px 0;
 }
 
-/* Diseño de "Tarjetas" para las secciones dentro del main (excepto el hero) */
 main section:not(.hero) {
   background-color: white;
   padding: 40px;
@@ -204,7 +200,7 @@ main li {
 
 main h2,
 main h3 {
-  margin-top: 0; /* Reseteamos el margen superior para que se alineen bien en la tarjeta */
+  margin-top: 0;
   margin-bottom: 1.5rem;
   color: var(--color-primario);
 }
@@ -215,19 +211,22 @@ main h3 {
 }
 
 #preinscripcion img {
-  height: 4rem;
-  width: 4rem;
+  height: 5rem;
+  width: 5rem;
   background-color: var(--color-fondo);
-  border: solid 2px var(--color-primario);
-  border-radius: 50%; /* Más prolijo para íconos circulares */
+  border: solid 3px var(--color-primario);
+  border-radius: 50%;
   display: block;
   margin: 1.5rem auto;
-  padding: 10px;
-  transition: transform 0.3s ease;
+  padding: 15px;
+  transition:
+    transform 0.3s ease,
+    background-color 0.3s ease;
 }
 
 #preinscripcion img:hover {
   transform: scale(1.1);
+  background-color: var(--color-tercero);
 }
 
 #formulariopreinscripcion {
@@ -278,7 +277,7 @@ main form select:focus,
 main form textarea:focus {
   outline: none;
   border-color: var(--color-primario);
-  box-shadow: 0 0 0 2px rgba(37, 60, 104, 0.15); /* Sombreado azulado */
+  box-shadow: 0 0 0 2px rgba(66, 91, 140, 0.2);
 }
 
 main form textarea {
@@ -291,7 +290,7 @@ main form input[type="submit"] {
   padding: 12px 24px;
   border: none;
   border-radius: var(--radio-borde);
-  background-color: var(--color-primario);
+  background-color: var(--color-secundario);
   color: white;
   font-family: var(--fuente-encabezados);
   font-size: 1rem;
@@ -302,7 +301,7 @@ main form input[type="submit"] {
 
 main form button:hover,
 main form input[type="submit"]:hover {
-  background-color: #172643;
+  background-color: var(--color-secundario-hover);
 }
 
 #limpiar {
@@ -358,7 +357,7 @@ main tbody tr:nth-child(even) {
 }
 
 main tbody tr:hover {
-  background-color: #f1f5fa; /* Efecto hover en las filas de la tabla */
+  background-color: #f1f5fa;
 }
 
 /* ==================== FOOTER ==================== */
@@ -366,12 +365,12 @@ footer {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   gap: 1rem 2rem;
-  align-items: start;
+  align-items: center;
   width: 100%;
   padding: 3rem 5% 1.5rem;
   background-color: var(--color-primario);
   margin-top: auto;
-  color: var(--color-tercero);
+  color: white;
 }
 
 #contacto {
@@ -379,34 +378,43 @@ footer {
   grid-row: 1;
 }
 
+#contacto h2 {
+  margin: 0 0 1.2rem;
+  color: white;
+}
+
+#contacto p {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0.8rem 0;
+}
+
+/* Estilo para los íconos de ubicación y teléfono */
+#contacto i {
+  font-size: 1.2rem;
+  color: var(--color-tercero);
+  width: 20px;
+  text-align: center;
+}
+
 #contacto a {
   color: var(--color-tercero);
 }
 
-#contacto a:hover,
-#redes a:hover {
+#contacto a:hover {
   color: white;
   text-decoration: underline;
 }
 
-#redes {
-  grid-column: 1;
-  grid-row: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-#redes a {
-  color: var(--color-tercero);
-}
-
 #imgfooter {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 20px;
 }
 
 #imgfooter img {
@@ -417,25 +425,37 @@ footer {
   opacity: 0.95;
 }
 
+#redes-iconos {
+  display: flex;
+  gap: 25px;
+}
+
+#redes-iconos a {
+  color: white;
+  font-size: 2rem;
+  transition:
+    transform 0.3s ease,
+    color 0.3s ease;
+}
+
+#redes-iconos a:hover {
+  color: var(--color-tercero);
+  transform: scale(1.2);
+}
+
 #finfooter {
   grid-column: 1 / -1;
   margin-top: 2rem;
   padding-top: 1.5rem;
   text-align: center;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
 #finfooter p {
   margin: 0.4rem 0;
   font-size: 0.9rem;
 }
-
-#contacto h2,
-#redes h2 {
-  margin: 0 0 0.8rem;
-  color: white;
-}
-
 /* ==================== RESPONSIVE ==================== */
 img {
   max-width: 100%;
@@ -443,6 +463,10 @@ img {
 }
 
 @media (max-width: 768px) {
+  nav {
+    position: relative;
+  }
+
   .navbar {
     flex-direction: column;
     max-height: none;
@@ -462,7 +486,7 @@ img {
   }
 
   .hero {
-    margin-top: 180px; /* Compensa el menú expandido en celulares */
+    margin-top: 20px;
     min-height: 350px;
   }
 
