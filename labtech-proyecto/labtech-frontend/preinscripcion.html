@@ -1,92 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Preinscripcion - Sistema de Gestión Académica</title>
-    <link rel="stylesheet" href="css/estilos.css">
-</head>
-<body>
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+  <body>
     <header>
       <nav class="navbar">
-        <a href="index.html" class="navlogo"><img src="imagenes/logo-tomas-baras-letras-negras.png" alt="Logo de la Escuela Tomás Baras"/></a>
+        <a href="index.html" class="navlogo">
+          <!-- Logo en letras blancas para contrastar con el menú azul -->
+          <img
+            src="imagenes/logo-tomas-baras-letras-blancas.png"
+            alt="Logo de la Escuela Tomás Baras"
+          />
+        </a>
         <ul class="navlinks">
           <li>
-            <a href="#quienessomos"> Quienes Somos? </a>
+            <a href="index.html#quienessomos"> Quienes Somos? </a>
           </li>
           <li>
-            <a href="#historia"> Historia </a>
+            <a href="index.html#historia"> Historia </a>
           </li>
           <li>
             <a href="calificaciones.html"> Calificaciones </a>
           </li>
           <li>
-            <a href="#contacto"> Contacto </a>
+            <a href="index.html#contacto"> Contacto </a>
           </li>
         </ul>
       </nav>
     </header>
 
-    </header>
-
     <main>
-
+      <!-- Agregamos margen superior para que el menú fijo no tape el formulario -->
+      <section style="margin-top: 120px">
         <form action="" method="">
-            <label for="mail">Ingrese Correo de Contacto:</label>
-            <input type="email" name="mail" id="mail" required>
+          <label for="mail">Ingrese Correo de Contacto:</label>
+          <input type="email" name="mail" id="mail" required />
 
-            <label for="nombre">Ingrese Nombre Completo:</label>
-            <input type="text" name="nombre" id="mail" required>
+          <!-- Corregido el ID duplicado (antes decía id="mail") -->
+          <label for="nombre">Ingrese Nombre Completo:</label>
+          <input type="text" name="nombre" id="nombre" required />
 
-            <label for="dni">Ingrese su DNI:</label>
-            <input type="text" name="dni" id="dni" required>
+          <label for="dni">Ingrese su DNI:</label>
+          <input type="text" name="dni" id="dni" required />
 
-            <label for="edad"> Indique su Edad:</label>
-            <input type="number" name="edad" id="edad" required min="18" max="99"><br>
+          <label for="edad"> Indique su Edad:</label>
+          <input
+            type="number"
+            name="edad"
+            id="edad"
+            required
+            min="18"
+            max="99"
+          /><br />
 
-            <label for="cursado">Indique cual fue su ultimo año de estudio:</label>
-            <select name="cursado" id="cursado">
-                <option value="1er">1er Año</option>
-                <option value="2do">2do Año</option>
-                <option value="3er">3er Año</option>
-                <option value="4to">4to Año</option>
-                <option value="5to">5to Año</option>
-            </select>
-            
-            <label for="adicional">Detalle Adicional:</label>
-            <textarea name="adicional" id="adicional"></textarea>
+          <label for="cursado"
+            >Indique cual fue su ultimo año de estudio:</label
+          >
+          <select name="cursado" id="cursado">
+            <option value="1er">1er Año</option>
+            <option value="2do">2do Año</option>
+            <option value="3er">3er Año</option>
+            <option value="4to">4to Año</option>
+            <option value="5to">5to Año</option>
+          </select>
 
-            <input type="submit" name="enviado" id="enviado" value="Enviar">
+          <label for="adicional">Detalle Adicional:</label>
+          <textarea name="adicional" id="adicional"></textarea>
+
+          <input type="submit" name="enviado" id="enviado" value="Enviar" />
         </form>
-
+      </section>
     </main>
-    
+
     <footer>
       <section id="contacto">
         <h2>Contacto</h2>
-        <p>Dirección:<a href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D" target="_blank"> Pringles y Av. Pte. Juan Domingo Perón, San Luis</a></p>
+        <p>
+          Dirección:<a
+            href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D"
+            target="_blank"
+          >
+            Pringles y Av. Pte. Juan Domingo Perón, San Luis</a
+          >
+        </p>
         <p>Teléfono:<a href="tel:+542664302010"> 2664302010 </a></p>
       </section>
 
       <section id="redes">
         <h2>Nuestras Redes</h2>
-        <a href="https://www.facebook.com/tomas.baras.9" target="_blank">Facebook</a>
-        <a href="https://www.instagram.com/colegio3tomas_baras/" target="_blank">Instagram</a>
+        <a href="https://www.facebook.com/tomas.baras.9" target="_blank"
+          >Facebook</a
+        >
+        <a href="https://www.instagram.com/colegio3tomas_baras/" target="_blank"
+          >Instagram</a
+        >
       </section>
 
       <div id="imgfooter">
-        <a href="index.html"><img src="imagenes/logo-tomas-baras-letras-blancas.png"></a>
+        <a href="index.html"
+          ><img
+            src="imagenes/logo-tomas-baras-letras-blancas.png"
+            alt="Logo Colegio Tomás Baras"
+        /></a>
       </div>
 
       <section id="finfooter">
-        <p>
-          Escuela Nocturna Secundaria de Adultos N°3 "Tomás Baras"
-        </p>
+        <p>Escuela Nocturna Secundaria de Adultos N°3 "Tomás Baras"</p>
         <p>&copy; 2026 Colegio Tomás Baras</p>
-
       </section>
-      
     </footer>
-
-</body>
+  </body>
 </html>
