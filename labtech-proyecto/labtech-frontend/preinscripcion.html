@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Preinscripcion - Sistema de Gestión Académica</title>
     <link rel="stylesheet" href="css/estilos.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
   </head>
   <body>
     <header>
       <nav class="navbar">
         <a href="index.html" class="navlogo">
-          <!-- Logo en letras blancas para contrastar con el menú azul -->
           <img
             src="imagenes/logo-tomas-baras-letras-blancas.png"
             alt="Logo de la Escuela Tomás Baras"
@@ -34,13 +37,11 @@
     </header>
 
     <main>
-      <!-- Agregamos margen superior para que el menú fijo no tape el formulario -->
       <section style="margin-top: 120px">
         <form action="" method="">
           <label for="mail">Ingrese Correo de Contacto:</label>
           <input type="email" name="mail" id="mail" required />
 
-          <!-- Corregido el ID duplicado (antes decía id="mail") -->
           <label for="nombre">Ingrese Nombre Completo:</label>
           <input type="text" name="nombre" id="nombre" required />
 
@@ -79,34 +80,48 @@
     <footer>
       <section id="contacto">
         <h2>Contacto</h2>
+
         <p>
-          Dirección:<a
+          <i class="fa-solid fa-location-dot"></i>
+          <a
             href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D"
             target="_blank"
           >
-            Pringles y Av. Pte. Juan Domingo Perón, San Luis</a
-          >
+            Pringles y Av. Pte. Juan Domingo Perón, San Luis
+          </a>
         </p>
-        <p>Teléfono:<a href="tel:+542664302010"> 2664302010 </a></p>
+
+        <p>
+          <i class="fa-solid fa-phone"></i>
+          <a href="tel:+542664302010"> 2664302010 </a>
+        </p>
       </section>
 
-      <section id="redes">
-        <h2>Nuestras Redes</h2>
-        <a href="https://www.facebook.com/tomas.baras.9" target="_blank"
-          >Facebook</a
-        >
-        <a href="https://www.instagram.com/colegio3tomas_baras/" target="_blank"
-          >Instagram</a
-        >
-      </section>
-
-      <div id="imgfooter">
-        <a href="index.html"
-          ><img
+      <section id="imgfooter">
+        <a href="index.html">
+          <img
             src="imagenes/logo-tomas-baras-letras-blancas.png"
             alt="Logo Colegio Tomás Baras"
-        /></a>
-      </div>
+          />
+        </a>
+
+        <div id="redes-iconos">
+          <a
+            href="https://www.facebook.com/tomas.baras.9"
+            target="_blank"
+            title="Facebook"
+          >
+            <i class="fa-brands fa-facebook"></i>
+          </a>
+          <a
+            href="https://www.instagram.com/colegio3tomas_baras/"
+            target="_blank"
+            title="Instagram"
+          >
+            <i class="fa-brands fa-instagram"></i>
+          </a>
+        </div>
+      </section>
 
       <section id="finfooter">
         <p>Escuela Nocturna Secundaria de Adultos N°3 "Tomás Baras"</p>
