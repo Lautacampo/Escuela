@@ -6,33 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistema de Gestión Académica</title>
     <link rel="stylesheet" href="css/estilos.css" />
+    
+
   </head>
 
   <body>
-    <header id="inicio">
-      <h1>Sistema de Gestión Académica</h1>
-      <p class="subtitulo">
-        Escuela Nocturna Secundaria de Adultos N° 3 "Tomás Baras"
-      </p>
-
+    <header>
       <nav class="navbar">
-        <a href="index.html" class="navlogo">
-          <img
-            src="imagenes/logo-tomas-baras.png"
-            alt="Logo de la Escuela Tomás Baras"
-          />
-          <span>S.G.A.</span>
-        </a>
-
+        <a href="index.html" class="navlogo"><img src="imagenes/logo-tomas-baras-letras-negras.png" alt="Logo de la Escuela Tomás Baras"/></a>
         <ul class="navlinks">
           <li>
-            <a href="index.html"> Inicio </a>
+            <a href="#quienessomos"> Quienes Somos? </a>
           </li>
           <li>
-            <a href="alumnos.html"> Alumnos </a>
-          </li>
-          <li>
-            <a href="asistencia.html"> Asistencia </a>
+            <a href="#historia"> Historia </a>
           </li>
           <li>
             <a href="calificaciones.html"> Calificaciones </a>
@@ -46,111 +33,88 @@
 
 
     <main>
-      <section>
-        <h2>Bienvenidos</h2>
+      <section id="quienessomos">
+        <h2>Quienes Somos?</h2>
         <p>
-          Este sistema está destinado a facilitar la gestión de la información
-          académica de la Escuela Nocturna Secundaria de Adultos N° 3 "Tomás
-          Baras".
+          Desde 1987, el Colegio para Adultos Nº3 "Tomas Baras" ha sido un faro de oportunidades
+          educativas en San Luis, brindando a generaciones la posibilidad de completar sus estudios secundarios con una sólida
+          orientación en Ciencias Sociales.
+          Nuestra institución se enorgullece de su compromiso con la educacion inclusiva y de calidad, adaptada a las necesidades
+          y realidades de los adultos que buscan un futuro mejor.<br>
+          La eleccion del nombre "Tomas Baras" responde a la voluntad de honrar a un prócer de suelo puntano cuya vida fue un testimonio
+          indiscutible de patriotismo, entrega y abnegación duran los albores de la Revolución de Mayo.
+          Nacido en San Luis, fue Capitán de Voluntarios y miembro activo del Cabildo local.
+
+
+
         </p>
+  
+      </section>
+
+      <section id="historia">
+        <h2>Nuestra Historia</h2>
+
         <p>
-          Permitirá gestionar información de alumnos, docentes, preceptores,
-          materias, módulos, asistencias y calificaciones, facilitando el
-          seguimiento académico de los estudiantes.
+          Un documento de personal de planta permanente de la Institución que data de 1991, se observan a 12 docentes, una secretaria y el Director Oscar, Sosa. En la misma se puede observar que el colegio se llamaba “Centro Educativo de nivel secundario N° 240” CENS N° 240, funcionaba en la misma dirección que lo hace en la actualidad Pringles 319, dependía del Ministerio de Educación y Justicia y Dirección General de Personal.
+          En la misma se puede apreciar que eran tres los cursos en total, pertenecientes a 1° A, 2° A y 3° A. La Orientación era “Perito en Técnicas Policiales”. Las materias pertenecientes a primer año eran en total 8, entre ellas: Historia, lengua, Educación Cívica, Inglés, Biología, Criminalista, Identificación Humanas, Matemáticas.
+          Para el Segundo año son 10 en total, las cuales son: Matemáticas, Filosofía y Psicología, Historia, Lengua, inglés, Biología, Criminalistica, Identificación Humana, Física, Química. Con respecto al tercer año se cursaban 11 materias entre ellas: Toxicomania, matemáticas, Sociología, Economía Política, Derecho Civil y Comercial, Historia, Literatura, Inglés, Transito Publico, Física, Química. Así mismo se puede apreciar un documento de la Policía de la Provincia de San Luis Jefatura de Policía, en la que se detalla el Plan de Estudios, la carrera se denomina “Perito Auxiliar en Técnicas Policiales”, de nivel medio, con modalidad semi-presencial y a distancia, con una duración de 3 años.
+          Las condiciones de ingreso eran tener el primario completo e integrar la Planta Permanente de la Policía de la Provincia de San Luis. Los objetivos del Plan de Estudios eran los siguientes:
+        </p>  
+        <ul>
+            <li><p>Ofrecer una formación general y específica orientada a la Seguridad Publica.</p></li>
+            <li><p>Posibilitar el acceso a los Estudios Superiores y/o Universitarios.</p></li>
+            <li><p>Mejorar la capacitación profesional del Personal Policial.</p></li>
+            <li><p>Ofrecer al futuro oficial de la Policía, una nueva oportunidad de estudio de Nivel Medio.</p></li>
+            <li><p>Promover y profundizar el compromiso con la multiplicidad de acciones y tareas del quehacer de la Institución Policial.</p></li>
+
+          </ul>
+        
+      </section>
+
+      <section id="preinscripcion">
+        <h2>Preinscripcion</h2>
+
+        <p>
+          ¿Querés terminar tus estudios? ¿Retomar la secundaria? ¿Seguir creciendo personal y profesionalmente?
+          Este es tu momento.
+          En nuestro colegio acompañamos trayectorias reales, respetamos tus tiempos y te ofrecemos un espacio pensado para personas adultas que desean seguir aprendiendo
+          Animate a dar el paso. Tu título secundario te espera.<br>
+          <strong>Colegio Tomás Baras – Educación de Adultos</strong>
         </p>
+        <a href=""><img src="imagenes/sobre.png"></a>
+        <p id="formulariopreinscripcion">Complete Formulario</p>
+
       </section>
 
-      <section id="funciones">
-        <h2>Índice de contenido</h2>
-        <ol>
-          <li>
-            <a href="#usuarios">Usuarios del sistema</a>
-            <ul>
-              <li>Directivos</li>
-              <li>Docentes</li>
-              <li>Preceptores</li>
-            </ul>
-          </li>
-          <li>
-            <a href="alumnos.html">Gestión de personas (Alumnos)</a>
-          </li>
-          <li>
-            <a href="calificaciones.html">Gestión académica (Calificaciones)</a>
-          </li>
-          <li>
-            <a href="asistencia.html">Seguimiento académico (Asistencias)</a>
-          </li>
-        </ol>
-      </section>
 
-      <section id="usuarios">
-        <h2>Usuarios del sistema</h2>
 
-        <article>
-          <h3>Directivos</h3>
-          <p>
-            Son los principales administradores del sistema. Podrán gestionar
-            alumnos, docentes, preceptores, materias y módulos, además de
-            realizar el seguimiento académico de los estudiantes.
-          </p>
-        </article>
-
-        <article>
-          <h3>Docentes</h3>
-          <p>
-            Podrán consultar y registrar las calificaciones correspondientes a
-            los módulos cursados por los alumnos.
-          </p>
-        </article>
-
-        <article>
-          <h3>Preceptores</h3>
-          <p>
-            Podrán registrar y consultar la asistencia de los estudiantes y
-            realizar el seguimiento de las faltas acumuladas.
-          </p>
-        </article>
-      </section>
     </main>
 
     <footer>
       <section id="contacto">
         <h2>Contacto</h2>
-        <p>
-          Dirección:
-          <a
-            href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D"
-            target="_blank"
-          >
-            Av. Pte. Juan Domingo Perón, San Luis
-          </a>
-        </p>
-        <p>
-          Teléfono:
-          <a href="tel:+542664302010"> 2664302010 </a>
-        </p>
+        <p>Dirección:<a href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D" target="_blank"> Pringles y Av. Pte. Juan Domingo Perón, San Luis</a></p>
+        <p>Teléfono:<a href="tel:+542664302010"> 2664302010 </a></p>
       </section>
 
       <section id="redes">
         <h2>Nuestras Redes</h2>
-        <p>
-          <a href="https://www.facebook.com/tomas.baras.9" target="_blank">
-            Facebook
-          </a>
-          <a
-            href="https://www.instagram.com/colegio3tomas_baras/"
-            target="_blank"
-          >
-            Instagram
-          </a>
-        </p>
+        <a href="https://www.facebook.com/tomas.baras.9" target="_blank">Facebook</a>
+        <a href="https://www.instagram.com/colegio3tomas_baras/" target="_blank">Instagram</a>
       </section>
 
-      <p>
-        Sistema de Gestión Académica - Escuela Nocturna Secundaria de Adultos N°
-        3 "Tomás Baras"
-      </p>
-      <p>&copy; 2026 Colegio Tomás Baras</p>
+      <div id="imgfooter">
+        <a href="index.html"><img src="imagenes/logo-tomas-baras-letras-blancas.png"></a>
+      </div>
+
+      <section id="finfooter">
+        <p>
+          Escuela Nocturna Secundaria de Adultos N°3 "Tomás Baras"
+        </p>
+        <p>&copy; 2026 Colegio Tomás Baras</p>
+
+      </section>
+      
     </footer>
   </body>
 </html>
