@@ -5,184 +5,96 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Calificaciones - Sistema de Gestión Académica</title>
-    <link rel="stylesheet" href="css/estilos.css" />
+    <link rel="stylesheet" href="css/gestion.css">
     <script src="app.js" defer></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
   </head>
 
   <body>
-    <header>
-      <nav class="navbar">
-        <a href="index.html" class="navlogo"
-          ><img
-            src="imagenes/logo-tomas-baras-letras-blancas.png"
-            alt="Logo de la Escuela Tomás Baras"
-        /></a>
-        <ul class="navlinks">
-          <li>
-            <a href="index.html#quienessomos"> Quienes Somos? </a>
-          </li>
-          <li>
-            <a href="index.html#historia"> Historia </a>
-          </li>
-          <li>
-            <a href="calificaciones.html"> Calificaciones </a>
-          </li>
-          <li>
-            <a href="#contacto"> Contacto </a>
-          </li>
-        </ul>
-      </nav>
-    </header>
+    <div class="contenedor-dashboard">
+        <header class="header-lateral">
+            <nav class="navlateral">
+                <div class="logo-sidebar">
+                    <img src="imagenes/logo-tomas-baras-letras-blancas.png" alt="colegio">
+                </div>
+                <ul class="menu-sidebar">
+                    <li><a href="gestion.html" >Inicio</a></li>
+                    <li><a href="#">Gestión de Alumnos</a></li>
+                    <li><a href="#">Carga de Asistencia</a></li>
+                    <li><a href="calificaciones.html" class="activo"> Calificaciones </a></li>
+                    <li><a href="#">Reportes</a></li>
+                </ul>
+            </nav>
+        </header>
 
-    <main>
-      <section style="margin-top: 120px">
-        <h2>Calificaciones de los módulos</h2>
-        <p>
-          En esta sección los docentes podrán consultar y registrar las
-          calificaciones correspondientes a los módulos cursados por los
-          alumnos.
-        </p>
-        <p>
-          La calificación numérica corresponde únicamente al módulo. Las
-          materias que forman parte de cada módulo se registran como aprobadas
-          cuando corresponda.
-        </p>
-        <p>
-          <a href="#tabla-calificaciones"> Ir al listado de calificaciones </a>
-        </p>
-      </section>
+        
+        <div class="contenido-principal">
+            <header class="header-superior">
+                <nav class="navhorizontal">
+                    <div class="usuario-info">
+                        <p>Usuario: <strong>Administrador</strong></p>
+                    </div>
+                </nav>
+            </header>
 
-      <section id="tabla-calificaciones">
-        <h2>Listado de calificaciones</h2>
-        <table>
-          <caption>
-            Calificaciones de módulos
-          </caption>
-          <thead>
-            <tr>
-              <th>Alumno</th>
-              <th>Año</th>
-              <th>Módulo</th>
-              <th>Nota en números</th>
-              <th>Nota en letras</th>
-              <th>Fecha</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Juan Pérez</td>
-              <td>1° Año</td>
-              <td>Módulo I</td>
-              <td>8</td>
-              <td>Ocho</td>
-              <td>12/2026</td>
-              <td>Aprobado</td>
-            </tr>
-            <tr>
-              <td>Juan Pérez</td>
-              <td>1° Año</td>
-              <td>Módulo II</td>
-              <td>7</td>
-              <td>Siete</td>
-              <td>12/2026</td>
-              <td>Aprobado</td>
-            </tr>
-            <tr>
-              <td>María González</td>
-              <td>2° Año</td>
-              <td>Módulo III</td>
-              <td>9</td>
-              <td>Nueve</td>
-              <td>12/2026</td>
-              <td>Aprobado</td>
-            </tr>
-            <tr>
-              <td>María González</td>
-              <td>2° Año</td>
-              <td>Módulo IV</td>
-              <td>8</td>
-              <td>Ocho</td>
-              <td>12/2026</td>
-              <td>Aprobado</td>
-            </tr>
-            <tr>
-              <td>Carlos López</td>
-              <td>3° Año</td>
-              <td>Módulo V</td>
-              <td>7</td>
-              <td>Siete</td>
-              <td>12/2026</td>
-              <td>Aprobado</td>
-            </tr>
-            <tr>
-              <td>Carlos López</td>
-              <td>3° Año</td>
-              <td>Módulo VI</td>
-              <td>8</td>
-              <td>Ocho</td>
-              <td>12/2026</td>
-              <td>Aprobado</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-    </main>
-
-    <footer>
-      <section id="contacto">
-        <h2>Contacto</h2>
-
-        <p>
-          <i class="fa-solid fa-location-dot"></i>
-          <a
-            href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D"
-            target="_blank"
-          >
-            Pringles y Av. Pte. Juan Domingo Perón, San Luis
-          </a>
-        </p>
-
-        <p>
-          <i class="fa-solid fa-phone"></i>
-          <a href="tel:+542664302010"> 2664302010 </a>
-        </p>
-      </section>
-
-      <section id="imgfooter">
-        <a href="index.html">
-          <img
-            src="imagenes/logo-tomas-baras-letras-blancas.png"
-            alt="Logo Colegio Tomás Baras"
-          />
-        </a>
-
-        <div id="redes-iconos">
-          <a
-            href="https://www.facebook.com/tomas.baras.9"
-            target="_blank"
-            title="Facebook"
-          >
-            <i class="fa-brands fa-facebook"></i>
-          </a>
-          <a
-            href="https://www.instagram.com/colegio3tomas_baras/"
-            target="_blank"
-            title="Instagram"
-          >
-            <i class="fa-brands fa-instagram"></i>
-          </a>
-        </div>
-      </section>
-
-      <section id="finfooter">
-        <p>Escuela Nocturna Secundaria de Adultos N°3 "Tomás Baras"</p>
-        <p>&copy; 2026 Colegio Tomás Baras</p>
-      </section>
-    </footer>
+      <main>
+        <section id="tabla-calificaciones" class="contenedor-tabla">
+            <div class="cabecera-tabla">
+            <h2>Listado de Calificaciones</h2>
+      </div>
+        <div class="tabla-responsive">
+                    <table class="tabla-gestion">
+                      <thead>
+                        <tr>
+                          <th>Alumno</th>
+                          <th>Año</th>
+                          <th>Módulo</th>
+                          <th>Nota Final</th>
+                          <th>Fecha</th>
+                          <th>Estado</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Jesus Ortiz</td>
+                          <td>3° Año</td>
+                          <td>Módulo V</td>
+                          <td>8 (Ocho)</td>
+                          <td>12/2026</td>
+                          <td><span class="estado-ap">Aprobado</span></td>
+                          <td><a href="#" class="link-editar">Editar</a></td>
+                        </tr>
+                        <tr>
+                          <td>Juan Pérez</td>
+                          <td>1° Año</td>
+                          <td>Módulo I</td>
+                          <td>8 (Ocho)</td>
+                          <td>12/2026</td>
+                          <td><span class="estado-ap">Aprobado</span></td>
+                          <td><a href="#" class="link-editar">Editar</a></td>
+                        </tr>
+                        <tr>
+                          <td>María González</td>
+                          <td>2° Año</td>
+                          <td>Módulo III</td>
+                          <td>9 (Nueve)</td>
+                          <td>12/2026</td>
+                          <td><span class="estado-ap">Aprobado</span></td>
+                          <td><a href="#" class="link-editar">Editar</a></td>
+                        </tr>
+                        <tr>
+                          <td>Carlos López</td>
+                          <td>3° Año</td>
+                          <td>Módulo VI</td>
+                          <td>5 (Cinco)</td>
+                          <td>12/2026</td>
+                          <td><span class="estado-dp">Desaprobado</span></td>
+                          <td><a href="#" class="link-editar">Editar</a></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                </div>
+              </section>
+            </main>
   </body>
 </html>
