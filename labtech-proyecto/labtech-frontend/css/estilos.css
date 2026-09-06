@@ -517,6 +517,32 @@ footer {
   color: #777;
 }
 
+.director-principal {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  margin-bottom: 40px;
+}
+
+.tarjeta-miembro.destacada {
+  max-width: 350px;
+  width: 100%;
+  border: 2px solid var(--color-primario);
+  background-color: white;
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.tarjeta-miembro.destacada:hover {
+  transform: scale(1.1);
+}
+
+.titulo-historicos {
+  color: var(--color-texto);
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  text-align: center;
+}
 /* ==================== FORO DE PREGUNTAS ==================== */
 .contenedor-foro {
   display: grid;
