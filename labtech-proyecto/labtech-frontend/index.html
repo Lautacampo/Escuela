@@ -4,37 +4,58 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sistema de Gestión Académica</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/estilos.css" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js" defer></script>
   </head>
 
   <body>
     <header>
-      <nav class="navbar">
-        <a href="index.html" class="navlogo">
-          <img
-            src="imagenes/logo-tomas-baras-letras-blancas.png"
-            alt="Logo de la Escuela Tomás Baras"
-          />
-        </a>
-        <ul class="navlinks">
-          <li>
-            <a href="index.html#quienessomos"> Quienes Somos? </a>
-          </li>
-          <li>
-            <a href="index.html#historia"> Historia </a>
-          </li>
-          <li>
-            <a href="#contacto"> Contacto </a>
-          </li>
-          <li>
-            <a href="login.html"> Iniciar Sesión </a>
-          </li>
-          
-        </ul>
+      <nav class="navbar navbar-expand-lg navbar-principal">
+        <div class="container-fluid">
+          <a class="navbar-brand navlogo" href="index.html">
+            <img
+              src="imagenes/logo-tomas-baras-letras-blancas.png"
+              alt="Logo de la Escuela Tomás Baras"
+            />
+          </a>
+
+          <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#menu-principal"
+            aria-controls="menu-principal"
+            aria-expanded="false"
+            aria-label="Abrir menú"
+          >
+            <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="menu-principal">
+            <ul class="navbar-nav ms-auto navlinks">
+              <li class="nav-item">
+                <a class="nav-link" href="index.html#quienessomos"> Quienes Somos? </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="index.html#historia"> Historia </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="index.html#contacto"> Contacto </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="login.html"> Iniciar Sesión </a>
+              </li>
+              
+            </ul>
+          </div>
+        </div>
       </nav>
     </header>
 
@@ -224,5 +245,10 @@
         <p>&copy; 2026 Colegio Tomás Baras</p>
       </section>
     </footer>
+
+    <button class="btn-arriba" id="btn-arriba" aria-label="Volver arriba" title="Volver arriba">
+      <i class="fa-solid fa-arrow-up"></i>
+    </button>
+
   </body>
 </html>

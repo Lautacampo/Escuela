@@ -22,5 +22,37 @@ tablas.forEach(fila =>{
         celdaestado.appendChild(elemento); // cargo elemento a celda estado , ahora en html saco el contenido del td correspondiente al estado del alumno de la tabla calificaciones
     }
 
-})
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    const navbar = document.querySelector(".navbar-principal");
+
+    window.addEventListener("scroll", () => {
+        if(window.scrollY > 80) {
+            navbar.classList.add("navbar-compacta");
+        } else {
+            navbar.classList.remove("navbar-compacta");
+        }
+    })
+
+    const btnarr = document.getElementById("btn-arriba");
+
+    window.addEventListener("scroll", () => {
+        const altura = document.documentElement.scrollHeight - window.innerHeight;
+        const mitad = altura / 2;
+
+        if (window.scrollY > mitad) {
+            btnarr.classList.add("visible");
+        }else{
+            btnarr.classList.remove("visible");
+        }
+    });
+
+    btnarr.addEventListener("click", () => {
+        window.scrollTo({
+            top:0,
+            behavior: "smooth"
+        });
+    });
+});
 
