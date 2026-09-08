@@ -201,9 +201,11 @@ main h3 {
 
 /* ==================== SECCIÓN: QUIÉNES SOMOS ==================== */
 .seccion-destacada {
-  background-color: var(--color-fondo) !important;
+  background-color: var(--color-primario) !important;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radio-borde);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 
 .contenedor-columnas {
@@ -248,6 +250,115 @@ main h3 {
 .tarjeta-info h3 {
   font-size: 1.2rem;
   color: var(--color-tercero);
+}
+
+/* ==================== SECCIÓN: MISIÓN Y VISIÓN ==================== */
+#identidad-institucional {
+  background-color: var(--color-primario);
+  padding: 60px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  border-radius: var(--radio-borde);
+  margin-bottom: 30px;
+}
+
+.grid-mision-vision {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.tarjeta-identidad {
+  background-color: var(--color-tarjetas);
+  padding: 35px;
+  border-radius: var(--radio-borde);
+  border-top: 4px solid var(--color-tercero);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.tarjeta-identidad:hover {
+  transform: translateY(-5px);
+}
+
+.tarjeta-identidad h3 {
+  color: var(--color-tercero);
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tarjeta-identidad p {
+  font-size: 1.05rem;
+  color: var(--color-texto);
+  text-align: justify;
+}
+
+/* ==================== OBJETIVOS INSTITUCIONALES ==================== */
+.contenedor-objetivos-inst {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.objetivo-general-caja {
+  background-color: var(--color-fondo);
+  padding: 30px;
+  border-radius: var(--radio-borde);
+  border-left: 5px solid var(--color-secundario);
+  text-align: center;
+}
+
+.objetivo-general-caja h3 {
+  color: white;
+  margin-bottom: 15px;
+}
+
+.objetivo-general-caja p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.objetivos-especificos-caja {
+  background-color: var(--color-tarjetas);
+  padding: 40px;
+  border-radius: var(--radio-borde);
+}
+
+.objetivos-especificos-caja h3 {
+  color: var(--color-tercero);
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 1.4rem;
+}
+
+.grilla-check {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 40px;
+  list-style: none;
+  padding: 0;
+}
+
+.grilla-check li {
+  position: relative;
+  padding-left: 35px;
+  color: var(--color-texto);
+  font-size: 0.95rem;
+}
+
+.grilla-check li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--color-secundario);
+  font-weight: bold;
+  font-size: 1.2rem;
 }
 
 /* ==================== SECCIÓN: HISTORIA Y MATERIAS ==================== */
@@ -751,6 +862,12 @@ img {
   }
   main section:not(.hero) {
     padding: 25px 15px;
+  }
+  .grid-mision-vision {
+    grid-template-columns: 1fr;
+  }
+  .grilla-check {
+    grid-template-columns: 1fr;
   }
 
   .contenedor-foro,
