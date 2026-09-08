@@ -26,12 +26,15 @@ tablas.forEach(fila =>{
 
 document.addEventListener("DOMContentLoaded", () => {
     const navbar = document.querySelector(".navbar-principal");
+    const headerFijo = document.getElementById("header-fijo");
 
     window.addEventListener("scroll", () => {
         if(window.scrollY > 80) {
+            headerFijo.classList.add("compacto");
             navbar.classList.add("navbar-compacta");
         } else {
             navbar.classList.remove("navbar-compacta");
+            headerFijo.classList.remove("compacto");
         }
     })
 
