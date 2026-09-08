@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Preinscripcion - Sistema de Gestión Académica</title>
+    <title>Preinscripción - Colegio Tomás Baras</title>
     <link rel="stylesheet" href="css/estilos.css" />
     <link
       rel="stylesheet"
@@ -20,83 +20,230 @@
           />
         </a>
         <ul class="navlinks">
+          <li><a href="index.html#quienessomos">Quienes Somos?</a></li>
+          <li><a href="index.html#historia-evolucion">Historia</a></li>
+          <li><a href="index.html#equipo">Equipo Docente</a></li>
+          <li><a href="index.html#foro">Foro</a></li>
+          <li><a href="index.html#contacto">Contacto</a></li>
           <li>
-            <a href="index.html#quienessomos"> Quienes Somos? </a>
-          </li>
-          <li>
-            <a href="index.html#historia"> Historia </a>
-          </li>
-          <li>
-            <a href="calificaciones.html"> Calificaciones </a>
-          </li>
-          <li>
-            <a href="index.html#contacto"> Contacto </a>
+            <a
+              href="login.html"
+              style="font-weight: bold; color: var(--color-secundario)"
+              >Iniciar Sesión</a
+            >
           </li>
         </ul>
       </nav>
     </header>
 
     <main>
-      <section style="margin-top: 120px">
-        <form action="" method="">
-          <label for="mail">Ingrese Correo de Contacto:</label>
-          <input type="email" name="mail" id="mail" required />
+      <section
+        class="contenedor-formulario"
+        style="margin-top: 120px; margin-bottom: 40px"
+      >
+        <div class="caja-formulario">
+          <h2 style="text-align: center; color: white; margin-bottom: 30px">
+            Formulario de Preinscripción
+          </h2>
 
-          <label for="nombre">Ingrese Nombre Completo:</label>
-          <input type="text" name="nombre" id="nombre" required />
+          <form action="#" method="POST">
+            <!-- BLOQUE 1: Datos Personales -->
+            <fieldset>
+              <legend><i class="fa-solid fa-user"></i> Datos Personales</legend>
 
-          <label for="dni">Ingrese su DNI:</label>
-          <input type="text" name="dni" id="dni" required />
+              <label for="nombre"
+                >Apellido y Nombre del Alumno (Completos según
+                documento):</label
+              >
+              <input type="text" name="nombre" id="nombre" required />
 
-          <label for="edad"> Indique su Edad:</label>
-          <input
-            type="number"
-            name="edad"
-            id="edad"
-            required
-            min="18"
-            max="99"
-          /><br />
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="dni">Documento (LE/LC/DNI N°):</label>
+                  <input type="text" name="dni" id="dni" required />
+                </div>
+                <div class="form-group">
+                  <label for="cuil">CUIL:</label>
+                  <input type="text" name="cuil" id="cuil" required />
+                </div>
+              </div>
 
-          <label for="cursado"
-            >Indique cual fue su ultimo año de estudio:</label
-          >
-          <select name="cursado" id="cursado">
-            <option value="1er">1er Año</option>
-            <option value="2do">2do Año</option>
-            <option value="3er">3er Año</option>
-            <option value="4to">4to Año</option>
-            <option value="5to">5to Año</option>
-          </select>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="fecha_nac">Fecha de Nacimiento:</label>
+                  <input type="date" name="fecha_nac" id="fecha_nac" required />
+                </div>
+                <div class="form-group">
+                  <label for="edad">Edad (Años):</label>
+                  <input
+                    type="number"
+                    name="edad"
+                    id="edad"
+                    min="18"
+                    max="99"
+                    required
+                  />
+                </div>
+              </div>
 
-          <label for="adicional">Detalle Adicional:</label>
-          <textarea name="adicional" id="adicional"></textarea>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="nacionalidad">Nacionalidad:</label>
+                  <input
+                    type="text"
+                    name="nacionalidad"
+                    id="nacionalidad"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="lugar_nac"
+                    >Lugar de Nacimiento (Ciudad/Provincia):</label
+                  >
+                  <input type="text" name="lugar_nac" id="lugar_nac" required />
+                </div>
+              </div>
+            </fieldset>
 
-          <input type="submit" name="enviado" id="enviado" value="Enviar" />
-        </form>
+            <!-- BLOQUE 2: Datos de Contacto -->
+            <fieldset>
+              <legend>
+                <i class="fa-solid fa-address-book"></i> Datos de Contacto
+              </legend>
+
+              <label for="domicilio">Domicilio:</label>
+              <input type="text" name="domicilio" id="domicilio" required />
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="telefono">Teléfono:</label>
+                  <input type="tel" name="telefono" id="telefono" required />
+                </div>
+                <div class="form-group">
+                  <label for="mail">Mail:</label>
+                  <input type="email" name="mail" id="mail" required />
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- BLOQUE 3: Laboral y Familiar -->
+            <fieldset>
+              <legend>
+                <i class="fa-solid fa-briefcase"></i> Información Laboral y
+                Familiar
+              </legend>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="trabaja">¿Trabaja?</label>
+                  <select name="trabaja" id="trabaja">
+                    <option value="no">NO</option>
+                    <option value="si">SI</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 2">
+                  <label for="lugar_trabajo">Lugar de Trabajo:</label>
+                  <input type="text" name="lugar_trabajo" id="lugar_trabajo" />
+                </div>
+              </div>
+
+              <label for="hijos"
+                >En caso de ser Madre/Padre, cantidad de hijos:</label
+              >
+              <input type="number" name="hijos" id="hijos" min="0" />
+            </fieldset>
+
+            <!-- BLOQUE 4: Salud y Emergencias -->
+            <fieldset>
+              <legend>
+                <i class="fa-solid fa-heart-pulse"></i> Salud y Emergencias
+              </legend>
+
+              <label for="salud"
+                >Salud: ¿Padece alguna enfermedad, de qué tipo?</label
+              >
+              <input
+                type="text"
+                name="salud"
+                id="salud"
+                placeholder="Especificar o dejar en blanco"
+              />
+
+              <label for="medicacion"
+                >¿Toma alguna medicación? SI/NO (Especificar cuál):</label
+              >
+              <input
+                type="text"
+                name="medicacion"
+                id="medicacion"
+                placeholder="Especificar o dejar en blanco"
+              />
+
+              <div class="form-row">
+                <div class="form-group" style="flex: 2">
+                  <label for="emergencia_nombre"
+                    >En caso de emergencia llamar a (Nombre):</label
+                  >
+                  <input
+                    type="text"
+                    name="emergencia_nombre"
+                    id="emergencia_nombre"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="emergencia_tel">T.E. N° (Teléfono):</label>
+                  <input
+                    type="tel"
+                    name="emergencia_tel"
+                    id="emergencia_tel"
+                    required
+                  />
+                </div>
+              </div>
+            </fieldset>
+
+            <button
+              type="submit"
+              class="btn-principal"
+              style="width: 100%; margin-top: 15px; border-radius: 8px"
+            >
+              Enviar Preinscripción
+            </button>
+          </form>
+        </div>
       </section>
     </main>
 
+ 
     <footer>
       <section id="contacto">
         <h2>Contacto</h2>
-
         <p>
           <i class="fa-solid fa-location-dot"></i>
-          <a
-            href="https://www.google.com/maps/place/Colegio+TOMAS+BARAS/@-33.3015241,-66.3274142,43m/data=!3m1!1e3!4m6!3m5!1s0x95d43eaa4a204741:0x65c68a2a42bef6b0!8m2!3d-33.3014951!4d-66.3274549!16s%2Fg%2F11cm11lqlv?entry=ttu&g_ep=EgoyMDI2MDgxOS4wIKXMDSoASAFQAw%3D%3D"
-            target="_blank"
+          <a href="https://www.google.com/maps/..." target="_blank"
+            >Pringles y Av. Pte. Juan Domingo Perón, San Luis</a
           >
-            Pringles y Av. Pte. Juan Domingo Perón, San Luis
-          </a>
         </p>
-
         <p>
           <i class="fa-solid fa-phone"></i>
-          <a href="tel:+542664302010"> 2664302010 </a>
+          <a href="tel:+542664517164">2664 517164</a>
         </p>
       </section>
-
+      <section id="horarios">
+        <h2>Horarios de Atención</h2>
+        <p><i class="fa-solid fa-calendar-days"></i> Lunes a Viernes</p>
+        <p><i class="fa-solid fa-clock"></i> 19:30 a 23:30 hs</p>
+      </section>
+      <section id="enlaces">
+        <h2>Enlaces de Interés</h2>
+        <ul>
+          <li><a href="index.html#quienessomos">Quienes Somos?</a></li>
+          <li><a href="index.html#historia-evolucion">Historia</a></li>
+          <li><a href="index.html#equipo">Equipo Docente</a></li>
+          <li><a href="index.html#contacto">Contacto</a></li>
+        </ul>
+      </section>
       <section id="imgfooter">
         <a href="index.html">
           <img
@@ -104,25 +251,7 @@
             alt="Logo Colegio Tomás Baras"
           />
         </a>
-
-        <div id="redes-iconos">
-          <a
-            href="https://www.facebook.com/tomas.baras.9"
-            target="_blank"
-            title="Facebook"
-          >
-            <i class="fa-brands fa-facebook"></i>
-          </a>
-          <a
-            href="https://www.instagram.com/colegio3tomas_baras/"
-            target="_blank"
-            title="Instagram"
-          >
-            <i class="fa-brands fa-instagram"></i>
-          </a>
-        </div>
       </section>
-
       <section id="finfooter">
         <p>Escuela Nocturna Secundaria de Adultos N°3 "Tomás Baras"</p>
         <p>&copy; 2026 Colegio Tomás Baras</p>
