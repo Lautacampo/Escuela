@@ -1,9 +1,8 @@
 import { createBrowserRouter } from "react-router";
 import LayoutPublico from "./shared/layout/LayoutPublico";
-import { HomePage } from "./features/home/HomePage";
-
-// import LoginPage from './features/auth/pages/LoginPage';
-// import PreinscripcionPage from './features/preinscripcion/pages/PreinscripcionPage';
+import { HomePage } from "./features/home/pages/HomePage";
+import LoginPage from './features/login/pages/LoginPage';
+import PreinscripcionPage from './features/preinscripcion/pages/PreinscripcionPage';
 
 export const router = createBrowserRouter([
   {
@@ -14,17 +13,17 @@ export const router = createBrowserRouter([
         index: true,
         element: <HomePage />,
       },
-
-      /*
       { 
         path: 'preinscripcion', 
         element: <PreinscripcionPage /> 
       },
-      { 
-        path: 'login', 
-        element: <LoginPage /> 
-      }
-      */
     ],
   },
+
+  { 
+        path: 'login', 
+        element: <LoginPage /> 
+  }
+
+
 ]);
