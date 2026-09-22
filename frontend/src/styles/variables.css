@@ -1,0 +1,17 @@
+:root {
+  /* Paleta "Tomás Baras" */
+  --color-fondo: #061930;
+  --color-primario: #0b3469;
+  --color-secundario: #bf1b1b;
+  --color-secundario-hover: #8c0f0f;
+  --color-tercero: #4fc3f7;
+  --color-texto: #e2e8f0;
+  --color-tarjetas: #0d2340;
+
+  --radio-borde: 8px;
+
+  /* Fuentes */
+  --fuente-principal: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --fuente-encabezados:
+    "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+}
