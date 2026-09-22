@@ -13,7 +13,6 @@ export default function Spinner() {
         color: "var(--color-tercero)",
       }}
     >
-      {/* Usando FontAwesome (si lo tenés integrado) o podés usar un SVG animado */}
       <i
         className="fa-solid fa-circle-notch fa-spin fa-3x"
         style={{ marginBottom: "20px" }}
