@@ -1,6 +1,6 @@
 import { Outlet } from "react-router";
 import "../../features/gestion/components/gestion.css";
-import NavabarGestion from "./NavabarGestion";
+import NavabarGestion from "./NavbarGestion";
 import NavBarGestionLateral from "./NavBarGestionLateral";
 
 export default function LayoutPrivado() {
