@@ -173,7 +173,7 @@ export function Home() {
           <article className="tarjeta-miembro destacada">
             <div className="imagen-miembro">
               <img
-                src="./public/img/directores/directora.jpg"
+                src="/img/directores/directora.jpg"
                 alt="Foto de Andrea González"
               />
             </div>
@@ -189,7 +189,7 @@ export function Home() {
           <article className="tarjeta-miembro">
             <div className="imagen-miembro">
               <img
-                src="./public/img/directores/nilda.jpg"
+                src="/img/directores/nilda.jpg"
                 alt="Foto de Nilda Esther"
               />
             </div>
@@ -200,7 +200,7 @@ export function Home() {
           <article className="tarjeta-miembro">
             <div className="imagen-miembro">
               <img
-                src="./public/img/directores/oscar.jpg"
+                src="/img/directores/oscar.jpg"
                 alt="Foto de Oscar Sosa"
               />
             </div>
@@ -211,7 +211,7 @@ export function Home() {
           <article className="tarjeta-miembro">
             <div className="imagen-miembro">
               <img
-                src="./public/img/directores/gloria.jpg"
+                src="/img/directores/gloria.jpg"
                 alt="Foto de Gloria Contreras"
               />
             </div>
@@ -222,7 +222,7 @@ export function Home() {
           <article className="tarjeta-miembro">
             <div className="imagen-miembro">
               <img
-                src="./public/img/directores/secretaria.jpg"
+                src="/img/directores/secretaria.jpg"
                 alt="Foto de María Inés Robledo"
               />
             </div>
@@ -297,7 +297,7 @@ export function Home() {
         </p>
         <Link to="/preinscripcion">
           <img
-            src="./public/img/logos/sobre.png"
+            src="/img/logos/sobre.png"
             alt="Icono de correo electrónico"
           />
         </Link>

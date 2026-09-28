@@ -69,7 +69,7 @@ function Footer() {
             <section id="imgfooter">
               <Link to="/">
                 <img
-                  src="./public/img/logos/logo-tomas-baras-letras-blancas.png"
+                  src="/img/logos/logo-tomas-baras-letras-blancas.png"
                   alt="Logo Colegio Tomás Baras"
                 />
               </Link>

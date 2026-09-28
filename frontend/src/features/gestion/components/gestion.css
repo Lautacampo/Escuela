@@ -3,6 +3,7 @@
   --gestion-sidebar: #0f1929;
   --gestion-secundario: #bf1b1b;
   --gestion-secundario-hover: #8c0f0f;
+  --gestion-acento: #49bfbf;
   --gestion-fondo: #f4f7f6;
   --gestion-texto: #333333;
   --gestion-titulos: "Franklin Gothic Medium", Arial, sans-serif;
@@ -51,23 +52,54 @@
 
 .menu-sidebar {
   list-style: none;
-  padding: 20px 0;
+  padding: 12px;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .menu-sidebar li a {
-  display: block;
-  padding: 15px 25px;
-  color: white;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border-radius: var(--gestion-radio);
+  border-left: 3px solid transparent;
+  color: rgba(255, 255, 255, 0.75);
   text-decoration: none;
   font-family: "Roboto", sans-serif;
   font-size: 1.1rem;
-  transition: background 0.3s;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    padding-left 0.2s ease;
+}
+
+.menu-sidebar li a li {
+  width: 18px;
+  text-align: center;
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .menu-sidebar li a:hover,
+.menu-sidebar li a:focus-visible{
+  background-color: rgba(255, 255, 255, 0.08);
+  color: white;
+  padding-left: 22px;
+}
+
 .menu-sidebar li a.activo {
-  background-color: var(--gestion-secundario-hover);
+  background-color: rgba(73, 191, 191, 0.12);
+  border-left-color: var(--gestion-acento);
+  color:white;
+  font-weight: 600;
+}
+
+.menu-sidebar li a.activo i {
+  color:var(--gestion-acento);
 }
 
 /* derecha */
