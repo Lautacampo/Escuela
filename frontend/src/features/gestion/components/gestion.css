@@ -27,7 +27,7 @@
 
 /* nav lateral */
 .navlateral {
-  width: 260px;
+  width: 17rem;
   background-color: var(--gestion-primario);
   color: white;
   display: flex;
@@ -213,7 +213,7 @@
 }
 
 .tabla-gestion tbody tr:hover {
-  background-color: #f8fafc;
+  background-color: #dee9f5;
 }
 
 .link-editar {
@@ -246,6 +246,43 @@
   background-color: #fde8e8;
   color: red;
 }
+
+.condicion-regular, .condicion-libre {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.condicion-regular {
+  background-color: var(--gestion-fondo);
+  color: green;
+}
+
+.condicion-libre {
+  background-color: #fde8e8;
+  color: var(--gestion-secundario);
+}
+
+.barra-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-end;
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.barra-filtros .form-group {
+  flex: 0 1 180px;
+}
+
+.form-group-buscador {
+  flex: 1 1 240px;
+}
+
 /* Estilos para formularios en Gestión */
 .form-gestion {
   display: flex;

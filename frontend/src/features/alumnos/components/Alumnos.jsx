@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "../../../shared/hooks/useForm";
 import { esEmailValido, esDniValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre } from "../../../shared/utils/formato";
+import { ListadoAlumnos } from "./ListadoAlumnos";
 
 export function Alumnos() {
   // 1. Usamos el Hook personalizado para manejar todo el formulario en una línea
@@ -56,6 +57,9 @@ export function Alumnos() {
   return (
     <>
       <h1>Gestión de Alumnos</h1>
+
+      <ListadoAlumnos />
+
       <div className="contenedor-tabla">
         <div className="cabecera-tabla">
           <h2>Registrar alumno</h2>
@@ -76,6 +80,7 @@ export function Alumnos() {
                 className="input-gestion"
               />
             </div>
+
             <div className="form-group">
               <label htmlFor="apellido">Apellido:</label>
               <input
@@ -109,6 +114,7 @@ export function Alumnos() {
                 </span>
               )}
             </div>
+            
             <div className="form-group">
               <label htmlFor="email">Correo electrónico:</label>
               <input
