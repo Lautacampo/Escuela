@@ -105,16 +105,14 @@ export function Alumnos() {
                 value={valores.dni}
                 onChange={manejarCambio}
                 required
-                className="input-gestion"
+                className={'input-gestion${errores.dni ? " input-error" : ""}'}
               />
               {/* Mostrar error si la validación falla */}
               {errores.dni && (
-                <span style={{ color: "#bf1b1b", fontSize: "0.85rem" }}>
-                  {errores.dni}
-                </span>
+                <span className="mensaje-error">{errores.dni}</span>
               )}
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="email">Correo electrónico:</label>
               <input
@@ -124,12 +122,10 @@ export function Alumnos() {
                 value={valores.email}
                 onChange={manejarCambio}
                 required
-                className="input-gestion"
+                className={'input-gestion${errores.email ? " input-error" : ""}'}
               />
               {errores.email && (
-                <span style={{ color: "#bf1b1b", fontSize: "0.85rem" }}>
-                  {errores.email}
-                </span>
+                <span className="mensaje-error"></span>
               )}
             </div>
           </div>
@@ -165,7 +161,7 @@ export function Alumnos() {
             </div>
           </div>
 
-          <div className="form-group" style={{ width: "100%" }}>
+          <div className="form-group form-group-full">
             <label htmlFor="observaciones">Observaciones:</label>
             <textarea
               id="observaciones"
@@ -177,19 +173,11 @@ export function Alumnos() {
             ></textarea>
           </div>
 
-          <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
-            <button
-              type="submit"
-              className="btn-principal"
-              style={{ padding: "10px 20px", fontSize: "1rem", border: "none" }}
-            >
+          <div className="acciones-formulario">
+            <button type="submit" className="btn-primario-gestion">
               Registrar alumno
             </button>
-            <button
-              type="button"
-              onClick={resetearFormulario}
-              className="btn-secundario"
-            >
+            <button type="button" onClick={resetearFormulario} className="btn-secundario">
               Limpiar formulario
             </button>
           </div>

@@ -9,6 +9,7 @@ export default function NavabarGestion() {
     <header className="navhorizontal">
       <div className="navhorizontal-usuario">
         <p>
+          <i className="fa-solid fa-circle-user"></i>
           Usuario: <strong>Administrador</strong>
         </p>
         <Link
