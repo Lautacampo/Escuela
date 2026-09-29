@@ -1,0 +1,25 @@
+{
+  "modulos": [
+    { "id": 1, "nombre": "Primer Modulo", "divisiones": ["A", "B", "C", "D"] },
+    { "id": 2, "nombre": "Segundo Modulo", "divisiones": ["A", "B", "C", "D"] },
+    { "id": 3, "nombre": "Tercer Modulo", "divisiones": ["A", "B", "C", "D"] },
+    { "id": 4, "nombre": "Cuarto Modulo", "divisiones": ["A", "B", "C", "D"] },
+    { "id": 5, "nombre": "Quinto Modulo", "divisiones": ["A", "B", "C"] },
+    { "id": 6, "nombre": "Sexto Modulo", "divisiones": ["A", "B", "C"] }
+  ],
+
+  "materias": [
+    { "id": 1, "moduloId": 1, "nombre": "Historia" },
+    { "id": 2, "moduloId": 1, "nombre": "Lengua" },
+    { "id": 3, "moduloId": 2, "nombre": "Matematica" },
+    { "id": 4, "moduloId": 2, "nombre": "Identificación Humana" },
+    { "id": 5, "moduloId": 3, "nombre": "Fisica" },
+    { "id": 6, "moduloId": 3, "nombre": "Filosofia" },
+    { "id": 7, "moduloId": 4, "nombre": "Quimica" },
+    { "id": 8, "moduloId": 4, "nombre": "Criminalistica" },
+    { "id": 9, "moduloId": 5, "nombre": "Toxicomania" },
+    { "id": 10, "moduloId": 5, "nombre": "Sociologia" },
+    { "id": 11, "moduloId": 6, "nombre": "Ingles" },
+    { "id": 12, "moduloId": 6, "nombre": "Transito Publico" }
+  ]
+}
