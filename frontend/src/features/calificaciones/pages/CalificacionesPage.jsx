@@ -9,14 +9,19 @@ export function CalificacionesPage() {
   const[error,setError]=useState(null);
   
   useEffect(()=>{
-    getModulos()
-      .then(setModulos)
-      .catch((e)=>setError(e.message))
-      .finally(()=>setCargando(false));
-  },[]);
-  if(cargando)return <p>Cargando..</p>
-  if(error) return <p>{error}</p>
+    async function cargar() {
+      try{
+        const datos = await getModulos();
+        setModulos(datos);
+      }catch(e){
+        setError(e.message);
+      }finally{
+        setCargando(false);
+      }
 
+    }
+    cargar();
+  },[]);
 
   return (
     <section>
