@@ -1,48 +1,67 @@
+import { useMemo } from "react";
 import { useForm } from "../../../shared/hooks/useForm";
-
-const ALUMNOS_MOCK = [
-  { id: 1, apellido: "Pérez", nombre: "Juan", dni: 40123456, curso: "1", division: "A", moduloActual: "Módulo II", faltas: 4, condicion: "Regular" },
-  { id: 2, apellido: "González", nombre: "María", dni: 38987654, curso: "1", division: "A", moduloActual: "Módulo II", faltas: 12, condicion: "Regular" },
-  { id: 3, apellido: "López", nombre: "Carlos", dni: 41567890, curso: "1", division: "B", moduloActual: "Módulo I", faltas: 24, condicion: "Regular" },
-  { id: 4, apellido: "Rodríguez", nombre: "Laura", dni: 37543210, curso: "1", division: "B", moduloActual: "Módulo I", faltas: 25, condicion: "Libre" },
-  { id: 5, apellido: "Fernández", nombre: "Diego", dni: 39876543, curso: "2", division: "A", moduloActual: "Módulo IV", faltas: 8, condicion: "Regular" },
-  { id: 6, apellido: "Martínez", nombre: "Sofía", dni: 40234567, curso: "2", division: "A", moduloActual: "Módulo III", faltas: 18, condicion: "Regular" },
-  { id: 7, apellido: "Sosa", nombre: "Roberto", dni: 33112233, curso: "3", division: "A", moduloActual: "Módulo VI", faltas: 6, condicion: "Regular" },
-  { id: 8, apellido: "Herrera", nombre: "Valentina", dni: 42998877, curso: "3", division: "B", moduloActual: "Módulo V", faltas: 27, condicion: "Libre" },
-];
 
 const NOMBRE_CURSO = {"1": "1° Año", "2": "2° Año", "3": "3° Año"};
 
-export function ListadoAlumnos() {
+export function ListadoAlumnos({alumnos, onEditar, onEliminar,}) {
     const { valores: filtros, manejarCambio } = useForm({
         curso: "",
         division: "",
         busqueda: "",
     });
 
-    const divisionesDisponibles = [
-        ...new Set(ALUMNOS_MOCK.map((alumno) => alumno.division)),
-    ].sort();
+    const divisionesDisponibles = useMemo(() => {
+        return [
+        ...new Set(alumnos.map((alumno) => alumno.division).filter(Boolean)),
+        ].sort();
+    }, [alumnos]);
+     
 
-    const alumnosFiltrados = ALUMNOS_MOCK.filter((alumno) => {
-        const coincideCurso = !filtros.curso || alumno.curso === filtros.curso;
-        const coincideDivision = !filtros.division || alumno.division === filtros.division;
+    const alumnosFiltrados = useMemo(() => {
+        return alumnos.filter((alumno) => {
+        const coincideCurso =
+            !filtros.curso || alumno.curso === filtros.curso;
 
-        const textoBusqueda = filtros.busqueda.trim().toLowerCase();
-        const coincideBusqueda = !textoBusqueda || '${alumno.apellido} ${alumno.nombre}'.toLowerCase().includes(textoBusqueda) || String(alumno.dni).includes(textoBusqueda);
+        const coincideDivision =
+            !filtros.division ||
+            alumno.division === filtros.division;
 
-        return coincideCurso && coincideDivision && coincideBusqueda;
-    });
+        const textoBusqueda = filtros.busqueda
+            .trim()
+            .toLowerCase();
+
+        const nombreCompleto =
+            `${alumno.apellido} ${alumno.nombre}`.toLowerCase();
+
+        const coincideBusqueda =
+            !textoBusqueda ||
+            nombreCompleto.includes(textoBusqueda) ||
+            String(alumno.dni).includes(textoBusqueda);
+
+        return (
+            coincideCurso &&
+            coincideDivision &&
+            coincideBusqueda
+        );
+        });
+    }, [alumnos, filtros]);
 
     return(
         <div className="contenedor-tabla">
             <div className="cabecera-tabla">
-                <h2>Listado de Alumnos</h2>
+                <div>
+                    <h2>Listado de Alumnos</h2>
+                    <span className="cantidad-resultados">
+                        {alumnosFiltrados.length} alumno
+                        {alumnosFiltrados.length !== 1 ? "s" : ""}
+                    </span>
+                </div>
             </div>
 
             <div className="barra-filtros">
                 <div className="form-group">
                     <label htmlFor="filtro-curso">Curso</label>
+
                     <select
                         name="curso"
                         id="filtro-curso"
@@ -69,7 +88,7 @@ export function ListadoAlumnos() {
                         <option value=""> Todas </option>
                         {divisionesDisponibles.map((division) => (
                             <option key={division} value={division}>
-                                {division}
+                                División {division}
                             </option>
                         ))}
                     </select>
@@ -102,34 +121,62 @@ export function ListadoAlumnos() {
                             <th>Acciones</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         {alumnosFiltrados.map((alumno) => (
                             <tr key={alumno.id}>
                                 <td>
-                                    {alumno.apellido}, {alumno.nombre}
+                                    <strong>
+                                        {alumno.apellido}, {alumno.nombre}
+                                    </strong>
                                 </td>
+
                                 <td>{alumno.dni}</td>
+                                
                                 <td>
-                                    {NOMBRE_CURSO[alumno.curso]} - {alumno.division}
+                                    {NOMBRE_CURSO[alumno.curso] || "-"}{" "}
+                                    {alumno.division && `- ${alumno.division}`}
                                 </td>
-                                <td>{alumno.moduloActual}</td>
-                                <td>{alumno.faltas}</td>
+                                
+                                <td>{alumno.moduloActual || "-"}</td>
+                                
+                                <td>{alumno.faltas ?? 0}</td>
+                                
                                 <td>
                                     <span className={alumno.condicion === "Regular" ? "condicion-regular" : "condicion-libre"}>
-                                        {alumno.condicion}
+                                        {alumno.condicion || "Regular"}
                                     </span>
                                 </td>
+
                                 <td>
-                                    <a href="#" className="link-editar">
-                                        Ver ficha
-                                    </a>
+                                    <div className="acciones-tabla">
+                                        <button
+                                            type="button"
+                                            className="btn-accion btn-editar"
+                                            onClick={() => onEditar(alumno)}
+                                            title="Editar Alumno"
+                                        >
+                                            <i className="fa-solid fa-pen"></i>
+                                            <span>Editar</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="btn-accion btn-eliminar"
+                                            onClick={() => onEliminar(alumno.id)}
+                                            title="Eliminar alumno"
+                                        >
+                                            <i className="fa-solid fa-trash"></i>
+                                            <span>Eliminar</span>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>   
                         ))}
 
                         {alumnosFiltrados.length === 0 && (
                             <tr>
-                                <td colSpan={7} style={{ textAlign: "center", color: "#888"}}>
+                                <td colSpan={7} className="sin-resultados">
                                     No se encontraron alumnos con esos filtros.
                                 </td>
                             </tr>

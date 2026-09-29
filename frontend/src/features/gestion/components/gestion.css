@@ -235,7 +235,7 @@ body:has(.contenedor-dashboard) {
 }
 
 .tabla-gestion tbody tr:hover {
-  background-color: #dee9f5;
+  background-color: #f0f2f4;
 }
 
 .link-editar {
@@ -407,4 +407,186 @@ body:has(.contenedor-dashboard) {
 
 .btn-secundario:hover {
   background-color: #e2e8f0;
+}
+
+.encabezado-gestion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap:20px;
+  margin-bottom: 30px;
+}
+
+.encabezado-gestion h1 {
+  margin-bottom: 5px;
+}
+
+.encabezado-gestion p {
+  margin: 0;
+  color: #64748b;
+}
+
+.encabezado-gestion .btn-primario-gestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.acciones-tabla {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-accion {
+  border: 0;
+  border-radius: var(--gestion-radio);
+  padding: 8px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.btn-accion:hover {
+  transform: translateY(-1px);
+}
+
+.btn-editar {
+  background-color: #e8eef7;
+  color: var(--gestion-primario);
+}
+
+.btn-editar:hover{
+  background-color: #d8e2f0;
+}
+
+.btn-eliminar {
+  background-color: #fde8e8;
+  color: var(--gestion-secundario);
+}
+
+.btn-eliminar:hover {
+  background-color: #fbd3d3;
+}
+
+.sin-resultados {
+  text-align: center;
+  color: #888;
+  padding: 40px;
+}
+
+.modal-alumno-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  background-color: rgba(15, 25, 41, 0.7);
+
+  overflow-y: auto;
+}
+
+.modal-alumno {
+  width: 100%;
+  max-width: 950px;
+  max-height: 94vh;
+
+  background-color: white;
+  border-radius: 12px;
+
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  overflow-y: auto;
+}
+
+.modal-alumno-header {
+  display:flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  padding: 25px 30px;
+
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-alumno-header h2 {
+  margin: 0 0 5px;
+  color: var(--gestion-primario);
+  font-family: var(--gestion-titulos);
+}
+
+.modal-alumno-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.btn-cerrar-modal {
+  border: 0;
+  background: transparent;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--gestion-radio);
+  color: #64748b;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.btn-cerrar-modal:hover {
+  background-color: white;
+  color: var(--gestion-secundario);
+}
+
+.modal-alumno .form-gestion {
+  padding: 30px;
+}
+
+.modal-alumno fieldset {
+  border: 1px solid white;
+  border-radius: var(--gestion-radio);
+  padding: 20px;
+  margin: 0 0 25px;
+}
+
+.modal-alumno legend {
+  padding: 0 10px;
+
+  color: var(--gestion-primario);
+
+  font-family: var(--gestion-titulos);
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.checkbox-group {
+  justify-content: center;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  cursor: pointer;
+}
+
+.checkbox-group input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
