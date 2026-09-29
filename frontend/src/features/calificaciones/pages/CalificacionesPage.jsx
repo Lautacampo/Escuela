@@ -1,27 +1,29 @@
 import { useEffect, useState } from "react";
 import { getModulos } from "../services/CalificacionesServices";
 import { CalificacionesTarjetas } from "../components/CalificacionesTarjetas";
-import "../components/calificaciones.css";
+import "../components/calificacionestarjetas.css";
 
 export function CalificacionesPage() {
-  const[modulos,setModulos]=useState([]);
-  const[cargando,setCargando]=useState(true);
-  const[error,setError]=useState(null);
-  
-  useEffect(()=>{
+  const [modulos, setModulos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
     async function cargar() {
-      try{
+      try {
         const datos = await getModulos();
         setModulos(datos);
-      }catch(e){
+      } catch (e) {
         setError(e.message);
-      }finally{
+      } finally {
         setCargando(false);
       }
-
     }
     cargar();
-  },[]);
+  }, []);
+
+  if (cargando) return <p>Cargando módulos...</p>;
+  if (error) return <p role="alert">No se pudieron cargar los módulos: {error}</p>;
 
   return (
     <section>

@@ -1,0 +1,124 @@
+/* Contenedor principal */
+section {
+  padding: 20px 0;
+  color: var(--color-texto);
+  font-family: var(--fuente-principal);
+  width: 100%;
+  overflow-x: auto; /* Permite scroll horizontal si la tabla es muy ancha */
+}
+
+/* Enlace de volver */
+section a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-tercero);
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding: 6px 12px;
+  border-radius: var(--radio-borde);
+  background-color: rgba(79, 195, 247, 0.1);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+section a:hover {
+  background-color: var(--color-tercero);
+  color: var(--color-fondo);
+}
+
+/* Título de la página */
+section h2 {
+  font-family: var(--fuente-encabezados);
+  font-size: 1.8rem;
+  margin-top: 0;
+  margin-bottom: 24px;
+  color: var(--color-texto);
+  border-bottom: 2px solid var(--color-primario);
+  padding-bottom: 12px;
+}
+
+/* Estilos de la planilla (Tabla) */
+.planilla {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--color-tarjetas);
+  border-radius: var(--radio-borde);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Sombra sutil para despegarla del fondo */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); 
+}
+
+/* Encabezado de la tabla */
+.planilla thead {
+  background-color: var(--color-primario);
+}
+
+.planilla th {
+  padding: 16px;
+  text-align: left;
+  font-family: var(--fuente-encabezados);
+  font-weight: normal;
+  font-size: 1.05rem;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  border-bottom: 3px solid var(--color-secundario);
+  white-space: nowrap; /* Evita que los nombres de las materias se rompan en dos líneas */
+}
+
+/* Celdas del cuerpo */
+.planilla td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--color-texto);
+  font-size: 0.95rem;
+}
+
+/* Color alterno para las filas (Cebra) para facilitar la lectura cruzada */
+.planilla tbody tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Efecto hover sobre la fila entera */
+.planilla tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.planilla tbody tr:hover {
+  background-color: rgba(79, 195, 247, 0.08);
+}
+
+/* Quitar el borde inferior de la última fila */
+.planilla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Columna congelada para el nombre del alumno (Sticky Column) */
+.planilla th:first-child,
+.planilla td:first-child {
+  position: sticky;
+  left: 0;
+  font-weight: 600;
+  z-index: 1;
+}
+
+/* Fondos específicos para la columna congelada para que no se superpongan las letras al hacer scroll */
+.planilla thead th:first-child {
+  background-color: var(--color-primario);
+  z-index: 2;
+}
+
+.planilla tbody td:first-child {
+  background-color: var(--color-tarjetas);
+  /* Sombra derecha para indicar que hay contenido oculto bajo scroll */
+  box-shadow: 4px 0 8px rgba(0, 0, 0, 0.1); 
+}
+
+.planilla tbody tr:nth-child(even) td:first-child {
+  background-color: #0c203b; /* Mezcla manual del color tarjeta + 2% blanco del cebra */
+}
+
+.planilla tbody tr:hover td:first-child {
+  background-color: #123154; /* Mezcla manual del color tarjeta + el hover */
+}

@@ -20,6 +20,7 @@ import { DashboardPage } from "./features/gestion/pages/DashboardPage";
 import { AlumnosPage } from "./features/alumnos/pages/AlumnosPage";
 import { AsistenciaPage } from "./features/asistencia/pages/AsistenciaPage";
 import { CalificacionesPage } from "./features/calificaciones/pages/CalificacionesPage";
+import { DivisionCalificacionesPage } from "./features/calificaciones/pages/DivisionCalificacionesPage";
 import { ReportesPage } from "./features/reportes/pages/ReportesPage";
 
 export const router = createBrowserRouter([
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
       { path: "alumnos", element: <AlumnosPage /> },
       { path: "asistencia", element: <AsistenciaPage /> },
       { path: "calificaciones", element: <CalificacionesPage />},
+      { path: "calificaciones/:moduloId/:division", element: <DivisionCalificacionesPage /> },
       { path: "reportes", element: <ReportesPage /> },
     ],
   },
