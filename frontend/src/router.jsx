@@ -56,7 +56,7 @@ export const router = createBrowserRouter([
       // Rutas anidadas
       { path: "alumnos", element: <AlumnosPage /> },
       { path: "asistencia", element: <AsistenciaPage /> },
-      { path: "calificaciones", element: <CalificacionesPage /> },
+      { path: "calificaciones", element: <CalificacionesPage />},
       { path: "reportes", element: <ReportesPage /> },
     ],
   },
