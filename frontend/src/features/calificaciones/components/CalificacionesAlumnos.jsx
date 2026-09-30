@@ -14,9 +14,6 @@ export function CalificacionesAlumnos({
 }) {
   return (
     <>
-      
-      
-
       <div className="contenedor-tabla">
         <div className="tabla-responsive">
           <table className="tabla-gestion">

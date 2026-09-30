@@ -1,4 +1,4 @@
-import { Outlet, Link } from "react-router";
+import { Outlet, Link, NavLink } from "react-router";
 import "../../features/gestion/components/gestion.css";
 
 export default function LayoutPrivado() {
@@ -19,21 +19,29 @@ export default function LayoutPrivado() {
         </div>
         <ul className="menu-sidebar">
           <li>
-            <Link to="/gestion" className="activo">
+            <NavLink to="/gestion" end className={({ isActive }) => (isActive ? "activo" : "")}>
               Inicio
-            </Link>
+            </NavLink>
           </li>
           <li>
-            <Link to="/gestion/alumnos">Gestión de Alumnos</Link>
+            <NavLink to="/gestion/alumnos" className={({ isActive }) => (isActive ? "activo" : "")}>
+              Gestión de Alumnos
+            </NavLink>
           </li>
           <li>
-            <Link to="/gestion/asistencia">Carga de Asistencia</Link>
+            <NavLink to="/gestion/asistencia" className={({ isActive }) => (isActive ? "activo" : "")}>
+              Carga de Asistencia
+            </NavLink>
           </li>
           <li>
-            <Link to="/gestion/calificaciones">Calificaciones</Link>
+            <NavLink to="/gestion/calificaciones" className={({ isActive }) => (isActive ? "activo" : "")}>
+              Calificaciones
+            </NavLink>
           </li>
           <li>
-            <Link to="/gestion/reportes">Reportes</Link>
+            <NavLink to="/gestion/reportes" className={({ isActive }) => (isActive ? "activo" : "")}>
+              Reportes
+            </NavLink>
           </li>
           {/* Enlace para cerrar sesión al final */}
           <li style={{ marginTop: "20px" }}>

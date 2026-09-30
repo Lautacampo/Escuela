@@ -1,21 +1,22 @@
 /* Aislamos el login del resto de la web */
 .login-body-wrapper {
   position: fixed; /* Lo fijamos a la pantalla */
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #d5f2ef; /* Fondo celeste pastel original */
+  background-color: #fbfbfb; /* Fondo celeste pastel original */
   z-index: 9999; /* Por encima de cualquier navbar */
-  padding: 20px;
+  padding: 16px;
   box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .login-pagina {
   width: min(100%, 940px);
+  margin-block: auto;
 }
 
 .login-contenedor {
@@ -33,8 +34,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 560px;
-  padding: 48px 34px;
+  min-height: 0;
+  padding: clamp(24px, 5vh, 48px) 34px;
   text-align: center;
   color: #ffffff;
   background: #152238; /* Azul marino institucional */
@@ -43,12 +44,9 @@
 .login-imagen-sistema {
   display: grid;
   place-items: center;
-  width: min(100%, 260px);
+  width: min(100%, 240px);
   aspect-ratio: 1;
-  margin-bottom: 28px;
-  padding: 18px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05); /* Fondo sutil para el logo */
+  margin-bottom: 20px;
 }
 
 .login-imagen-sistema img {
@@ -78,7 +76,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 56px clamp(28px, 6vw, 72px);
+  padding: clamp(32px, 5vh, 56px) clamp(28px, 6vw, 72px);
   background-color: #ffffff;
 }
 

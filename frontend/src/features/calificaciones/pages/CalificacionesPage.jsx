@@ -26,7 +26,7 @@ export function CalificacionesPage() {
   if (error) return <p role="alert">No se pudieron cargar los módulos: {error}</p>;
 
   return (
-    <section>
+    <section className="pagina-calificaciones-modulos">
       <h2>Calificaciones</h2>
       <div className="modulosdivision">
         {modulos.map((modulo) => (
