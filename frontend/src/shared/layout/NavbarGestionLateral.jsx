@@ -33,6 +33,25 @@ export default function NavBarGestionLateral() {
         </li>
         <li>
           <NavLink
+            to="/gestion/docentes"
+            className={({ isActive }) => (isActive ? "activo" : "")}
+          >
+            <i className="fa-solid fa-chalkboard-user" aria-hidden="true" />
+            Gestión de Docentes
+          </NavLink>
+        </li>
+
+        <li>
+          <NavLink
+            to="/gestion/preceptores"
+            className={({ isActive }) => (isActive ? "activo" : "")}
+          >
+            <i className="fa-solid fa-user-tie" aria-hidden="true" />
+            Gestión de Preceptores
+          </NavLink>
+        </li>
+        <li>
+          <NavLink
             to="/gestion/asistencia"
             className={({ isActive }) => (isActive ? "activo" : "")}
           >
