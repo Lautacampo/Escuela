@@ -746,7 +746,7 @@ body:has(.contenedor-dashboard) {
   border-bottom: 1px solid #edf2f7;
 }
 
-.ficha-seccion-titulo > i {
+.ficha-seccion-titulo i {
   width: 42px;
   height: 42px;
 
@@ -762,7 +762,7 @@ body:has(.contenedor-dashboard) {
 .ficha-seccion-titulo h2 {
   margin: 0 0 3px;
 
-  color: var(--gestion-primario);
+  color: white;
 
   font-family: var(--gestion-titulos);
   font-size: 1.25rem;
@@ -830,7 +830,7 @@ body:has(.contenedor-dashboard) {
 }
 
 .ficha-academica-info strong {
-  color: var(--gestion-primario);
+  color: white;
 }
 
 /* ---------- TRAYECTORIA ---------- */
@@ -920,7 +920,7 @@ body:has(.contenedor-dashboard) {
 .modulo-cabecera h3 {
   margin: 3px 0 0;
 
-  color: var(--gestion-primario);
+  color: white;
   font-size: 1.05rem;
 }
 
@@ -971,7 +971,7 @@ body:has(.contenedor-dashboard) {
 }
 
 .modulo-detalles strong {
-  color: var(--gestion-texto);
+  color: white;
 }
 
 /* ---------- ACREDITACIONES ---------- */
@@ -991,7 +991,7 @@ body:has(.contenedor-dashboard) {
 
   margin: 0 0 12px;
 
-  color: var(--gestion-primario);
+  color: white;
   font-size: 0.9rem;
 }
 
@@ -1017,6 +1017,14 @@ body:has(.contenedor-dashboard) {
 .tabla-asistencia th,
 .tabla-asistencia td {
   padding: 13px 16px;
+}
+
+.tabla-asistencia tbody tr:hover{
+  background-color: #36517f;
+}
+
+.tabla-asistencia td {
+  color: white;
 }
 
 /* ---------- ADVERTENCIA ---------- */

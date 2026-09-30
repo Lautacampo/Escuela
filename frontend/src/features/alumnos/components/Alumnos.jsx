@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useForm } from "../../../shared/hooks/useForm";
 import { esEmailValido, esDniValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre } from "../../../shared/utils/formato";
 import { ListadoAlumnos } from "./ListadoAlumnos";
@@ -568,6 +567,9 @@ export function Alumnos() {
                       <option value="">Seleccione una división</option>
                       <option value="A">A</option>
                       <option value="B">B</option>
+                      <option value="C">C</option>
+                      <option value="D">D</option>
+                      <option value="E">E</option>
                     </select>
 
                     {errores.division && (
