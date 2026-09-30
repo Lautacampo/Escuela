@@ -22,6 +22,7 @@ import { FichaAlumnoPage } from "./features/alumnos/pages/FichaAlumnoPage";
 import { DocentesPages } from "./features/docentes/pages/DocentesPage";
 import { PreceptoresPage } from "./features/preceptores/pages/PreceptoresPage";
 import { AsistenciaPage } from "./features/asistencia/pages/AsistenciaPage";
+import { DivisionAsistenciaPage } from "./features/asistencia/pages/DivisionAsistenciaPage";
 import { CalificacionesPage } from "./features/calificaciones/pages/CalificacionesPage";
 import { DivisionCalificacionesPage } from "./features/calificaciones/pages/DivisionCalificacionesPage";
 import { ReportesPage } from "./features/reportes/pages/ReportesPage";
@@ -63,11 +64,9 @@ export const router = createBrowserRouter([
       { path: "docentes", element: <DocentesPages /> },
       { path: "preceptores", element: <PreceptoresPage /> },
       { path: "asistencia", element: <AsistenciaPage /> },
-      { path: "calificaciones", element: <CalificacionesPage /> },
-      {
-        path: "calificaciones/:moduloId/:division",
-        element: <DivisionCalificacionesPage />,
-      },
+      { path: "asistencia/:moduloId/:division", element: <DivisionAsistenciaPage /> },
+      { path: "calificaciones", element: <CalificacionesPage />},
+      { path: "calificaciones/:moduloId/:division", element: <DivisionCalificacionesPage /> },
       { path: "reportes", element: <ReportesPage /> },
     ],
   },
