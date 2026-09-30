@@ -22,6 +22,7 @@ import {
 import { DashboardPage } from "./features/gestion/pages/DashboardPage";
 import { AlumnosPage } from "./features/alumnos/pages/AlumnosPage";
 import { AsistenciaPage } from "./features/asistencia/pages/AsistenciaPage";
+import { DivisionAsistenciaPage } from "./features/asistencia/pages/DivisionAsistenciaPage";
 import { CalificacionesPage } from "./features/calificaciones/pages/CalificacionesPage";
 import { DivisionCalificacionesPage } from "./features/calificaciones/pages/DivisionCalificacionesPage";
 import { ReportesPage } from "./features/reportes/pages/ReportesPage";
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
       // Rutas anidadas
       { path: "alumnos", element: <AlumnosPage /> },
       { path: "asistencia", element: <AsistenciaPage /> },
+      { path: "asistencia/:moduloId/:division", element: <DivisionAsistenciaPage /> },
       { path: "calificaciones", element: <CalificacionesPage />},
       { path: "calificaciones/:moduloId/:division", element: <DivisionCalificacionesPage /> },
       { path: "reportes", element: <ReportesPage /> },

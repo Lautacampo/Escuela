@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getModulos } from "../services/calificacionesServices";
+import { getModulos } from "../services/CalificacionesServices";
 import { CalificacionesTarjetas } from "../components/CalificacionesTarjetas";
 import "../components/calificacionestarjetas.css";
 

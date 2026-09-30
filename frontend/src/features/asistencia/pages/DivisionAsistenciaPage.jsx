@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
-import { getAlumnos } from "../services/AsistenciaServices";
+import { getAlumnos } from "../services/AsistenciaServices.js";
 import { AsistenciaAlumnos } from "../components/AsistenciaAlumnos.jsx";
+import "../components/asistenciaAlumnos.css";
 
 export function DivisionAsistenciaPage(){
     const { moduloId, division } = useParams();
@@ -31,8 +32,8 @@ export function DivisionAsistenciaPage(){
     );
 
     return(
-        <section>
-            <Link to="/gestion/asistencia">← Volver</Link>
+        <section className="pagina-asistencia-division">
+            <Link className="btn-volver-asistencia" to="/gestion/asistencia">← Volver</Link>
             <AsistenciaAlumnos
                 alumnos={alumnosDivision}
                 moduloId={moduloId}

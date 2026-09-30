@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getModulos } from "../services/AsistenciaServices";
 import { AsistenciaTarjetas } from "../components/AsistenciaTarjetas";
+import "../components/asistenciaTarjetas.css";
 
 
 export function AsistenciaPage() {
@@ -27,7 +28,7 @@ export function AsistenciaPage() {
   if (error) return <p>{error}</p>;
 
   return (
-    <section>
+    <section className="pagina-asistencia-modulos">
       <h2>Asistencia</h2>
       <div className="modulosdivision">
         {modulos.map((modulo)=> (

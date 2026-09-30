@@ -1203,6 +1203,12 @@
       "materiaId": "2",
       "estado": "desaprobado",
       "id": "ilJzuRFdLXo"
+    },
+    {
+      "alumnoId": "2",
+      "materiaId": "2",
+      "estado": "desaprobado",
+      "id": "VWAYIV9YxgQ"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
