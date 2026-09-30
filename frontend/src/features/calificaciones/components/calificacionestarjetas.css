@@ -26,7 +26,7 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
-.modulo h3 {
+.modulo h3{
   margin: 0;
   color: var(--color-texto);
   font-family: var(--fuente-encabezados);
@@ -35,6 +35,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.modulo h5{
+  margin: 0;
+  padding: 3px;
+  color: var(--color-texto);
+  font-family: var(--fuente-encabezados);
+  font-size: 5px;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+
 }
 
 /* Contenedor de botones de división */

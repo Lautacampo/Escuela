@@ -3,6 +3,7 @@ export function CalificacionesTarjetas({modulo}){
     return(
         <div className="modulo">
             <h3>{modulo.nombre}</h3>
+            <h5>Divisiones :</h5>
             <div className="divisiones">
                 {modulo.divisiones.map((division)=>(
                     <Link

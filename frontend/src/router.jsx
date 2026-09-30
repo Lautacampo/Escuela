@@ -13,7 +13,10 @@ import { ForoPage } from "./features/foro/pages/ForoPage";
 
 // ==================== AUTENTICACIÓN ====================
 import { LoginPage } from "./features/auth/pages/LoginPage";
-//import {redirigirSiHaySesion,protegerRuta,} from
+import {
+  protegerRuta,
+  redirigirSiHaySesion,
+} from "./features/auth/services/authServices";
 
 // ==================== VISTAS PRIVADAS (GESTIÓN) ====================
 import { DashboardPage } from "./features/gestion/pages/DashboardPage";
@@ -41,7 +44,7 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
-    // loader: redirigirSiHaySesion, // Si el admin ya se logueó, lo patea a /gestion
+    loader: redirigirSiHaySesion,
     hydrateFallbackElement: <Spinner />,
   },
 
@@ -49,7 +52,7 @@ export const router = createBrowserRouter([
   {
     path: "/gestion",
     element: <LayoutPrivado />,
-    // loader: protegerRuta, // Bloquea la entrada si no hay sesión iniciada
+    loader: protegerRuta,
     hydrateFallbackElement: <Spinner />,
     errorElement: <NoEncontradaPage />,
     children: [
