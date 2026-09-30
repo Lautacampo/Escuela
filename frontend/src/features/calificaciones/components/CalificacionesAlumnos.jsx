@@ -1,12 +1,22 @@
-import React from "react";
+const CLASES ={
+  aprobado:"estado-ap",
+  desaprobado:"estado-de",
+  en_curso:"estado-cur",
+};
 
-export function CalificacionesAlumnos() {
+export function CalificacionesAlumnos({
+  alumnos,
+  materias,
+  notas,
+  moduloId,
+  division,
+  onCambiar,
+}) {
   return (
     <>
       <h1>Gestión de Calificaciones</h1>
       <p style={{ marginBottom: "20px", color: "var(--gestion-texto)" }}>
-        En esta sección los docentes podrán consultar y registrar las
-        calificaciones correspondientes a los módulos cursados por los alumnos.
+        Módulo {moduloId} - División {division}
       </p>
 
       <div className="contenedor-tabla">
@@ -19,74 +29,52 @@ export function CalificacionesAlumnos() {
             <thead>
               <tr>
                 <th>Alumno</th>
-                <th>Año</th>
-                <th>Módulo</th>
-                <th>Nota en números</th>
-                <th>Nota en letras</th>
-                <th>Fecha</th>
-                <th>Estado</th>
+                {materias.map((m) => (
+                  <th key={m.id}>{m.nombre}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>Juan Pérez</td>
-                <td>1° Año</td>
-                <td>Módulo I</td>
-                <td>8</td>
-                <td>Ocho</td>
-                <td>12/2026</td>
-                <td>
-                  <span className="estado-ap">Aprobado</span>
-                </td>
-              </tr>
-              <tr>
-                <td>Juan Pérez</td>
-                <td>1° Año</td>
-                <td>Módulo II</td>
-                <td>7</td>
-                <td>Siete</td>
-                <td>12/2026</td>
-                <td>
-                  <span className="estado-ap">Aprobado</span>
-                </td>
-              </tr>
-              <tr>
-                <td>María González</td>
-                <td>2° Año</td>
-                <td>Módulo III</td>
-                <td>9</td>
-                <td>Nueve</td>
-                <td>12/2026</td>
-                <td>
-                  <span className="estado-ap">Aprobado</span>
-                </td>
-              </tr>
-              <tr>
-                <td>María González</td>
-                <td>2° Año</td>
-                <td>Módulo IV</td>
-                <td>8</td>
-                <td>Ocho</td>
-                <td>12/2026</td>
-                <td>
-                  <span className="estado-ap">Aprobado</span>
-                </td>
-              </tr>
-              <tr>
-                <td>Carlos López</td>
-                <td>3° Año</td>
-                <td>Módulo V</td>
-                <td>7</td>
-                <td>Siete</td>
-                <td>12/2026</td>
-                <td>
-                  <span className="estado-ap">Aprobado</span>
-                </td>
-              </tr>
+              {alumnos.length === 0 ? (
+                <tr>
+                  <td colSpan={materias.length + 1}>
+                    No hay alumnos en esta división.
+                  </td>
+                </tr>
+              ) : (
+                alumnos.map((a) => (
+                  <tr key={a.id}>
+                    <td>{a.apellido}, {a.nombre}</td>
+                    {materias.map((m) => {
+                      const nota = notas[`${a.id}-${m.id}`];
+                      const estado = nota?.estado ?? "en_curso";
+
+                      return (
+                        <td key={m.id}>
+                          <select
+                            className={`select-estado ${CLASES[estado]}`}
+                            value={estado}
+                            onChange={(e) => onCambiar(a.id, m.id, e.target.value)}
+                          >
+                            {(!nota || estado === "en_curso") && (
+                              <option value="en_curso" disabled>
+                                En curso
+                              </option>
+                            )}
+                            <option value="aprobado">Aprobado</option>
+                            <option value="desaprobado">Desaprobado</option>
+                          </select>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
+    
     </>
   );
 }

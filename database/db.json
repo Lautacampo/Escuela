@@ -1,159 +1,1251 @@
 {
   "modulos": [
-    {"id": 1, "nombre": "Primer Modulo", "divisiones": ["A", "B", "C", "D"]},
-    {"id": 2, "nombre": "Segundo Modulo", "divisiones": ["A", "B", "C", "D"]},
-    {"id": 3, "nombre": "Tercer Modulo", "divisiones": ["A", "B", "C", "D"]},
-    {"id": 4, "nombre": "Cuarto Modulo", "divisiones": ["A", "B", "C", "D"]},
-    {"id": 5, "nombre": "Quinto Modulo", "divisiones": ["A", "B", "C"]},
-    {"id": 6, "nombre": "Sexto Modulo", "divisiones": ["A", "B", "C"]}
+    {
+      "id": "1",
+      "nombre": "Primer Modulo",
+      "divisiones": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "id": "2",
+      "nombre": "Segundo Modulo",
+      "divisiones": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "id": "3",
+      "nombre": "Tercer Modulo",
+      "divisiones": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "id": "4",
+      "nombre": "Cuarto Modulo",
+      "divisiones": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    {
+      "id": "5",
+      "nombre": "Quinto Modulo",
+      "divisiones": [
+        "A",
+        "B",
+        "C"
+      ]
+    },
+    {
+      "id": "6",
+      "nombre": "Sexto Modulo",
+      "divisiones": [
+        "A",
+        "B",
+        "C"
+      ]
+    }
   ],
   "materias": [
-    {"id": 1, "moduloId": 1, "nombre": "Historia"},
-    {"id": 2, "moduloId": 1, "nombre": "Lengua"},
-    {"id": 3, "moduloId": 2, "nombre": "Matematica"},
-    {"id": 4, "moduloId": 2, "nombre": "Identificación Humana"},
-    {"id": 5, "moduloId": 3, "nombre": "Fisica"},
-    {"id": 6, "moduloId": 3, "nombre": "Filosofia"},
-    {"id": 7, "moduloId": 4, "nombre": "Quimica"},
-    {"id": 8, "moduloId": 4, "nombre": "Criminalistica"},
-    {"id": 9, "moduloId": 5, "nombre": "Toxicomania"},
-    {"id": 10, "moduloId": 5, "nombre": "Sociologia"},
-    {"id": 11, "moduloId": 6, "nombre": "Ingles"},
-    {"id": 12, "moduloId": 6, "nombre": "Transito Publico"}
+    {
+      "id": "1",
+      "moduloId": 1,
+      "nombre": "Historia"
+    },
+    {
+      "id": "2",
+      "moduloId": 1,
+      "nombre": "Lengua"
+    },
+    {
+      "id": "3",
+      "moduloId": 2,
+      "nombre": "Matematica"
+    },
+    {
+      "id": "4",
+      "moduloId": 2,
+      "nombre": "Identificación Humana"
+    },
+    {
+      "id": "5",
+      "moduloId": 3,
+      "nombre": "Fisica"
+    },
+    {
+      "id": "6",
+      "moduloId": 3,
+      "nombre": "Filosofia"
+    },
+    {
+      "id": "7",
+      "moduloId": 4,
+      "nombre": "Quimica"
+    },
+    {
+      "id": "8",
+      "moduloId": 4,
+      "nombre": "Criminalistica"
+    },
+    {
+      "id": "9",
+      "moduloId": 5,
+      "nombre": "Toxicomania"
+    },
+    {
+      "id": "10",
+      "moduloId": 5,
+      "nombre": "Sociologia"
+    },
+    {
+      "id": "11",
+      "moduloId": 6,
+      "nombre": "Ingles"
+    },
+    {
+      "id": "12",
+      "moduloId": 6,
+      "nombre": "Transito Publico"
+    }
   ],
   "alumnos": [
-    {"id": 1, "dni": "48018256", "nombre": "Ignacio", "apellido": "Cabrera", "moduloId": 1, "division": "A"},
-    {"id": 2, "dni": "49032961", "nombre": "Ramiro", "apellido": "Cabrera", "moduloId": 1, "division": "A"},
-    {"id": 3, "dni": "40106528", "nombre": "Belén", "apellido": "Ruiz", "moduloId": 1, "division": "A"},
-    {"id": 4, "dni": "46294123", "nombre": "Tomás", "apellido": "Sánchez", "moduloId": 1, "division": "A"},
-    {"id": 5, "dni": "47325733", "nombre": "Santiago", "apellido": "Díaz", "moduloId": 1, "division": "A"},
-    {"id": 6, "dni": "47805866", "nombre": "Bruno", "apellido": "Pérez", "moduloId": 1, "division": "A"},
-    {"id": 7, "dni": "41350213", "nombre": "Lucas", "apellido": "Cabrera", "moduloId": 1, "division": "B"},
-    {"id": 8, "dni": "47591484", "nombre": "Sebastián", "apellido": "Benítez", "moduloId": 1, "division": "B"},
-    {"id": 9, "dni": "42942593", "nombre": "Renata", "apellido": "Ramos", "moduloId": 1, "division": "B"},
-    {"id": 10, "dni": "43790795", "nombre": "Juan", "apellido": "Sosa", "moduloId": 1, "division": "B"},
-    {"id": 11, "dni": "41766344", "nombre": "Mateo", "apellido": "Rojas", "moduloId": 1, "division": "B"},
-    {"id": 12, "dni": "44386024", "nombre": "Santiago", "apellido": "Paz", "moduloId": 1, "division": "B"},
-    {"id": 13, "dni": "43897304", "nombre": "Catalina", "apellido": "Ortiz", "moduloId": 1, "division": "C"},
-    {"id": 14, "dni": "40651264", "nombre": "Emiliano", "apellido": "Moreno", "moduloId": 1, "division": "C"},
-    {"id": 15, "dni": "42068084", "nombre": "Emiliano", "apellido": "Flores", "moduloId": 1, "division": "C"},
-    {"id": 16, "dni": "45629041", "nombre": "Diego", "apellido": "Acosta", "moduloId": 1, "division": "C"},
-    {"id": 17, "dni": "44417433", "nombre": "Camila", "apellido": "Moreno", "moduloId": 1, "division": "C"},
-    {"id": 18, "dni": "40881373", "nombre": "Candela", "apellido": "Gómez", "moduloId": 1, "division": "C"},
-    {"id": 19, "dni": "44462552", "nombre": "Florencia", "apellido": "Ramos", "moduloId": 1, "division": "D"},
-    {"id": 20, "dni": "49291036", "nombre": "Tomás", "apellido": "Paz", "moduloId": 1, "division": "D"},
-    {"id": 21, "dni": "47315771", "nombre": "Paula", "apellido": "Núñez", "moduloId": 1, "division": "D"},
-    {"id": 22, "dni": "48778610", "nombre": "Delfina", "apellido": "Álvarez", "moduloId": 1, "division": "D"},
-    {"id": 23, "dni": "44450955", "nombre": "Renata", "apellido": "Rodríguez", "moduloId": 1, "division": "D"},
-    {"id": 24, "dni": "44959654", "nombre": "Martín", "apellido": "Silva", "moduloId": 1, "division": "D"},
-    {"id": 25, "dni": "43640605", "nombre": "Lautaro", "apellido": "Flores", "moduloId": 2, "division": "A"},
-    {"id": 26, "dni": "41433154", "nombre": "Delfina", "apellido": "Castro", "moduloId": 2, "division": "A"},
-    {"id": 27, "dni": "48513265", "nombre": "Facundo", "apellido": "Benítez", "moduloId": 2, "division": "A"},
-    {"id": 28, "dni": "40255506", "nombre": "Ramiro", "apellido": "Rodríguez", "moduloId": 2, "division": "A"},
-    {"id": 29, "dni": "42848289", "nombre": "Antonella", "apellido": "Rodríguez", "moduloId": 2, "division": "A"},
-    {"id": 30, "dni": "44368291", "nombre": "Valentina", "apellido": "Flores", "moduloId": 2, "division": "A"},
-    {"id": 31, "dni": "43961287", "nombre": "Franco", "apellido": "Flores", "moduloId": 2, "division": "B"},
-    {"id": 32, "dni": "43402055", "nombre": "Valentina", "apellido": "Peralta", "moduloId": 2, "division": "B"},
-    {"id": 33, "dni": "42670736", "nombre": "Benjamín", "apellido": "Cabrera", "moduloId": 2, "division": "B"},
-    {"id": 34, "dni": "45484026", "nombre": "Lautaro", "apellido": "López", "moduloId": 2, "division": "B"},
-    {"id": 35, "dni": "43220203", "nombre": "Tomás", "apellido": "Domínguez", "moduloId": 2, "division": "B"},
-    {"id": 36, "dni": "46521460", "nombre": "Emiliano", "apellido": "Silva", "moduloId": 2, "division": "B"},
-    {"id": 37, "dni": "45512253", "nombre": "Emiliano", "apellido": "Torres", "moduloId": 2, "division": "C"},
-    {"id": 38, "dni": "44012607", "nombre": "Antonella", "apellido": "Giménez", "moduloId": 2, "division": "C"},
-    {"id": 39, "dni": "46366135", "nombre": "Lucas", "apellido": "Rodríguez", "moduloId": 2, "division": "C"},
-    {"id": 40, "dni": "48998599", "nombre": "Santiago", "apellido": "Medina", "moduloId": 2, "division": "C"},
-    {"id": 41, "dni": "47876825", "nombre": "Renata", "apellido": "Aguirre", "moduloId": 2, "division": "C"},
-    {"id": 42, "dni": "47921245", "nombre": "Ignacio", "apellido": "Torres", "moduloId": 2, "division": "C"},
-    {"id": 43, "dni": "48902340", "nombre": "Lucía", "apellido": "Núñez", "moduloId": 2, "division": "D"},
-    {"id": 44, "dni": "40107111", "nombre": "Paula", "apellido": "Ríos", "moduloId": 2, "division": "D"},
-    {"id": 45, "dni": "40444922", "nombre": "Franco", "apellido": "Molina", "moduloId": 2, "division": "D"},
-    {"id": 46, "dni": "47335279", "nombre": "Juan", "apellido": "Benítez", "moduloId": 2, "division": "D"},
-    {"id": 47, "dni": "43923037", "nombre": "Florencia", "apellido": "Paz", "moduloId": 2, "division": "D"},
-    {"id": 48, "dni": "49568773", "nombre": "Delfina", "apellido": "López", "moduloId": 2, "division": "D"},
-    {"id": 49, "dni": "45163251", "nombre": "Joaquín", "apellido": "Aguirre", "moduloId": 3, "division": "A"},
-    {"id": 50, "dni": "43556251", "nombre": "Ignacio", "apellido": "Vera", "moduloId": 3, "division": "A"},
-    {"id": 51, "dni": "46569388", "nombre": "Mateo", "apellido": "López", "moduloId": 3, "division": "A"},
-    {"id": 52, "dni": "49820298", "nombre": "Joaquín", "apellido": "Medina", "moduloId": 3, "division": "A"},
-    {"id": 53, "dni": "41305359", "nombre": "Thiago", "apellido": "Ortiz", "moduloId": 3, "division": "A"},
-    {"id": 54, "dni": "49482613", "nombre": "Gonzalo", "apellido": "Vera", "moduloId": 3, "division": "A"},
-    {"id": 55, "dni": "42878120", "nombre": "Antonella", "apellido": "Peralta", "moduloId": 3, "division": "B"},
-    {"id": 56, "dni": "42425956", "nombre": "Mateo", "apellido": "Romero", "moduloId": 3, "division": "B"},
-    {"id": 57, "dni": "40552255", "nombre": "Nicolás", "apellido": "Acosta", "moduloId": 3, "division": "B"},
-    {"id": 58, "dni": "40451407", "nombre": "Bruno", "apellido": "Moreno", "moduloId": 3, "division": "B"},
-    {"id": 59, "dni": "41877312", "nombre": "Catalina", "apellido": "Pérez", "moduloId": 3, "division": "B"},
-    {"id": 60, "dni": "41789826", "nombre": "Renata", "apellido": "Rojas", "moduloId": 3, "division": "B"},
-    {"id": 61, "dni": "42714803", "nombre": "Delfina", "apellido": "Paz", "moduloId": 3, "division": "C"},
-    {"id": 62, "dni": "45785914", "nombre": "Emiliano", "apellido": "Vega", "moduloId": 3, "division": "C"},
-    {"id": 63, "dni": "42379769", "nombre": "Antonella", "apellido": "Gómez", "moduloId": 3, "division": "C"},
-    {"id": 64, "dni": "40482117", "nombre": "Micaela", "apellido": "Rodríguez", "moduloId": 3, "division": "C"},
-    {"id": 65, "dni": "40517975", "nombre": "Martín", "apellido": "Luna", "moduloId": 3, "division": "C"},
-    {"id": 66, "dni": "40698827", "nombre": "Mateo", "apellido": "Fernández", "moduloId": 3, "division": "C"},
-    {"id": 67, "dni": "42322070", "nombre": "Ignacio", "apellido": "Martínez", "moduloId": 3, "division": "D"},
-    {"id": 68, "dni": "40715554", "nombre": "Franco", "apellido": "Ríos", "moduloId": 3, "division": "D"},
-    {"id": 69, "dni": "41138028", "nombre": "Candela", "apellido": "Torres", "moduloId": 3, "division": "D"},
-    {"id": 70, "dni": "40783382", "nombre": "Candela", "apellido": "Ruiz", "moduloId": 3, "division": "D"},
-    {"id": 71, "dni": "41103429", "nombre": "Rocío", "apellido": "Morales", "moduloId": 3, "division": "D"},
-    {"id": 72, "dni": "49906561", "nombre": "Lucía", "apellido": "Vega", "moduloId": 3, "division": "D"},
-    {"id": 73, "dni": "46097015", "nombre": "Martina", "apellido": "Rodríguez", "moduloId": 4, "division": "A"},
-    {"id": 74, "dni": "43343977", "nombre": "Rocío", "apellido": "Díaz", "moduloId": 4, "division": "A"},
-    {"id": 75, "dni": "48957332", "nombre": "Carolina", "apellido": "Romero", "moduloId": 4, "division": "A"},
-    {"id": 76, "dni": "41106506", "nombre": "Antonella", "apellido": "Ramos", "moduloId": 4, "division": "A"},
-    {"id": 77, "dni": "46439888", "nombre": "Candela", "apellido": "Morales", "moduloId": 4, "division": "A"},
-    {"id": 78, "dni": "41797184", "nombre": "Martín", "apellido": "Giménez", "moduloId": 4, "division": "A"},
-    {"id": 79, "dni": "44136961", "nombre": "Agustina", "apellido": "Paz", "moduloId": 4, "division": "B"},
-    {"id": 80, "dni": "43451546", "nombre": "Tomás", "apellido": "Benítez", "moduloId": 4, "division": "B"},
-    {"id": 81, "dni": "43408547", "nombre": "Julieta", "apellido": "Peralta", "moduloId": 4, "division": "B"},
-    {"id": 82, "dni": "41878622", "nombre": "Agustina", "apellido": "Moreno", "moduloId": 4, "division": "B"},
-    {"id": 83, "dni": "40568170", "nombre": "Rocío", "apellido": "López", "moduloId": 4, "division": "B"},
-    {"id": 84, "dni": "40577670", "nombre": "Antonella", "apellido": "Morales", "moduloId": 4, "division": "B"},
-    {"id": 85, "dni": "41467583", "nombre": "Renata", "apellido": "García", "moduloId": 4, "division": "C"},
-    {"id": 86, "dni": "44821272", "nombre": "Thiago", "apellido": "Ríos", "moduloId": 4, "division": "C"},
-    {"id": 87, "dni": "48004754", "nombre": "Abril", "apellido": "Aguirre", "moduloId": 4, "division": "C"},
-    {"id": 88, "dni": "41675747", "nombre": "Florencia", "apellido": "Rodríguez", "moduloId": 4, "division": "C"},
-    {"id": 89, "dni": "42225649", "nombre": "Delfina", "apellido": "Ruiz", "moduloId": 4, "division": "C"},
-    {"id": 90, "dni": "41641938", "nombre": "Candela", "apellido": "Giménez", "moduloId": 4, "division": "C"},
-    {"id": 91, "dni": "43439310", "nombre": "Paula", "apellido": "Ruiz", "moduloId": 4, "division": "D"},
-    {"id": 92, "dni": "44940300", "nombre": "Renata", "apellido": "Cabrera", "moduloId": 4, "division": "D"},
-    {"id": 93, "dni": "45354354", "nombre": "Franco", "apellido": "Domínguez", "moduloId": 4, "division": "D"},
-    {"id": 94, "dni": "45645892", "nombre": "Lautaro", "apellido": "Suárez", "moduloId": 4, "division": "D"},
-    {"id": 95, "dni": "47109698", "nombre": "Renata", "apellido": "Flores", "moduloId": 4, "division": "D"},
-    {"id": 96, "dni": "44381627", "nombre": "Carolina", "apellido": "Aguirre", "moduloId": 4, "division": "D"},
-    {"id": 97, "dni": "40351050", "nombre": "Milagros", "apellido": "Herrera", "moduloId": 5, "division": "A"},
-    {"id": 98, "dni": "45887236", "nombre": "Lucas", "apellido": "Fernández", "moduloId": 5, "division": "A"},
-    {"id": 99, "dni": "44306848", "nombre": "Facundo", "apellido": "Peralta", "moduloId": 5, "division": "A"},
-    {"id": 100, "dni": "44741227", "nombre": "Milagros", "apellido": "Sánchez", "moduloId": 5, "division": "A"},
-    {"id": 101, "dni": "40812253", "nombre": "Sofía", "apellido": "García", "moduloId": 5, "division": "A"},
-    {"id": 102, "dni": "46174525", "nombre": "Belén", "apellido": "Álvarez", "moduloId": 5, "division": "A"},
-    {"id": 103, "dni": "45382706", "nombre": "Joaquín", "apellido": "Herrera", "moduloId": 5, "division": "B"},
-    {"id": 104, "dni": "48451413", "nombre": "Paula", "apellido": "Vera", "moduloId": 5, "division": "B"},
-    {"id": 105, "dni": "47987448", "nombre": "Delfina", "apellido": "Medina", "moduloId": 5, "division": "B"},
-    {"id": 106, "dni": "44826051", "nombre": "Renata", "apellido": "Moreno", "moduloId": 5, "division": "B"},
-    {"id": 107, "dni": "40519887", "nombre": "Antonella", "apellido": "Ortiz", "moduloId": 5, "division": "B"},
-    {"id": 108, "dni": "46927771", "nombre": "Benjamín", "apellido": "Aguirre", "moduloId": 5, "division": "B"},
-    {"id": 109, "dni": "40524368", "nombre": "Nicolás", "apellido": "Sánchez", "moduloId": 5, "division": "C"},
-    {"id": 110, "dni": "47322518", "nombre": "Franco", "apellido": "Gómez", "moduloId": 5, "division": "C"},
-    {"id": 111, "dni": "48701150", "nombre": "Tomás", "apellido": "Ruiz", "moduloId": 5, "division": "C"},
-    {"id": 112, "dni": "41649304", "nombre": "Santiago", "apellido": "Peralta", "moduloId": 5, "division": "C"},
-    {"id": 113, "dni": "45818143", "nombre": "Camila", "apellido": "Ruiz", "moduloId": 5, "division": "C"},
-    {"id": 114, "dni": "47867649", "nombre": "Nicolás", "apellido": "Silva", "moduloId": 5, "division": "C"},
-    {"id": 115, "dni": "40807385", "nombre": "Lautaro", "apellido": "Medina", "moduloId": 6, "division": "A"},
-    {"id": 116, "dni": "49024254", "nombre": "Bruno", "apellido": "Ríos", "moduloId": 6, "division": "A"},
-    {"id": 117, "dni": "49497655", "nombre": "Gonzalo", "apellido": "Romero", "moduloId": 6, "division": "A"},
-    {"id": 118, "dni": "43633631", "nombre": "Mateo", "apellido": "Ríos", "moduloId": 6, "division": "A"},
-    {"id": 119, "dni": "41524992", "nombre": "Ramiro", "apellido": "Romero", "moduloId": 6, "division": "A"},
-    {"id": 120, "dni": "49639316", "nombre": "Lucas", "apellido": "Sosa", "moduloId": 6, "division": "A"},
-    {"id": 121, "dni": "44817022", "nombre": "Tomás", "apellido": "Martínez", "moduloId": 6, "division": "B"},
-    {"id": 122, "dni": "42858477", "nombre": "Lautaro", "apellido": "Luna", "moduloId": 6, "division": "B"},
-    {"id": 123, "dni": "47315953", "nombre": "Juan", "apellido": "Acosta", "moduloId": 6, "division": "B"},
-    {"id": 124, "dni": "40021918", "nombre": "Lucía", "apellido": "Vera", "moduloId": 6, "division": "B"},
-    {"id": 125, "dni": "48783932", "nombre": "Belén", "apellido": "Suárez", "moduloId": 6, "division": "B"},
-    {"id": 126, "dni": "43389713", "nombre": "Florencia", "apellido": "Luna", "moduloId": 6, "division": "B"},
-    {"id": 127, "dni": "44837579", "nombre": "Micaela", "apellido": "Aguirre", "moduloId": 6, "division": "C"},
-    {"id": 128, "dni": "40905502", "nombre": "Facundo", "apellido": "Sosa", "moduloId": 6, "division": "C"},
-    {"id": 129, "dni": "40073305", "nombre": "Florencia", "apellido": "Álvarez", "moduloId": 6, "division": "C"},
-    {"id": 130, "dni": "45835307", "nombre": "Catalina", "apellido": "Romero", "moduloId": 6, "division": "C"},
-    {"id": 131, "dni": "48234774", "nombre": "Franco", "apellido": "Ramos", "moduloId": 6, "division": "C"},
-    {"id": 132, "dni": "41605527", "nombre": "Florencia", "apellido": "Vera", "moduloId": 6, "division": "C"}
+    {
+      "id": "1",
+      "dni": "48018256",
+      "nombre": "Ignacio",
+      "apellido": "Cabrera",
+      "moduloId": 1,
+      "division": "A"
+    },
+    {
+      "id": "2",
+      "dni": "49032961",
+      "nombre": "Ramiro",
+      "apellido": "Cabrera",
+      "moduloId": 1,
+      "division": "A"
+    },
+    {
+      "id": "3",
+      "dni": "40106528",
+      "nombre": "Belén",
+      "apellido": "Ruiz",
+      "moduloId": 1,
+      "division": "A"
+    },
+    {
+      "id": "4",
+      "dni": "46294123",
+      "nombre": "Tomás",
+      "apellido": "Sánchez",
+      "moduloId": 1,
+      "division": "A"
+    },
+    {
+      "id": "5",
+      "dni": "47325733",
+      "nombre": "Santiago",
+      "apellido": "Díaz",
+      "moduloId": 1,
+      "division": "A"
+    },
+    {
+      "id": "6",
+      "dni": "47805866",
+      "nombre": "Bruno",
+      "apellido": "Pérez",
+      "moduloId": 1,
+      "division": "A"
+    },
+    {
+      "id": "7",
+      "dni": "41350213",
+      "nombre": "Lucas",
+      "apellido": "Cabrera",
+      "moduloId": 1,
+      "division": "B"
+    },
+    {
+      "id": "8",
+      "dni": "47591484",
+      "nombre": "Sebastián",
+      "apellido": "Benítez",
+      "moduloId": 1,
+      "division": "B"
+    },
+    {
+      "id": "9",
+      "dni": "42942593",
+      "nombre": "Renata",
+      "apellido": "Ramos",
+      "moduloId": 1,
+      "division": "B"
+    },
+    {
+      "id": "10",
+      "dni": "43790795",
+      "nombre": "Juan",
+      "apellido": "Sosa",
+      "moduloId": 1,
+      "division": "B"
+    },
+    {
+      "id": "11",
+      "dni": "41766344",
+      "nombre": "Mateo",
+      "apellido": "Rojas",
+      "moduloId": 1,
+      "division": "B"
+    },
+    {
+      "id": "12",
+      "dni": "44386024",
+      "nombre": "Santiago",
+      "apellido": "Paz",
+      "moduloId": 1,
+      "division": "B"
+    },
+    {
+      "id": "13",
+      "dni": "43897304",
+      "nombre": "Catalina",
+      "apellido": "Ortiz",
+      "moduloId": 1,
+      "division": "C"
+    },
+    {
+      "id": "14",
+      "dni": "40651264",
+      "nombre": "Emiliano",
+      "apellido": "Moreno",
+      "moduloId": 1,
+      "division": "C"
+    },
+    {
+      "id": "15",
+      "dni": "42068084",
+      "nombre": "Emiliano",
+      "apellido": "Flores",
+      "moduloId": 1,
+      "division": "C"
+    },
+    {
+      "id": "16",
+      "dni": "45629041",
+      "nombre": "Diego",
+      "apellido": "Acosta",
+      "moduloId": 1,
+      "division": "C"
+    },
+    {
+      "id": "17",
+      "dni": "44417433",
+      "nombre": "Camila",
+      "apellido": "Moreno",
+      "moduloId": 1,
+      "division": "C"
+    },
+    {
+      "id": "18",
+      "dni": "40881373",
+      "nombre": "Candela",
+      "apellido": "Gómez",
+      "moduloId": 1,
+      "division": "C"
+    },
+    {
+      "id": "19",
+      "dni": "44462552",
+      "nombre": "Florencia",
+      "apellido": "Ramos",
+      "moduloId": 1,
+      "division": "D"
+    },
+    {
+      "id": "20",
+      "dni": "49291036",
+      "nombre": "Tomás",
+      "apellido": "Paz",
+      "moduloId": 1,
+      "division": "D"
+    },
+    {
+      "id": "21",
+      "dni": "47315771",
+      "nombre": "Paula",
+      "apellido": "Núñez",
+      "moduloId": 1,
+      "division": "D"
+    },
+    {
+      "id": "22",
+      "dni": "48778610",
+      "nombre": "Delfina",
+      "apellido": "Álvarez",
+      "moduloId": 1,
+      "division": "D"
+    },
+    {
+      "id": "23",
+      "dni": "44450955",
+      "nombre": "Renata",
+      "apellido": "Rodríguez",
+      "moduloId": 1,
+      "division": "D"
+    },
+    {
+      "id": "24",
+      "dni": "44959654",
+      "nombre": "Martín",
+      "apellido": "Silva",
+      "moduloId": 1,
+      "division": "D"
+    },
+    {
+      "id": "25",
+      "dni": "43640605",
+      "nombre": "Lautaro",
+      "apellido": "Flores",
+      "moduloId": 2,
+      "division": "A"
+    },
+    {
+      "id": "26",
+      "dni": "41433154",
+      "nombre": "Delfina",
+      "apellido": "Castro",
+      "moduloId": 2,
+      "division": "A"
+    },
+    {
+      "id": "27",
+      "dni": "48513265",
+      "nombre": "Facundo",
+      "apellido": "Benítez",
+      "moduloId": 2,
+      "division": "A"
+    },
+    {
+      "id": "28",
+      "dni": "40255506",
+      "nombre": "Ramiro",
+      "apellido": "Rodríguez",
+      "moduloId": 2,
+      "division": "A"
+    },
+    {
+      "id": "29",
+      "dni": "42848289",
+      "nombre": "Antonella",
+      "apellido": "Rodríguez",
+      "moduloId": 2,
+      "division": "A"
+    },
+    {
+      "id": "30",
+      "dni": "44368291",
+      "nombre": "Valentina",
+      "apellido": "Flores",
+      "moduloId": 2,
+      "division": "A"
+    },
+    {
+      "id": "31",
+      "dni": "43961287",
+      "nombre": "Franco",
+      "apellido": "Flores",
+      "moduloId": 2,
+      "division": "B"
+    },
+    {
+      "id": "32",
+      "dni": "43402055",
+      "nombre": "Valentina",
+      "apellido": "Peralta",
+      "moduloId": 2,
+      "division": "B"
+    },
+    {
+      "id": "33",
+      "dni": "42670736",
+      "nombre": "Benjamín",
+      "apellido": "Cabrera",
+      "moduloId": 2,
+      "division": "B"
+    },
+    {
+      "id": "34",
+      "dni": "45484026",
+      "nombre": "Lautaro",
+      "apellido": "López",
+      "moduloId": 2,
+      "division": "B"
+    },
+    {
+      "id": "35",
+      "dni": "43220203",
+      "nombre": "Tomás",
+      "apellido": "Domínguez",
+      "moduloId": 2,
+      "division": "B"
+    },
+    {
+      "id": "36",
+      "dni": "46521460",
+      "nombre": "Emiliano",
+      "apellido": "Silva",
+      "moduloId": 2,
+      "division": "B"
+    },
+    {
+      "id": "37",
+      "dni": "45512253",
+      "nombre": "Emiliano",
+      "apellido": "Torres",
+      "moduloId": 2,
+      "division": "C"
+    },
+    {
+      "id": "38",
+      "dni": "44012607",
+      "nombre": "Antonella",
+      "apellido": "Giménez",
+      "moduloId": 2,
+      "division": "C"
+    },
+    {
+      "id": "39",
+      "dni": "46366135",
+      "nombre": "Lucas",
+      "apellido": "Rodríguez",
+      "moduloId": 2,
+      "division": "C"
+    },
+    {
+      "id": "40",
+      "dni": "48998599",
+      "nombre": "Santiago",
+      "apellido": "Medina",
+      "moduloId": 2,
+      "division": "C"
+    },
+    {
+      "id": "41",
+      "dni": "47876825",
+      "nombre": "Renata",
+      "apellido": "Aguirre",
+      "moduloId": 2,
+      "division": "C"
+    },
+    {
+      "id": "42",
+      "dni": "47921245",
+      "nombre": "Ignacio",
+      "apellido": "Torres",
+      "moduloId": 2,
+      "division": "C"
+    },
+    {
+      "id": "43",
+      "dni": "48902340",
+      "nombre": "Lucía",
+      "apellido": "Núñez",
+      "moduloId": 2,
+      "division": "D"
+    },
+    {
+      "id": "44",
+      "dni": "40107111",
+      "nombre": "Paula",
+      "apellido": "Ríos",
+      "moduloId": 2,
+      "division": "D"
+    },
+    {
+      "id": "45",
+      "dni": "40444922",
+      "nombre": "Franco",
+      "apellido": "Molina",
+      "moduloId": 2,
+      "division": "D"
+    },
+    {
+      "id": "46",
+      "dni": "47335279",
+      "nombre": "Juan",
+      "apellido": "Benítez",
+      "moduloId": 2,
+      "division": "D"
+    },
+    {
+      "id": "47",
+      "dni": "43923037",
+      "nombre": "Florencia",
+      "apellido": "Paz",
+      "moduloId": 2,
+      "division": "D"
+    },
+    {
+      "id": "48",
+      "dni": "49568773",
+      "nombre": "Delfina",
+      "apellido": "López",
+      "moduloId": 2,
+      "division": "D"
+    },
+    {
+      "id": "49",
+      "dni": "45163251",
+      "nombre": "Joaquín",
+      "apellido": "Aguirre",
+      "moduloId": 3,
+      "division": "A"
+    },
+    {
+      "id": "50",
+      "dni": "43556251",
+      "nombre": "Ignacio",
+      "apellido": "Vera",
+      "moduloId": 3,
+      "division": "A"
+    },
+    {
+      "id": "51",
+      "dni": "46569388",
+      "nombre": "Mateo",
+      "apellido": "López",
+      "moduloId": 3,
+      "division": "A"
+    },
+    {
+      "id": "52",
+      "dni": "49820298",
+      "nombre": "Joaquín",
+      "apellido": "Medina",
+      "moduloId": 3,
+      "division": "A"
+    },
+    {
+      "id": "53",
+      "dni": "41305359",
+      "nombre": "Thiago",
+      "apellido": "Ortiz",
+      "moduloId": 3,
+      "division": "A"
+    },
+    {
+      "id": "54",
+      "dni": "49482613",
+      "nombre": "Gonzalo",
+      "apellido": "Vera",
+      "moduloId": 3,
+      "division": "A"
+    },
+    {
+      "id": "55",
+      "dni": "42878120",
+      "nombre": "Antonella",
+      "apellido": "Peralta",
+      "moduloId": 3,
+      "division": "B"
+    },
+    {
+      "id": "56",
+      "dni": "42425956",
+      "nombre": "Mateo",
+      "apellido": "Romero",
+      "moduloId": 3,
+      "division": "B"
+    },
+    {
+      "id": "57",
+      "dni": "40552255",
+      "nombre": "Nicolás",
+      "apellido": "Acosta",
+      "moduloId": 3,
+      "division": "B"
+    },
+    {
+      "id": "58",
+      "dni": "40451407",
+      "nombre": "Bruno",
+      "apellido": "Moreno",
+      "moduloId": 3,
+      "division": "B"
+    },
+    {
+      "id": "59",
+      "dni": "41877312",
+      "nombre": "Catalina",
+      "apellido": "Pérez",
+      "moduloId": 3,
+      "division": "B"
+    },
+    {
+      "id": "60",
+      "dni": "41789826",
+      "nombre": "Renata",
+      "apellido": "Rojas",
+      "moduloId": 3,
+      "division": "B"
+    },
+    {
+      "id": "61",
+      "dni": "42714803",
+      "nombre": "Delfina",
+      "apellido": "Paz",
+      "moduloId": 3,
+      "division": "C"
+    },
+    {
+      "id": "62",
+      "dni": "45785914",
+      "nombre": "Emiliano",
+      "apellido": "Vega",
+      "moduloId": 3,
+      "division": "C"
+    },
+    {
+      "id": "63",
+      "dni": "42379769",
+      "nombre": "Antonella",
+      "apellido": "Gómez",
+      "moduloId": 3,
+      "division": "C"
+    },
+    {
+      "id": "64",
+      "dni": "40482117",
+      "nombre": "Micaela",
+      "apellido": "Rodríguez",
+      "moduloId": 3,
+      "division": "C"
+    },
+    {
+      "id": "65",
+      "dni": "40517975",
+      "nombre": "Martín",
+      "apellido": "Luna",
+      "moduloId": 3,
+      "division": "C"
+    },
+    {
+      "id": "66",
+      "dni": "40698827",
+      "nombre": "Mateo",
+      "apellido": "Fernández",
+      "moduloId": 3,
+      "division": "C"
+    },
+    {
+      "id": "67",
+      "dni": "42322070",
+      "nombre": "Ignacio",
+      "apellido": "Martínez",
+      "moduloId": 3,
+      "division": "D"
+    },
+    {
+      "id": "68",
+      "dni": "40715554",
+      "nombre": "Franco",
+      "apellido": "Ríos",
+      "moduloId": 3,
+      "division": "D"
+    },
+    {
+      "id": "69",
+      "dni": "41138028",
+      "nombre": "Candela",
+      "apellido": "Torres",
+      "moduloId": 3,
+      "division": "D"
+    },
+    {
+      "id": "70",
+      "dni": "40783382",
+      "nombre": "Candela",
+      "apellido": "Ruiz",
+      "moduloId": 3,
+      "division": "D"
+    },
+    {
+      "id": "71",
+      "dni": "41103429",
+      "nombre": "Rocío",
+      "apellido": "Morales",
+      "moduloId": 3,
+      "division": "D"
+    },
+    {
+      "id": "72",
+      "dni": "49906561",
+      "nombre": "Lucía",
+      "apellido": "Vega",
+      "moduloId": 3,
+      "division": "D"
+    },
+    {
+      "id": "73",
+      "dni": "46097015",
+      "nombre": "Martina",
+      "apellido": "Rodríguez",
+      "moduloId": 4,
+      "division": "A"
+    },
+    {
+      "id": "74",
+      "dni": "43343977",
+      "nombre": "Rocío",
+      "apellido": "Díaz",
+      "moduloId": 4,
+      "division": "A"
+    },
+    {
+      "id": "75",
+      "dni": "48957332",
+      "nombre": "Carolina",
+      "apellido": "Romero",
+      "moduloId": 4,
+      "division": "A"
+    },
+    {
+      "id": "76",
+      "dni": "41106506",
+      "nombre": "Antonella",
+      "apellido": "Ramos",
+      "moduloId": 4,
+      "division": "A"
+    },
+    {
+      "id": "77",
+      "dni": "46439888",
+      "nombre": "Candela",
+      "apellido": "Morales",
+      "moduloId": 4,
+      "division": "A"
+    },
+    {
+      "id": "78",
+      "dni": "41797184",
+      "nombre": "Martín",
+      "apellido": "Giménez",
+      "moduloId": 4,
+      "division": "A"
+    },
+    {
+      "id": "79",
+      "dni": "44136961",
+      "nombre": "Agustina",
+      "apellido": "Paz",
+      "moduloId": 4,
+      "division": "B"
+    },
+    {
+      "id": "80",
+      "dni": "43451546",
+      "nombre": "Tomás",
+      "apellido": "Benítez",
+      "moduloId": 4,
+      "division": "B"
+    },
+    {
+      "id": "81",
+      "dni": "43408547",
+      "nombre": "Julieta",
+      "apellido": "Peralta",
+      "moduloId": 4,
+      "division": "B"
+    },
+    {
+      "id": "82",
+      "dni": "41878622",
+      "nombre": "Agustina",
+      "apellido": "Moreno",
+      "moduloId": 4,
+      "division": "B"
+    },
+    {
+      "id": "83",
+      "dni": "40568170",
+      "nombre": "Rocío",
+      "apellido": "López",
+      "moduloId": 4,
+      "division": "B"
+    },
+    {
+      "id": "84",
+      "dni": "40577670",
+      "nombre": "Antonella",
+      "apellido": "Morales",
+      "moduloId": 4,
+      "division": "B"
+    },
+    {
+      "id": "85",
+      "dni": "41467583",
+      "nombre": "Renata",
+      "apellido": "García",
+      "moduloId": 4,
+      "division": "C"
+    },
+    {
+      "id": "86",
+      "dni": "44821272",
+      "nombre": "Thiago",
+      "apellido": "Ríos",
+      "moduloId": 4,
+      "division": "C"
+    },
+    {
+      "id": "87",
+      "dni": "48004754",
+      "nombre": "Abril",
+      "apellido": "Aguirre",
+      "moduloId": 4,
+      "division": "C"
+    },
+    {
+      "id": "88",
+      "dni": "41675747",
+      "nombre": "Florencia",
+      "apellido": "Rodríguez",
+      "moduloId": 4,
+      "division": "C"
+    },
+    {
+      "id": "89",
+      "dni": "42225649",
+      "nombre": "Delfina",
+      "apellido": "Ruiz",
+      "moduloId": 4,
+      "division": "C"
+    },
+    {
+      "id": "90",
+      "dni": "41641938",
+      "nombre": "Candela",
+      "apellido": "Giménez",
+      "moduloId": 4,
+      "division": "C"
+    },
+    {
+      "id": "91",
+      "dni": "43439310",
+      "nombre": "Paula",
+      "apellido": "Ruiz",
+      "moduloId": 4,
+      "division": "D"
+    },
+    {
+      "id": "92",
+      "dni": "44940300",
+      "nombre": "Renata",
+      "apellido": "Cabrera",
+      "moduloId": 4,
+      "division": "D"
+    },
+    {
+      "id": "93",
+      "dni": "45354354",
+      "nombre": "Franco",
+      "apellido": "Domínguez",
+      "moduloId": 4,
+      "division": "D"
+    },
+    {
+      "id": "94",
+      "dni": "45645892",
+      "nombre": "Lautaro",
+      "apellido": "Suárez",
+      "moduloId": 4,
+      "division": "D"
+    },
+    {
+      "id": "95",
+      "dni": "47109698",
+      "nombre": "Renata",
+      "apellido": "Flores",
+      "moduloId": 4,
+      "division": "D"
+    },
+    {
+      "id": "96",
+      "dni": "44381627",
+      "nombre": "Carolina",
+      "apellido": "Aguirre",
+      "moduloId": 4,
+      "division": "D"
+    },
+    {
+      "id": "97",
+      "dni": "40351050",
+      "nombre": "Milagros",
+      "apellido": "Herrera",
+      "moduloId": 5,
+      "division": "A"
+    },
+    {
+      "id": "98",
+      "dni": "45887236",
+      "nombre": "Lucas",
+      "apellido": "Fernández",
+      "moduloId": 5,
+      "division": "A"
+    },
+    {
+      "id": "99",
+      "dni": "44306848",
+      "nombre": "Facundo",
+      "apellido": "Peralta",
+      "moduloId": 5,
+      "division": "A"
+    },
+    {
+      "id": "100",
+      "dni": "44741227",
+      "nombre": "Milagros",
+      "apellido": "Sánchez",
+      "moduloId": 5,
+      "division": "A"
+    },
+    {
+      "id": "101",
+      "dni": "40812253",
+      "nombre": "Sofía",
+      "apellido": "García",
+      "moduloId": 5,
+      "division": "A"
+    },
+    {
+      "id": "102",
+      "dni": "46174525",
+      "nombre": "Belén",
+      "apellido": "Álvarez",
+      "moduloId": 5,
+      "division": "A"
+    },
+    {
+      "id": "103",
+      "dni": "45382706",
+      "nombre": "Joaquín",
+      "apellido": "Herrera",
+      "moduloId": 5,
+      "division": "B"
+    },
+    {
+      "id": "104",
+      "dni": "48451413",
+      "nombre": "Paula",
+      "apellido": "Vera",
+      "moduloId": 5,
+      "division": "B"
+    },
+    {
+      "id": "105",
+      "dni": "47987448",
+      "nombre": "Delfina",
+      "apellido": "Medina",
+      "moduloId": 5,
+      "division": "B"
+    },
+    {
+      "id": "106",
+      "dni": "44826051",
+      "nombre": "Renata",
+      "apellido": "Moreno",
+      "moduloId": 5,
+      "division": "B"
+    },
+    {
+      "id": "107",
+      "dni": "40519887",
+      "nombre": "Antonella",
+      "apellido": "Ortiz",
+      "moduloId": 5,
+      "division": "B"
+    },
+    {
+      "id": "108",
+      "dni": "46927771",
+      "nombre": "Benjamín",
+      "apellido": "Aguirre",
+      "moduloId": 5,
+      "division": "B"
+    },
+    {
+      "id": "109",
+      "dni": "40524368",
+      "nombre": "Nicolás",
+      "apellido": "Sánchez",
+      "moduloId": 5,
+      "division": "C"
+    },
+    {
+      "id": "110",
+      "dni": "47322518",
+      "nombre": "Franco",
+      "apellido": "Gómez",
+      "moduloId": 5,
+      "division": "C"
+    },
+    {
+      "id": "111",
+      "dni": "48701150",
+      "nombre": "Tomás",
+      "apellido": "Ruiz",
+      "moduloId": 5,
+      "division": "C"
+    },
+    {
+      "id": "112",
+      "dni": "41649304",
+      "nombre": "Santiago",
+      "apellido": "Peralta",
+      "moduloId": 5,
+      "division": "C"
+    },
+    {
+      "id": "113",
+      "dni": "45818143",
+      "nombre": "Camila",
+      "apellido": "Ruiz",
+      "moduloId": 5,
+      "division": "C"
+    },
+    {
+      "id": "114",
+      "dni": "47867649",
+      "nombre": "Nicolás",
+      "apellido": "Silva",
+      "moduloId": 5,
+      "division": "C"
+    },
+    {
+      "id": "115",
+      "dni": "40807385",
+      "nombre": "Lautaro",
+      "apellido": "Medina",
+      "moduloId": 6,
+      "division": "A"
+    },
+    {
+      "id": "116",
+      "dni": "49024254",
+      "nombre": "Bruno",
+      "apellido": "Ríos",
+      "moduloId": 6,
+      "division": "A"
+    },
+    {
+      "id": "117",
+      "dni": "49497655",
+      "nombre": "Gonzalo",
+      "apellido": "Romero",
+      "moduloId": 6,
+      "division": "A"
+    },
+    {
+      "id": "118",
+      "dni": "43633631",
+      "nombre": "Mateo",
+      "apellido": "Ríos",
+      "moduloId": 6,
+      "division": "A"
+    },
+    {
+      "id": "119",
+      "dni": "41524992",
+      "nombre": "Ramiro",
+      "apellido": "Romero",
+      "moduloId": 6,
+      "division": "A"
+    },
+    {
+      "id": "120",
+      "dni": "49639316",
+      "nombre": "Lucas",
+      "apellido": "Sosa",
+      "moduloId": 6,
+      "division": "A"
+    },
+    {
+      "id": "121",
+      "dni": "44817022",
+      "nombre": "Tomás",
+      "apellido": "Martínez",
+      "moduloId": 6,
+      "division": "B"
+    },
+    {
+      "id": "122",
+      "dni": "42858477",
+      "nombre": "Lautaro",
+      "apellido": "Luna",
+      "moduloId": 6,
+      "division": "B"
+    },
+    {
+      "id": "123",
+      "dni": "47315953",
+      "nombre": "Juan",
+      "apellido": "Acosta",
+      "moduloId": 6,
+      "division": "B"
+    },
+    {
+      "id": "124",
+      "dni": "40021918",
+      "nombre": "Lucía",
+      "apellido": "Vera",
+      "moduloId": 6,
+      "division": "B"
+    },
+    {
+      "id": "125",
+      "dni": "48783932",
+      "nombre": "Belén",
+      "apellido": "Suárez",
+      "moduloId": 6,
+      "division": "B"
+    },
+    {
+      "id": "126",
+      "dni": "43389713",
+      "nombre": "Florencia",
+      "apellido": "Luna",
+      "moduloId": 6,
+      "division": "B"
+    },
+    {
+      "id": "127",
+      "dni": "44837579",
+      "nombre": "Micaela",
+      "apellido": "Aguirre",
+      "moduloId": 6,
+      "division": "C"
+    },
+    {
+      "id": "128",
+      "dni": "40905502",
+      "nombre": "Facundo",
+      "apellido": "Sosa",
+      "moduloId": 6,
+      "division": "C"
+    },
+    {
+      "id": "129",
+      "dni": "40073305",
+      "nombre": "Florencia",
+      "apellido": "Álvarez",
+      "moduloId": 6,
+      "division": "C"
+    },
+    {
+      "id": "130",
+      "dni": "45835307",
+      "nombre": "Catalina",
+      "apellido": "Romero",
+      "moduloId": 6,
+      "division": "C"
+    },
+    {
+      "id": "131",
+      "dni": "48234774",
+      "nombre": "Franco",
+      "apellido": "Ramos",
+      "moduloId": 6,
+      "division": "C"
+    },
+    {
+      "id": "132",
+      "dni": "41605527",
+      "nombre": "Florencia",
+      "apellido": "Vera",
+      "moduloId": 6,
+      "division": "C"
+    }
   ],
-  "calificaciones": []
+  "calificaciones": [
+    {
+      "alumnoId": "1",
+      "materiaId": "1",
+      "estado": "aprobado",
+      "id": "qt0baCN99PQ"
+    },
+    {
+      "alumnoId": "1",
+      "materiaId": "2",
+      "estado": "desaprobado",
+      "id": "h4WuU_HX3rk"
+    },
+    {
+      "alumnoId": "6",
+      "materiaId": "1",
+      "estado": "desaprobado",
+      "id": "smNrl6mORUo"
+    },
+    {
+      "alumnoId": "2",
+      "materiaId": "1",
+      "estado": "aprobado",
+      "id": "dJO0gY7CFQQ"
+    },
+    {
+      "alumnoId": "2",
+      "materiaId": "2",
+      "estado": "desaprobado",
+      "id": "aZLGslw-fT4"
+    },
+    {
+      "alumnoId": "3",
+      "materiaId": "1",
+      "estado": "desaprobado",
+      "id": "iL4PIJ-riPg"
+    },
+    {
+      "alumnoId": "3",
+      "materiaId": "2",
+      "estado": "desaprobado",
+      "id": "lJOfZLes0YQ"
+    },
+    {
+      "alumnoId": "8",
+      "materiaId": "1",
+      "estado": "desaprobado",
+      "id": "5Vt-4RWUWDM"
+    },
+    {
+      "alumnoId": "8",
+      "materiaId": "2",
+      "estado": "aprobado",
+      "id": "8FUOnprqkos"
+    },
+    {
+      "alumnoId": "13",
+      "materiaId": "1",
+      "estado": "desaprobado",
+      "id": "VPwj0PlEu1Y"
+    },
+    {
+      "alumnoId": "13",
+      "materiaId": "2",
+      "estado": "aprobado",
+      "id": "z1D7G380wos"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
 }
