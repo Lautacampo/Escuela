@@ -1,16 +1,7 @@
 export function AsistenciaAlumnos ({alumnos,moduloId,division}){
     return (
     <>
-      <h1>Carga de Asistencia</h1>
-      <p style={{ marginBottom: "20px", color: "var(--gestion-texto)" }}>
-        Módulo {moduloId} - División {division}
-      </p>
-
       <div className="contenedor-tabla">
-        <div className="cabecera-tabla">
-          <h2>Listado de Alumnos</h2>
-        </div>
-
         <div className="tabla-responsive">
           <table className="tabla-gestion">
             <thead>

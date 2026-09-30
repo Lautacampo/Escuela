@@ -81,19 +81,8 @@ export function DivisionCalificacionesPage() {
 
   return (
     <section className="pagina-calificaciones-division">
-      <Link
-        to="/gestion/calificaciones"
-        className="btn-volver-calificaciones"
-      >
-        <span aria-hidden="true">←</span>
-        Volver a calificaciones
-      </Link>
+      <Link to="/gestion/calificaciones"className="btn-volver-calificaciones"><span aria-hidden="true">←</span>Volver</Link>
       <h2>Módulo {moduloId} - División {division}</h2>
-      {errorGuardar && (
-        <p className="error-calificacion" role="alert">
-          No se pudo guardar la nota: {errorGuardar}
-        </p>
-      )}
       <CalificacionesAlumnos
         alumnos={alumnosDivision}
         materias={materiasModulo}

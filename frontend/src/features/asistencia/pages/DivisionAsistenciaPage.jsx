@@ -29,11 +29,15 @@ export function DivisionAsistenciaPage(){
 
     const alumnosDivision = alumnos.filter(
         (a) => a.moduloId === Number(moduloId) && a.division === division
+    ).sort((a, b) =>
+        a.apellido.localeCompare(b.apellido, "es", { sensitivity: "base" }) ||
+        a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }),
     );
 
     return(
         <section className="pagina-asistencia-division">
-            <Link className="btn-volver-asistencia" to="/gestion/asistencia">← Volver</Link>
+            <Link to="/gestion/asistencia"className="btn-volver-calificaciones"><span aria-hidden="true">←</span>Volver</Link>
+            <h2>Módulo {moduloId} - División {division}</h2>
             <AsistenciaAlumnos
                 alumnos={alumnosDivision}
                 moduloId={moduloId}

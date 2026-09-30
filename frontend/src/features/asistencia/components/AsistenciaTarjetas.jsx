@@ -4,6 +4,7 @@ export function AsistenciaTarjetas({ modulo }) {
   return (
     <div className="modulotarjeta">
       <h3>{modulo.nombre}</h3>
+      <h5>Divisiones :</h5>
       <div className="divisiones">
         {modulo.divisiones.map((division) => (
           <Link

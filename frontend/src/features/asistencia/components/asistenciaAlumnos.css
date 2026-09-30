@@ -11,7 +11,8 @@
 	overflow: visible;
 }
 
-.pagina-asistencia-division > .btn-volver-asistencia {
+.pagina-asistencia-division > .btn-volver-asistencia,
+.pagina-asistencia-division > .btn-volver-calificaciones {
 	display: inline-flex;
 	min-height: 42px;
 	align-items: center;
@@ -29,23 +30,26 @@
 	transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
-.pagina-asistencia-division > .btn-volver-asistencia:hover {
+.pagina-asistencia-division > .btn-volver-asistencia:hover,
+.pagina-asistencia-division > .btn-volver-calificaciones:hover {
 	transform: translateX(-2px);
 	border-color: #d98b8b;
 	background: #fff5f5;
 	color: #8c0f0f;
 }
 
-.pagina-asistencia-division > .btn-volver-asistencia:focus-visible {
+.pagina-asistencia-division > .btn-volver-asistencia:focus-visible,
+.pagina-asistencia-division > .btn-volver-calificaciones:focus-visible {
 	outline: 3px solid rgba(191, 27, 27, 0.22);
 	outline-offset: 2px;
 }
 
-.pagina-asistencia-division > h1 {
-	margin: 0 0 8px;
+.pagina-asistencia-division > h2 {
+	margin: 0 0 20px;
 	color: #1e3148;
 	font-family: var(--gestion-titulos, "Segoe UI", sans-serif);
-	font-size: 1.75rem;
+	font-size: 1.55rem;
+	line-height: 1.3;
 }
 
 .pagina-asistencia-division > p {
@@ -100,6 +104,11 @@
 	color: #35475a;
 }
 
+.pagina-asistencia-division .tabla-gestion td:nth-child(2) {
+	color: #23384d;
+	font-weight: 650;
+}
+
 .pagina-asistencia-division .tabla-gestion tbody tr:nth-child(even) {
 	background: #f8fafb;
 }
@@ -113,8 +122,8 @@
 		padding: 18px;
 	}
 
-	.pagina-asistencia-division > h1 {
-		font-size: 1.5rem;
+	.pagina-asistencia-division > h2 {
+		font-size: 1.3rem;
 	}
 
 	.pagina-asistencia-division .contenedor-tabla {

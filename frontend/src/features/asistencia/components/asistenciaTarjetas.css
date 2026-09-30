@@ -51,6 +51,16 @@
 	font-size: 1.25rem;
 }
 
+.modulotarjeta h5 {
+	margin: 0;
+	padding: 3px;
+	color: #526478;
+	font-family: var(--fuente-encabezados, var(--gestion-titulos, "Segoe UI", sans-serif));
+	font-size: 1.25rem;
+	display: flex;
+	align-items: center;
+}
+
 .modulotarjeta .divisiones {
 	display: flex;
 	flex-wrap: wrap;
