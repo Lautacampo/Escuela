@@ -14,16 +14,10 @@ export function CalificacionesAlumnos({
 }) {
   return (
     <>
-      <h1>Gestión de Calificaciones</h1>
-      <p style={{ marginBottom: "20px", color: "var(--gestion-texto)" }}>
-        Módulo {moduloId} - División {division}
-      </p>
+      
+      
 
       <div className="contenedor-tabla">
-        <div className="cabecera-tabla">
-          <h2>Listado de Calificaciones de Módulos</h2>
-        </div>
-
         <div className="tabla-responsive">
           <table className="tabla-gestion">
             <thead>

@@ -1184,67 +1184,13 @@
       "alumnoId": "1",
       "materiaId": "1",
       "estado": "aprobado",
-      "id": "qt0baCN99PQ"
-    },
-    {
-      "alumnoId": "1",
-      "materiaId": "2",
-      "estado": "desaprobado",
-      "id": "h4WuU_HX3rk"
-    },
-    {
-      "alumnoId": "6",
-      "materiaId": "1",
-      "estado": "desaprobado",
-      "id": "smNrl6mORUo"
+      "id": "aqQ7HJlfdTY"
     },
     {
       "alumnoId": "2",
       "materiaId": "1",
-      "estado": "aprobado",
-      "id": "dJO0gY7CFQQ"
-    },
-    {
-      "alumnoId": "2",
-      "materiaId": "2",
       "estado": "desaprobado",
-      "id": "aZLGslw-fT4"
-    },
-    {
-      "alumnoId": "3",
-      "materiaId": "1",
-      "estado": "desaprobado",
-      "id": "iL4PIJ-riPg"
-    },
-    {
-      "alumnoId": "3",
-      "materiaId": "2",
-      "estado": "desaprobado",
-      "id": "lJOfZLes0YQ"
-    },
-    {
-      "alumnoId": "8",
-      "materiaId": "1",
-      "estado": "desaprobado",
-      "id": "5Vt-4RWUWDM"
-    },
-    {
-      "alumnoId": "8",
-      "materiaId": "2",
-      "estado": "aprobado",
-      "id": "8FUOnprqkos"
-    },
-    {
-      "alumnoId": "13",
-      "materiaId": "1",
-      "estado": "desaprobado",
-      "id": "VPwj0PlEu1Y"
-    },
-    {
-      "alumnoId": "13",
-      "materiaId": "2",
-      "estado": "aprobado",
-      "id": "z1D7G380wos"
+      "id": "j6YNenDRSIM"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
