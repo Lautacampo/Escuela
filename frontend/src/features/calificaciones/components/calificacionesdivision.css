@@ -1,124 +1,186 @@
-/* Contenedor principal */
-section {
-  padding: 20px 0;
-  color: var(--color-texto);
-  font-family: var(--fuente-principal);
+.dashboard-main > .pagina-calificaciones-division {
   width: 100%;
-  overflow-x: auto; /* Permite scroll horizontal si la tabla es muy ancha */
+  min-width: 0;
+  margin-bottom: 0;
+  padding: 24px;
+  border-radius: 8px;
+  background: #f5f8fa;
+  box-shadow: none;
+  overflow: visible;
+  color: #26364a;
+  font-family: var(--gestion-fuente, "Segoe UI", sans-serif);
 }
 
-/* Enlace de volver */
-section a {
+.pagina-calificaciones-division > .btn-volver-calificaciones {
   display: inline-flex;
+  min-height: 42px;
   align-items: center;
-  gap: 6px;
-  color: var(--color-tercero);
+  gap: 9px;
+  margin: 0 0 22px;
+  padding: 9px 15px;
+  border: 1px solid #d5e0e8;
+  border-radius: 6px;
+  background: #fff;
+  color: #29445c;
+  font-size: 0.92rem;
+  font-weight: 650;
   text-decoration: none;
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin-bottom: 20px;
-  padding: 6px 12px;
-  border-radius: var(--radio-borde);
-  background-color: rgba(79, 195, 247, 0.1);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  box-shadow: 0 2px 5px rgba(27, 48, 70, 0.06);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 }
 
-section a:hover {
-  background-color: var(--color-tercero);
-  color: var(--color-fondo);
+.pagina-calificaciones-division > .btn-volver-calificaciones:hover {
+  transform: translateX(-2px);
+  border-color: #8bc9c3;
+  background: #eff9f7;
+  color: #17685f;
 }
 
-/* Título de la página */
-section h2 {
-  font-family: var(--fuente-encabezados);
-  font-size: 1.8rem;
-  margin-top: 0;
-  margin-bottom: 24px;
-  color: var(--color-texto);
-  border-bottom: 2px solid var(--color-primario);
-  padding-bottom: 12px;
+.pagina-calificaciones-division > .btn-volver-calificaciones:focus-visible {
+  outline: 3px solid rgba(36, 139, 127, 0.3);
+  outline-offset: 2px;
 }
 
-/* Estilos de la planilla (Tabla) */
-.planilla {
+.pagina-calificaciones-division > h2 {
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+  color: #1e3148;
+  font-family: var(--gestion-titulos, "Segoe UI", sans-serif);
+  font-size: 1.55rem;
+  line-height: 1.3;
+}
+
+.pagina-calificaciones-division > h1 {
+  margin: 0 0 8px;
+  color: #1e3148;
+  font-size: 1.75rem;
+}
+
+.pagina-calificaciones-division .contenedor-tabla {
+  margin-top: 22px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #e0e7ed;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(32, 52, 73, 0.07);
+}
+
+.pagina-calificaciones-division .cabecera-tabla {
+  margin-bottom: 16px;
+}
+
+.pagina-calificaciones-division .cabecera-tabla h2 {
+  margin: 0;
+  color: #344a60;
+  font-size: 1.08rem;
+}
+
+.pagina-calificaciones-division .tabla-responsive {
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+}
+
+.pagina-calificaciones-division .tabla-gestion {
+  min-width: 560px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.pagina-calificaciones-division .tabla-gestion th {
+  padding: 13px 16px;
+  background: #f1f5f8;
+  color: #526478;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.pagina-calificaciones-division .tabla-gestion td {
+  padding: 12px 16px;
+  border-bottom-color: #e9eef2;
+  color: #35475a;
+}
+
+.pagina-calificaciones-division .tabla-gestion td:first-child {
+  color: #23384d;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.pagina-calificaciones-division .tabla-gestion tbody tr:nth-child(even) {
+  background: #f8fafb;
+}
+
+.pagina-calificaciones-division .tabla-gestion tbody tr:hover {
+  background: #f0f7f6;
+}
+
+.pagina-calificaciones-division .select-estado {
   width: 100%;
-  border-collapse: collapse;
-  background-color: var(--color-tarjetas);
-  border-radius: var(--radio-borde);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  /* Sombra sutil para despegarla del fondo */
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); 
+  min-width: 138px;
+  min-height: 38px;
+  padding: 7px 32px 7px 11px;
+  border: 1px solid #d9e1e7;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
 }
 
-/* Encabezado de la tabla */
-.planilla thead {
-  background-color: var(--color-primario);
+.pagina-calificaciones-division .select-estado:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(36, 139, 127, 0.2);
 }
 
-.planilla th {
-  padding: 16px;
-  text-align: left;
-  font-family: var(--fuente-encabezados);
-  font-weight: normal;
-  font-size: 1.05rem;
-  letter-spacing: 0.5px;
-  color: #ffffff;
-  border-bottom: 3px solid var(--color-secundario);
-  white-space: nowrap; /* Evita que los nombres de las materias se rompan en dos líneas */
+.pagina-calificaciones-division .select-estado.estado-ap {
+  border-color: #b8dfc5;
+  background-color: #eaf6ee;
+  color: #176b38;
 }
 
-/* Celdas del cuerpo */
-.planilla td {
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  color: var(--color-texto);
-  font-size: 0.95rem;
+.pagina-calificaciones-division .select-estado.estado-de {
+  border-color: #f0c2c5;
+  background-color: #fff0f0;
+  color: #ae2632;
 }
 
-/* Color alterno para las filas (Cebra) para facilitar la lectura cruzada */
-.planilla tbody tr:nth-child(even) {
-  background-color: rgba(255, 255, 255, 0.02);
+.pagina-calificaciones-division .select-estado.estado-cur {
+  border-color: #d7e0e7;
+  background-color: #f3f6f8;
+  color: #566879;
 }
 
-/* Efecto hover sobre la fila entera */
-.planilla tbody tr {
-  transition: background-color 0.15s ease;
+.pagina-calificaciones-division .error-calificacion {
+  margin: 0 0 16px;
+  padding: 11px 14px;
+  border: 1px solid #f0c2c5;
+  border-radius: 6px;
+  background: #fff0f0;
+  color: #ae2632;
 }
 
-.planilla tbody tr:hover {
-  background-color: rgba(79, 195, 247, 0.08);
-}
+@media (max-width: 700px) {
+  .pagina-calificaciones-division .contenedor-tabla {
+    padding: 0;
+  }
 
-/* Quitar el borde inferior de la última fila */
-.planilla tbody tr:last-child td {
-  border-bottom: none;
-}
+  .pagina-calificaciones-division > h2 {
+    font-size: 1.3rem;
+  }
 
-/* Columna congelada para el nombre del alumno (Sticky Column) */
-.planilla th:first-child,
-.planilla td:first-child {
-  position: sticky;
-  left: 0;
-  font-weight: 600;
-  z-index: 1;
-}
-
-/* Fondos específicos para la columna congelada para que no se superpongan las letras al hacer scroll */
-.planilla thead th:first-child {
-  background-color: var(--color-primario);
-  z-index: 2;
-}
-
-.planilla tbody td:first-child {
-  background-color: var(--color-tarjetas);
-  /* Sombra derecha para indicar que hay contenido oculto bajo scroll */
-  box-shadow: 4px 0 8px rgba(0, 0, 0, 0.1); 
-}
-
-.planilla tbody tr:nth-child(even) td:first-child {
-  background-color: #0c203b; /* Mezcla manual del color tarjeta + 2% blanco del cebra */
-}
-
-.planilla tbody tr:hover td:first-child {
-  background-color: #123154; /* Mezcla manual del color tarjeta + el hover */
+  .pagina-calificaciones-division > h1 {
+    font-size: 1.5rem;
+  }
 }

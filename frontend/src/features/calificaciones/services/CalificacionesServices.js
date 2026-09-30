@@ -17,3 +17,24 @@ export async function getAlumnos(){
     if(!res.ok) throw new Error("No se pudieron cargar los alumnos");
     return res.json();
 }
+
+export async function getCalificaciones(){
+    const res = await fetch (`${API_URL}/calificaciones`);
+    if(!res.ok) throw new Error("No se pudieron cargar las notas");
+    return res.json();
+}
+
+export async function setCalificacion(nota){
+    const url=nota.id
+    ?`${API_URL}/calificaciones/${nota.id}`
+    :`${API_URL}/calificaciones`;
+
+    const res = await fetch (url ,{
+        method: nota.id ? "PUT" : "POST",
+        headers :{"Content-Type": "application/json"},
+        body: JSON.stringify(nota),
+    });
+
+    if(!res.ok) throw new Error("No se pudo cargar la nota");
+    return res.json();
+}
