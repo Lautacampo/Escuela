@@ -869,71 +869,411 @@ main h3 {
   font-size: 1.5rem;
 }
 
-/* ==================== SECCIÓN: FORO Y FORMULARIOS ==================== */
-.contenedor-foro {
+/* ==================== FORO DE CONSULTAS ==================== */
+
+#foro.foro-consultas {
   display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 40px;
-  margin-top: 30px;
-  text-align: left;
-}
-
-.hacer-pregunta,
-.pregunta-item {
-  background-color: var(--color-tarjetas);
-  padding: 25px;
-  border-radius: var(--radio-borde);
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  margin: 40px 0 30px;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: #102f54;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.2);
+  font-family: var(--fuente-principal, "Segoe UI", sans-serif);
+  text-align: left;
+  animation: foro-aparecer 450ms ease-out both;
 }
 
-.hacer-pregunta h3,
-.muro-preguntas h3 {
-  color: var(--color-tercero);
-}
-
-.muro-preguntas {
+#foro .foro-presentacion {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: flex-start;
+  min-width: 0;
+  padding: clamp(28px, 4vw, 48px);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(73, 191, 191, 0.18), transparent 55%),
+    linear-gradient(145deg, #123c66, #152238);
+  color: #ffffff;
 }
 
-.pregunta-item {
-  border-left: 4px solid var(--color-tercero);
-  padding: 15px 20px;
+#foro .foro-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #c8e8ee;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
 }
 
-.pregunta-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
+#foro .foro-etiqueta > span {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #64d5d0;
+  box-shadow: 0 0 0 5px rgba(100, 213, 208, 0.12);
+}
+
+#foro .foro-icono {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  margin: 35px 0 24px;
+  border: 1px solid rgba(130, 223, 225, 0.25);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #82dfe1;
+  font-size: 1.8rem;
+  transform: rotate(-5deg);
+}
+
+#foro #foro-titulo {
+  margin: 0 0 20px;
+  color: #ffffff;
+  font-size: clamp(1.9rem, 3vw, 2.65rem);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+#foro #foro-titulo > span {
+  color: #82dfe1;
+}
+
+#foro .foro-introduccion {
+  max-width: 38ch;
+  margin: 0 0 30px;
+  color: #d6e4ef;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+#foro .foro-temas {
+  width: 100%;
+  margin-bottom: 30px;
+}
+
+#foro .foro-temas > p {
+  margin: 0 0 14px;
+  color: #ffffff;
   font-size: 0.9rem;
-  color: #94a3b8;
+  font-weight: 600;
 }
 
-.pregunta-header strong {
-  color: var(--color-tercero);
+#foro .foro-temas-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.respuesta-oficial {
-  background-color: #121e31;
-  margin-top: 15px;
-  padding: 12px;
-  border-radius: var(--radio-borde);
-}
-
-.respuesta-oficial strong {
-  color: #2e7d32;
-}
-
-.etiqueta-pendiente {
-  display: inline-block;
-  margin-top: 10px;
-  font-size: 0.8rem;
-  background-color: #fff3e0;
-  color: #e65100;
-  padding: 4px 8px;
+#foro .foro-tema {
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 12px;
-  font-weight: bold;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e3eef6;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+#foro .foro-tema:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+#foro .foro-tema[aria-pressed="true"] {
+  border-color: #82dfe1;
+  background: #82dfe1;
+  color: #12283f;
+  font-weight: 700;
+}
+
+#foro .foro-orientacion {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+#foro .foro-orientacion > i {
+  margin-top: 5px;
+  color: #82dfe1;
+}
+
+#foro .foro-orientacion p {
+  margin: 0;
+  color: #c8d8e7;
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+/* Tarjeta blanca */
+
+#foro .foro-tarjeta {
+  min-width: 0;
+  padding: clamp(26px, 3.5vw, 44px);
+  background: #ffffff;
+  color: #152238;
+}
+
+#foro .foro-sobretitulo {
+  color: #52697d;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+#foro .foro-formulario-cabecera h3 {
+  margin: 8px 0;
+  color: #152238;
+  font-size: 1.8rem;
+}
+
+#foro .foro-formulario-cabecera p {
+  margin: 0 0 28px;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+#foro .foro-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+#foro .foro-grupo {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+#foro .foro-grupo legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  float: none;
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 0;
+  color: #152238;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+#foro .foro-numero {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: #eaf4f5;
+  color: #256368;
+  font-size: 0.75rem;
+}
+
+#foro .foro-ayuda {
+  margin: 0 0 16px;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+#foro .foro-campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+#foro .foro-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+#foro .foro-campo label {
+  margin: 0;
+  color: #24364b;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+#foro .foro-campo input,
+#foro .foro-campo textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  outline: none;
+  background: #f8fafc;
+  color: #152238;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+#foro .foro-campo input {
+  min-height: 46px;
+}
+
+#foro .foro-campo textarea {
+  min-height: 135px;
+  resize: vertical;
+}
+
+#foro .foro-campo input::placeholder,
+#foro .foro-campo textarea::placeholder {
+  color: #748293;
+}
+
+#foro .foro-campo input:focus,
+#foro .foro-campo textarea:focus {
+  border-color: #32898e;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(50, 137, 142, 0.14);
+}
+
+#foro .foro-campo [aria-invalid="true"] {
+  border-color: #bf1b1b;
+}
+
+#foro .foro-campo [aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px rgba(191, 27, 27, 0.12);
+}
+
+#foro .foro-error {
+  margin: 4px 0 0;
+  color: #b91c1c;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+#foro .foro-textarea-pie {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#foro .foro-contador {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+#foro .foro-enviar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 50px;
+  padding: 13px 20px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-secundario, #bf1b1b);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+#foro .foro-enviar:hover {
+  transform: translateY(-2px);
+  background: var(--color-secundario-hover, #8c0f0f);
+  box-shadow: 0 8px 18px rgba(191, 27, 27, 0.18);
+}
+
+#foro .foro-enviar:active {
+  transform: translateY(0);
+}
+
+#foro .foro-enviar:focus-visible {
+  outline: 3px solid #152238;
+  outline-offset: 4px;
+}
+
+#foro .foro-tema:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 4px;
+}
+
+#foro .foro-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #d7e2ed;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+#foro .foro-aviso > i {
+  margin-top: 4px;
+}
+
+#foro .foro-aviso p {
+  margin: 0;
+  color: #334155;
+  font-size: 0.85rem;
+}
+
+#foro .foro-pie-formulario {
+  margin: -8px 0 0;
+  color: #64748b;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+@keyframes foro-aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 /* ==================== PREINSCRIPCIÓN EN HOME ==================== */
 /* El ID + la clase aíslan este bloque de los estilos del formulario.
@@ -1624,5 +1964,68 @@ img {
 
   .catalogo-imagen img {
     height: 250px;
+  }
+  @media (max-width: 900px) {
+    #foro.foro-consultas {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    #foro .foro-presentacion {
+      padding: 30px;
+    }
+
+    #foro .foro-icono {
+      width: 52px;
+      height: 52px;
+      margin: 22px 0 18px;
+      font-size: 1.4rem;
+    }
+
+    #foro .foro-introduccion {
+      max-width: 60ch;
+    }
+  }
+
+  @media (max-width: 560px) {
+    #foro.foro-consultas {
+      margin-top: 24px;
+      border-radius: 12px;
+    }
+
+    #foro .foro-presentacion,
+    #foro .foro-tarjeta {
+      padding: 24px 20px;
+    }
+
+    #foro .foro-campos {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    #foro .foro-tema {
+      flex: 1 1 140px;
+    }
+
+    #foro .foro-formulario {
+      gap: 22px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #foro.foro-consultas {
+      animation: none;
+    }
+
+    #foro .foro-tema,
+    #foro .foro-enviar,
+    #foro .foro-campo input,
+    #foro .foro-campo textarea {
+      transition: none;
+    }
+
+    #foro .foro-tema:hover,
+    #foro .foro-enviar:hover,
+    #foro .foro-enviar:active {
+      transform: none;
+    }
   }
 }
