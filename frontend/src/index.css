@@ -220,43 +220,185 @@ h4 {
 
 /* ==================== HERO BANNER ==================== */
 .hero {
-  margin-top: 0;
+  /* La ruta corresponde a public/img/portadas/fondo-escuela.jpg.
+     Usá la fotografía original, sin títulos ni escudos incorporados. */
+  --hero-acento: #c5262d;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  min-height: 620px;
+  margin: 0 0 2rem;
+  padding: clamp(2.5rem, 5vw, 4rem) clamp(1.25rem, 4vw, 3rem);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background-color: #14283f;
   background-image:
-    linear-gradient(rgba(66, 91, 140, 0.75), rgba(66, 91, 140, 0.75)),
+    linear-gradient(
+      180deg,
+      rgba(8, 23, 42, 0.42) 0%,
+      rgba(8, 23, 42, 0.72) 52%,
+      rgba(8, 23, 42, 0.94) 100%
+    ),
     url("/img/portadas/portada.jpg");
+  background-position:
+    center,
+    center 45%;
   background-size: cover;
-  background-position: center;
-  height: 60vh;
-  min-height: 400px;
-  border-radius: var(--radio-borde);
-  margin-bottom: 2rem;
+  background-repeat: no-repeat;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 88px;
+  height: 3px;
+  transform: translateX(-50%);
+  background: var(--hero-acento);
+}
+
+.hero .hero-contenido {
+  width: 100%;
+  max-width: 1000px;
+  min-width: 0;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero .hero-escudo {
+  display: block;
+  width: clamp(108px, 12vw, 150px);
+  height: auto;
+  aspect-ratio: 5 / 6;
+  object-fit: contain;
+  margin: 0 0 1.5rem;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
+}
+
+.hero .hero-etiqueta {
+  margin: 0 0 0.8rem;
+  color: #e2eaf2;
+  font-family: var(--fuente-principal, Arial, sans-serif);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0;
+  color: #fff;
+  font-family: var(--fuente-encabezados, Arial, sans-serif);
+  font-size: clamp(2rem, 4.4vw, 3.5rem);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.13;
+  text-wrap: balance;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+.hero h1 span {
+  display: inline-block;
+}
+
+.hero .hero-descripcion {
+  max-width: 660px;
+  margin: 1.2rem 0 0;
+  color: #edf2f8;
+  font-family: var(--fuente-principal, Arial, sans-serif);
+  font-size: clamp(1rem, 1.65vw, 1.2rem);
+  line-height: 1.7;
+  text-wrap: balance;
+}
+
+.hero .hero-acciones {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 2rem;
+  width: 100%;
+}
+
+.hero .hero-boton {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.9rem;
+  min-height: 52px;
+  padding: 0.85rem 1.4rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #fff;
+  font-family: var(--fuente-principal, Arial, sans-serif);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
   text-align: center;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
 }
 
-.hero-contenido h1 {
-  color: white;
-  font-size: 3.5rem;
-  margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  margin-top: 0;
+.hero .hero-boton-principal {
+  background: var(--hero-acento);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
 }
 
-.hero-contenido p {
-  color: var(--color-tercero);
-  font-size: 1.5rem;
-  margin-bottom: 2rem;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
+.hero .hero-boton-secundario {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.hero .hero-boton:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 5px;
+}
+
+.hero .hero-datos {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.15rem;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hero .hero-datos li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #d1dce8;
+  font-family: var(--fuente-principal, Arial, sans-serif);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.hero .hero-datos li::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #92b8c9;
+}
+
+#quienessomos {
+  scroll-margin-top: 160px;
 }
 
 .btn-principal {
-  background-color: var(--color-secundario);
+  background-color: var(--color-secundario, #bf1b1b); /* Rojo institucional */
   color: white !important;
   padding: 15px 35px;
   font-size: 1.2rem;
@@ -266,14 +408,14 @@ h4 {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
   display: inline-block;
+  text-transform: uppercase;
 }
 
 .btn-principal:hover {
-  background-color: var(--color-secundario-hover);
+  background-color: var(--color-secundario-hover, #8c0f0f);
   transform: translateY(-3px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
-
 /* ==================== CONTENIDO PRINCIPAL ==================== */
 main {
   flex: 1;
@@ -355,6 +497,85 @@ main h3 {
 .tarjeta-info h3 {
   font-size: 1.2rem;
   color: var(--color-tercero);
+}
+.contenedor-catalogo {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 40px; /* Separación vertical entre los bloques */
+}
+
+/* Diseño de tarjeta horizontal (Fila) */
+.fila-catalogo {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr; /* El texto ocupa más espacio que la imagen */
+  gap: 0;
+  background-color: var(
+    --color-tarjetas
+  ); /* Mantenemos el azul oscuro de las tarjetas institucionales */
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); /* Sombra elegante para que "floten" */
+  border: 1px solid rgba(255, 255, 255, 0.05); /* Borde sutil */
+}
+
+/* Invierte el orden para darle ritmo visual (Imagen - Texto) */
+.fila-catalogo.fila-invertida {
+  grid-template-columns: 1fr 1.2fr;
+}
+
+.catalogo-texto {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.titulo-catalogo {
+  color: white !important;
+  font-size: 2.2rem;
+  margin-bottom: 20px;
+  position: relative;
+  padding-bottom: 15px;
+}
+
+.titulo-catalogo::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background-color: var(--color-secundario);
+}
+
+.subtitulo-catalogo {
+  color: var(--color-tercero) !important;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.catalogo-texto p {
+  color: var(--color-texto) !important;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  margin-bottom: 15px;
+}
+
+.catalogo-imagen {
+  width: 100%;
+  height: 100%;
+}
+
+.catalogo-imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* ==================== SECCIÓN: MISIÓN Y VISIÓN ==================== */
@@ -714,20 +935,263 @@ main h3 {
   border-radius: 12px;
   font-weight: bold;
 }
+/* ==================== PREINSCRIPCIÓN EN HOME ==================== */
+/* El ID + la clase aíslan este bloque de los estilos del formulario.
+   La imagen mantiene su proporción original: no usa altura fija ni cover. */
+#preinscripcion.inscripcion-home {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  align-items: stretch;
+  width: 100%;
+  max-width: none; /* Ocupa todo el ancho de main, igual que las demás secciones. */
+  margin: 0 0 30px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radio-borde);
+  background: var(--color-primario);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  text-align: left;
+  scroll-margin-top: 160px;
+}
+
+#preinscripcion.inscripcion-home .inscripcion-contenido {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: clamp(1.5rem, 3.5vw, 3rem);
+}
+
+#preinscripcion.inscripcion-home .inscripcion-estado {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0 0 1.25rem;
+  color: var(--color-texto);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+
+#preinscripcion.inscripcion-home .inscripcion-estado span {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-secundario);
+}
+
+#preinscripcion.inscripcion-home h2 {
+  margin: 0;
+  color: #fff;
+  font-family: var(--fuente-encabezados, Arial, sans-serif);
+  font-size: clamp(1.9rem, 3.1vw, 2.7rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+#preinscripcion.inscripcion-home h2 span {
+  color: var(--color-tercero);
+}
+
+#preinscripcion.inscripcion-home .inscripcion-intro {
+  max-width: 44ch;
+  margin: 1.25rem 0 1.75rem;
+  color: var(--color-texto);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+#preinscripcion.inscripcion-home .inscripcion-datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2rem 1.5rem;
+  margin: 0;
+  padding: 1.4rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  font-family: var(--fuente-principal, Arial, sans-serif);
+}
+
+#preinscripcion.inscripcion-home .inscripcion-datos dt {
+  margin: 0 0 0.35rem;
+  color: var(--color-texto);
+  font-size: 0.76rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+#preinscripcion.inscripcion-home .inscripcion-datos dd {
+  margin: 0;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+#preinscripcion.inscripcion-home .inscripcion-propuesta {
+  margin: 1.3rem 0 1.7rem;
+  color: var(--color-texto);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+#preinscripcion.inscripcion-home .inscripcion-acciones {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+#preinscripcion.inscripcion-home .inscripcion-boton {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  max-width: 100%;
+  min-height: 52px;
+  padding: 0.9rem 1.35rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--color-secundario);
+  color: #fff;
+  font-family: var(--fuente-principal, Arial, sans-serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  transition: background-color 180ms ease;
+}
+
+#preinscripcion.inscripcion-home .inscripcion-boton:hover {
+  background: var(--color-secundario-hover, #8c0f0f);
+}
+
+#preinscripcion.inscripcion-home .inscripcion-consultas {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-texto);
+  font-family: var(--fuente-principal, Arial, sans-serif);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+#preinscripcion.inscripcion-home .inscripcion-consultas:hover {
+  color: #fff;
+}
+
+#preinscripcion.inscripcion-home .inscripcion-afiche {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-width: 0;
+  margin: 0;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  background: var(--color-primario);
+}
+
+#preinscripcion.inscripcion-home .inscripcion-afiche-enlace {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(20, 36, 57, 0.14);
+}
+
+/* Especificidad mayor que #preinscripcion img del CSS del formulario.
+   Reseteamos también el filtro, borde circular y zoom de ese selector. */
+#preinscripcion.inscripcion-home .inscripcion-afiche img,
+#preinscripcion.inscripcion-home .inscripcion-afiche img:hover {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+  filter: none;
+  transform: none;
+  transition: none;
+}
+
+#preinscripcion.inscripcion-home figcaption {
+  max-width: 34ch;
+  color: var(--color-texto);
+  font-family: var(--fuente-principal, Arial, sans-serif);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+#preinscripcion.inscripcion-home a:focus-visible {
+  outline: 3px solid var(--color-tercero);
+  outline-offset: 4px;
+}
+
+#preinscripcion.inscripcion-home .inscripcion-afiche-enlace:focus-visible {
+  outline-color: var(--color-tercero);
+}
+
+#faq {
+  scroll-margin-top: 160px;
+}
 
 /* ==================== FAQ  ==================== */
+.seccion-faq {
+  background-color: var(
+    --color-tarjetas
+  ); /* Mantiene el fondo azul institucional */
+  padding: 60px 20px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: none; /* Mismo ancho exterior que el resto de las secciones. */
+  margin: 0 auto 40px auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.contenedor-faq-centrado h2 {
+  text-align: center;
+  color: white;
+  margin-bottom: 10px;
+  font-size: 2.2rem;
+}
+
+.subtitulo-faq {
+  text-align: center;
+  color: var(--color-texto);
+  margin-bottom: 40px;
+  font-size: 1.05rem;
+}
+
 .accordion-faq {
   display: flex;
   flex-direction: column;
   gap: 0 !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  /* Línea superior general sutil */
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   max-width: 900px;
   margin: 0 auto;
 }
 
 .faq-item {
   background-color: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  /* Líneas divisorias internas finas y sutiles */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 0 !important;
   margin: 0 !important;
 }
@@ -739,9 +1203,7 @@ main h3 {
   align-items: center;
   background: transparent !important;
   border: none;
-
   padding: 24px 10px !important;
-
   color: white !important;
   font-size: 1.15rem;
   font-family: var(
@@ -750,6 +1212,7 @@ main h3 {
     Arial,
     sans-serif
   );
+  font-weight: bold;
   cursor: pointer;
   text-align: left;
 }
@@ -760,27 +1223,20 @@ main h3 {
 }
 
 .faq-pregunta span i {
-  color: var(--color-tercero, #49bfbf);
+  color: var(--color-tercero); /* Turquesa */
   margin-right: 15px;
   font-size: 1.3rem;
 }
 
 .faq-icono {
-  color: #94a3b8;
+  color: var(--color-tercero);
   font-size: 1.2rem;
   background: transparent !important;
-  transition:
-    transform 0.3s ease,
-    color 0.3s ease;
-}
-
-.faq-item.activo .faq-pregunta {
-  background-color: transparent;
+  transition: transform 0.3s ease;
 }
 
 .faq-item.activo .faq-icono.rotado {
   transform: rotate(180deg);
-  color: var(--color-tercero, #49bfbf);
 }
 
 .faq-respuesta {
@@ -798,17 +1254,11 @@ main h3 {
 
 .faq-respuesta p {
   margin: 0;
-  padding-top: 0;
-  color: #e2e8f0 !important;
+  color: var(--color-texto) !important;
   font-size: 1.05rem;
   line-height: 1.6;
 }
 
-/* ==================== PREINSCRIPCIÓN ==================== */
-#preinscripcion {
-  text-align: center;
-  margin-top: 60px;
-}
 /* ==================== FOOTER ==================== */
 footer::before {
   content: "";
@@ -984,7 +1434,103 @@ img {
   height: auto;
 }
 
-/* Bootstrap cambia a menú hamburguesa debajo de lg */
+/* HERO: interacción, celulares y movimiento reducido */
+
+@media (hover: hover) {
+  .hero .hero-boton:hover {
+    transform: translateY(-2px);
+  }
+  .hero .hero-boton-principal:hover {
+    background: #a51e26;
+  }
+  .hero .hero-boton-secundario:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: #fff;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    min-height: 560px;
+    padding: 2.5rem 1.25rem;
+    border-radius: 12px;
+  }
+  .hero .hero-etiqueta {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+  }
+  .hero .hero-descripcion {
+    max-width: 34ch;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero .hero-acciones {
+    flex-direction: column;
+    max-width: 320px;
+  }
+  .hero .hero-boton {
+    width: 100%;
+    padding-inline: 0.8rem;
+  }
+  .hero .hero-datos {
+    gap: 0.45rem 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero .hero-boton {
+    transition: none;
+  }
+  .hero .hero-boton:hover {
+    transform: none;
+  }
+}
+
+/* PREINSCRIPCIÓN: celulares y movimiento reducido */
+
+@media (max-width: 900px) {
+  #preinscripcion.inscripcion-home {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #preinscripcion.inscripcion-home .inscripcion-contenido {
+    padding: 2rem;
+  }
+  #preinscripcion.inscripcion-home .inscripcion-intro {
+    max-width: 55ch;
+  }
+  #preinscripcion.inscripcion-home .inscripcion-afiche {
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  #preinscripcion.inscripcion-home {
+    border-radius: var(--radio-borde);
+  }
+  #preinscripcion.inscripcion-home .inscripcion-contenido {
+    padding: 1.5rem;
+  }
+  #preinscripcion.inscripcion-home .inscripcion-datos {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  #preinscripcion.inscripcion-home .inscripcion-boton {
+    width: 100%;
+  }
+  #preinscripcion.inscripcion-home .inscripcion-afiche {
+    padding: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #preinscripcion.inscripcion-home a {
+    transition: none;
+  }
+}
+
+/* NAVBAR: menú hamburguesa debajo de lg */
+
 @media (max-width: 991.98px) {
   .navbar-principal .nav-link {
     text-align: center;
@@ -999,14 +1545,17 @@ img {
   }
 }
 
+/* AJUSTES GENERALES PARA CELULARES */
+
 @media (max-width: 768px) {
   body {
     padding-top: 125px;
   }
 
   .hero {
-    margin-top: 0;
     min-height: 350px;
+    height: auto;
+    padding: 40px 20px;
   }
 
   .hero-contenido h1 {
@@ -1016,7 +1565,6 @@ img {
   .hero-contenido p {
     font-size: 1.1rem;
   }
-
   .form-row {
     flex-direction: column;
     gap: 0;
@@ -1062,5 +1610,19 @@ img {
 
   #imgfooter {
     margin-top: 1rem;
+  }
+  .fila-catalogo,
+  .fila-catalogo.fila-invertida {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  .catalogo-texto {
+    padding: 25px;
+  }
+
+  .catalogo-imagen img {
+    height: 250px;
   }
 }

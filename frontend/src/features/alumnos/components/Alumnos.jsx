@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "../../../shared/hooks/useForm";
 import { esEmailValido, esDniValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre } from "../../../shared/utils/formato";
+import { ListadoAlumnos } from "./ListadoAlumnos";
 
 export function Alumnos() {
   // 1. Usamos el Hook personalizado para manejar todo el formulario en una línea
@@ -56,6 +57,9 @@ export function Alumnos() {
   return (
     <>
       <h1>Gestión de Alumnos</h1>
+
+      <ListadoAlumnos />
+
       <div className="contenedor-tabla">
         <div className="cabecera-tabla">
           <h2>Registrar alumno</h2>
@@ -76,6 +80,7 @@ export function Alumnos() {
                 className="input-gestion"
               />
             </div>
+
             <div className="form-group">
               <label htmlFor="apellido">Apellido:</label>
               <input
@@ -100,15 +105,14 @@ export function Alumnos() {
                 value={valores.dni}
                 onChange={manejarCambio}
                 required
-                className="input-gestion"
+                className={'input-gestion${errores.dni ? " input-error" : ""}'}
               />
               {/* Mostrar error si la validación falla */}
               {errores.dni && (
-                <span style={{ color: "#bf1b1b", fontSize: "0.85rem" }}>
-                  {errores.dni}
-                </span>
+                <span className="mensaje-error">{errores.dni}</span>
               )}
             </div>
+
             <div className="form-group">
               <label htmlFor="email">Correo electrónico:</label>
               <input
@@ -118,13 +122,11 @@ export function Alumnos() {
                 value={valores.email}
                 onChange={manejarCambio}
                 required
-                className="input-gestion"
+                className={
+                  'input-gestion${errores.email ? " input-error" : ""}'
+                }
               />
-              {errores.email && (
-                <span style={{ color: "#bf1b1b", fontSize: "0.85rem" }}>
-                  {errores.email}
-                </span>
-              )}
+              {errores.email && <span className="mensaje-error"></span>}
             </div>
           </div>
 
@@ -159,7 +161,7 @@ export function Alumnos() {
             </div>
           </div>
 
-          <div className="form-group" style={{ width: "100%" }}>
+          <div className="form-group form-group-full">
             <label htmlFor="observaciones">Observaciones:</label>
             <textarea
               id="observaciones"
@@ -171,12 +173,8 @@ export function Alumnos() {
             ></textarea>
           </div>
 
-          <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
-            <button
-              type="submit"
-              className="btn-principal"
-              style={{ padding: "10px 20px", fontSize: "1rem", border: "none" }}
-            >
+          <div className="acciones-formulario">
+            <button type="submit" className="btn-primario-gestion">
               Registrar alumno
             </button>
             <button

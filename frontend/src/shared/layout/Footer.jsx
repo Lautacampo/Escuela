@@ -30,7 +30,7 @@ function Footer() {
                 <i className="fa-solid fa-calendar-days"></i> Lunes a Viernes
               </p>
               <p>
-                <i className="fa-solid fa-clock"></i> 19:30 a 23:30 hs
+                <i className="fa-solid fa-clock"></i> 19:30 a 23:20 hs
               </p>
             </section>
           </div>
@@ -48,7 +48,6 @@ function Footer() {
                 <li>
                   <a href="/#equipo"> Equipo Docente </a>
                 </li>
-                {/* Enlace al Foro actualizado */}
                 <li>
                   <Link to="/foro"> Foro </Link>
                 </li>
@@ -102,7 +101,7 @@ function Footer() {
           <div className="col-12">
             <section id="finfooter">
               <p>Escuela Nocturna Secundaria de Adultos N°3 "Tomás Baras"</p>
-              <p>&copy; 2026 Colegio Tomás Baras</p>
+              <p>&copy; 2027 Colegio Tomás Baras</p>
             </section>
           </div>
         </div>

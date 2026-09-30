@@ -32,62 +32,197 @@ export function Home() {
   return (
     <>
       {/* 1. HERO BANNER */}
-      <section className="hero">
+      <section className="hero" aria-labelledby="hero-titulo">
         <div className="hero-contenido">
-          <h1>Colegio N° 3 Tomás Baras</h1>
-          <p>Un faro de oportunidades educativas en San Luis desde 1987.</p>
-          <Link to="/preinscripcion" className="btn-principal">
-            Inscribite para el ciclo 2027
-          </Link>
+          <img
+            className="hero-escudo"
+            src="/img/logos/logo-principal.png"
+            alt="Escudo del Colegio Nº 3 Tomás Baras"
+            width="150"
+            height="180"
+            decoding="async"
+          />
+
+          <p className="hero-etiqueta">Educación para jóvenes y adultos</p>
+          <h1 id="hero-titulo">
+            Colegio Nº 3 <span>Tomás Baras</span>
+          </h1>
+          <p className="hero-descripcion">
+            Un faro de oportunidades educativas en San Luis desde 1987.
+          </p>
+
+          <div className="hero-acciones">
+            <Link
+              to="/preinscripcion"
+              className="hero-boton hero-boton-principal"
+            >
+              Inscribite para el ciclo 2027
+              <span aria-hidden="true">↗</span>
+            </Link>
+            <a
+              href="#quienessomos"
+              className="hero-boton hero-boton-secundario"
+            >
+              Conocé el colegio
+              <span aria-hidden="true">↓</span>
+            </a>
+          </div>
+
+          <ul className="hero-datos" aria-label="Modalidad de cursada">
+            <li>A partir de los 18 años</li>
+            <li>Turno nocturno</li>
+            <li>Ciencias Sociales</li>
+          </ul>
         </div>
       </section>
 
       {/* 2. QUIÉNES SOMOS */}
       <section id="quienessomos" className="seccion-destacada">
-        <div className="contenedor-columnas">
-          <div className="columna-texto">
-            <h2>Quiénes Somos</h2>
-            <p>
-              Desde 1987, el Colegio para Adultos Nº3 "Tomas Baras" ha sido un
-              faro de oportunidades educativas en San Luis, brindando a
-              generaciones la posibilidad de completar sus estudios secundarios
-              con una sólida orientación en Ciencias Sociales. Nuestra
-              institución se enorgullece de su compromiso con la educacion
-              inclusiva y de calidad, adaptada a las necesidades y realidades de
-              los adultos que buscan un futuro mejor.
-            </p>
-            <p>
-              La eleccion del nombre "Tomas Baras" responde a la voluntad de
-              honrar a un prócer de suelo puntano cuya vida fue un testimonio
-              indiscutible de patriotismo, entrega y abnegación duran los
-              albores de la Revolución de Mayo. Nacido en San Luis, fue Capitán
-              de Voluntarios y miembro activo del Cabildo local.
-            </p>
-          </div>
+        <div className="contenedor-catalogo">
+          <article className="fila-catalogo">
+            <div className="catalogo-texto">
+              <h2 className="titulo-catalogo">Quiénes Somos</h2>
+              <p>
+                Desde 1987, el Colegio para Adultos Nº3 "Tomas Baras" ha sido un
+                faro de oportunidades educativas en San Luis, brindando a
+                generaciones la posibilidad de completar sus estudios
+                secundarios con una sólida orientación en Ciencias Sociales.
+              </p>
+              <p>
+                La elección del nombre "Tomas Baras" responde a la voluntad de
+                honrar a un prócer de suelo puntano. Nacido en San Luis, fue
+                Capitán de Voluntarios y miembro activo del Cabildo local.
+              </p>
+            </div>
+            <div className="catalogo-imagen">
+              <img
+                src="/img/portadas/aula.png"
+                alt="Apertura institucional del colegio"
+              />
+            </div>
+          </article>
 
-          <div className="columna-tarjetas">
-            <div className="tarjeta-info azul-oscuro">
-              <h3>Propuesta Inclusiva</h3>
+          <article className="fila-catalogo fila-invertida">
+            <div className="catalogo-imagen">
+              <img
+                src="/img/portadas/desfile.jpg"
+                alt="Primeros estudiantes y familias"
+              />
+            </div>
+            <div className="catalogo-texto">
+              <h3 className="subtitulo-catalogo">
+                <i className="fa-solid fa-users"></i> Propuesta Inclusiva
+              </h3>
               <p>
                 Adaptamos nuestros procesos de aprendizaje a las realidades y
                 tiempos de los adultos, garantizando una educación de calidad y
-                accesible para todos.
+                accesible para todos. Desde el primer día soñamos con una
+                escuela donde cada estudiante pudiera aprender con alegría y
+                desarrollar su potencial.
               </p>
             </div>
+          </article>
 
-            <div className="tarjeta-info blanco">
-              <h3>Orientación Social</h3>
+          <article className="fila-catalogo">
+            <div className="catalogo-texto">
+              <h3 className="subtitulo-catalogo">
+                <i className="fa-solid fa-palette"></i> Una propuesta integral
+              </h3>
               <p>
                 Nuestra currícula está fuertemente orientada a las Ciencias
-                Sociales, brindando herramientas fundamentales para comprender
-                el contexto actual.
+                Sociales. Incorporamos arte, tecnología y educación emocional
+                como parte de una formación integral, activa y humana para
+                brindar herramientas fundamentales para comprender el contexto
+                actual.
               </p>
             </div>
-          </div>
+            <div className="catalogo-imagen">
+              <img
+                src="/img/portadas/personas-1.jpg"
+                alt="Instalaciones del colegio con murales"
+              />
+            </div>
+          </article>
         </div>
       </section>
+      {/* 3. PREINSCRIPCIÓN */}
+      <section
+        id="preinscripcion"
+        className="inscripcion-home"
+        aria-labelledby="inscripcion-titulo"
+      >
+        <div className="inscripcion-contenido">
+          <p className="inscripcion-estado">
+            <span aria-hidden="true"></span>
+            Inscripciones abiertas
+          </p>
+          <h2 id="inscripcion-titulo">
+            Tu secundario,
+            <br />
+            <span>un nuevo comienzo.</span>
+          </h2>
+          <p className="inscripcion-intro">
+            Animate a dar el próximo paso. En el Colegio Tomás Baras te
+            acompañamos a terminar tus estudios.
+          </p>
 
-      {/* 3. HISTORIA Y MATERIAS */}
+          <dl className="inscripcion-datos">
+            <div>
+              <dt>Modalidad</dt>
+              <dd>Secundaria para adultos</dd>
+            </div>
+            <div>
+              <dt>Edad de ingreso</dt>
+              <dd>A partir de los 18 años</dd>
+            </div>
+            <div>
+              <dt>Turno nocturno</dt>
+              <dd>19:30 a 23:20 h</dd>
+            </div>
+            <div>
+              <dt>Dónde estamos</dt>
+              <dd>Pringles y Av. Pte. Perón</dd>
+            </div>
+          </dl>
+
+          <p className="inscripcion-propuesta">
+            Aprendé en grupo, trabajá por proyectos y participá en prácticas
+            preprofesionalizantes.
+          </p>
+          <div className="inscripcion-acciones">
+            <Link to="/preinscripcion" className="inscripcion-boton">
+              Completar preinscripción
+              <span aria-hidden="true">↗</span>
+            </Link>
+            <a href="#faq" className="inscripcion-consultas">
+              ¿Tenés dudas? Consultá las preguntas frecuentes
+            </a>
+          </div>
+        </div>
+
+        <figure className="inscripcion-afiche">
+          <a
+            className="inscripcion-afiche-enlace"
+            href="/img/inscripciones/inscripcion.jpg"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Ver el afiche de inscripciones completo en una nueva pestaña"
+          >
+            <img
+              src="/img/inscripciones/inscripcion.jpg"
+              alt="Afiche de inscripciones del Colegio Tomás Baras con estudiantes trabajando en grupo."
+              loading="lazy"
+              decoding="async"
+            />
+          </a>
+          <figcaption>
+            Seleccioná el afiche para verlo en tamaño completo
+            <span aria-hidden="true"> ↗</span>
+          </figcaption>
+        </figure>
+      </section>
+
+      {/* 4. HISTORIA Y MATERIAS */}
       <section id="historia-evolucion" className="seccion-moderna">
         <div className="bloque-historia">
           <h2>Nuestra Raíz Histórica</h2>
@@ -161,7 +296,7 @@ export function Home() {
         </div>
       </section>
 
-      {/* 4. EQUIPO DIRECTIVO */}
+      {/* 5. EQUIPO DIRECTIVO */}
       <section id="equipo">
         <h2>Conocé a Nuestro Equipo</h2>
         <p>
@@ -188,10 +323,7 @@ export function Home() {
         <div className="grid-equipo">
           <article className="tarjeta-miembro">
             <div className="imagen-miembro">
-              <img
-                src="/img/directores/nilda.jpg"
-                alt="Foto de Nilda Esther"
-              />
+              <img src="/img/directores/nilda.jpg" alt="Foto de Nilda Esther" />
             </div>
             <h3>Nilda Esther Bonansea</h3>
             <p className="cargo">Directora</p>
@@ -199,10 +331,7 @@ export function Home() {
           </article>
           <article className="tarjeta-miembro">
             <div className="imagen-miembro">
-              <img
-                src="/img/directores/oscar.jpg"
-                alt="Foto de Oscar Sosa"
-              />
+              <img src="/img/directores/oscar.jpg" alt="Foto de Oscar Sosa" />
             </div>
             <h3>Oscar Sosa</h3>
             <p className="cargo">Director</p>
@@ -233,79 +362,45 @@ export function Home() {
         </div>
       </section>
 
-      {/* 5. PREGUNTAS FRECUENTES (FAQ ACORDEÓN) */}
-      <section
-        id="faq"
-        style={{ padding: "60px 20px", maxWidth: "900px", margin: "0 auto" }}
-      >
-        <h2
-          style={{ textAlign: "center", color: "white", marginBottom: "10px" }}
-        >
-          Preguntas Frecuentes (FAQ)
-        </h2>
-        <p
-          style={{
-            textAlign: "center",
-            color: "var(--color-texto)",
-            marginBottom: "40px",
-          }}
-        >
-          Respuestas rápidas a las dudas más comunes de nuestros ingresantes y
-          alumnos.
-        </p>
+      {/* 6. PREGUNTAS FRECUENTES */}
+      <section id="faq" className="seccion-faq">
+        <div className="contenedor-faq-centrado">
+          <h2>Preguntas Frecuentes</h2>
+          <p className="subtitulo-faq">
+            Respuestas rápidas a las dudas más comunes de nuestros ingresantes y
+            alumnos.
+          </p>
 
-        <div className="accordion-faq">
-          {faqs.map((faq, index) => {
-            const isOpen = faqAbierto === index;
-            return (
-              <div className={`faq-item ${isOpen ? "activo" : ""}`} key={index}>
-                <button
-                  className="faq-pregunta"
-                  onClick={() => toggleFaq(index)}
-                >
-                  <span>
-                    <i className={`fa-solid ${faq.icono}`}></i> {faq.pregunta}
-                  </span>
-                  <i
-                    className={`fa-solid fa-chevron-down faq-icono ${isOpen ? "rotado" : ""}`}
-                  ></i>
-                </button>
+          <div className="accordion-faq">
+            {faqs.map((faq, index) => {
+              const isOpen = faqAbierto === index;
+              return (
                 <div
-                  className="faq-respuesta"
-                  style={{ maxHeight: isOpen ? "300px" : "0" }}
+                  className={`faq-item ${isOpen ? "activo" : ""}`}
+                  key={index}
                 >
-                  <p>{faq.respuesta}</p>
+                  <button
+                    className="faq-pregunta"
+                    onClick={() => toggleFaq(index)}
+                  >
+                    <span>
+                      <i className={`fa-solid ${faq.icono}`}></i> {faq.pregunta}
+                    </span>
+                    <i
+                      className={`fa-solid fa-chevron-down faq-icono ${isOpen ? "rotado" : ""}`}
+                    ></i>
+                  </button>
+                  <div
+                    className="faq-respuesta"
+                    style={{ maxHeight: isOpen ? "300px" : "0" }}
+                  >
+                    <p>{faq.respuesta}</p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </section>
-
-      {/* 6. PREINSCRIPCIÓN */}
-      <section id="preinscripcion">
-        <h2>Preinscripcion</h2>
-        <p>
-          ¿Querés terminar tus estudios? ¿Retomar la secundaria? ¿Seguir
-          creciendo personal y profesionalmente? Este es tu momento. En nuestro
-          colegio acompañamos trayectorias reales, respetamos tus tiempos y te
-          ofrecemos un espacio pensado para personas adultas que desean seguir
-          aprendiendo Animate a dar el paso. Tu título secundario te espera.
-          <br />
-          <br />
-          <strong>Colegio Tomás Baras – Educación de Adultos</strong>
-        </p>
-        <Link to="/preinscripcion">
-          <img
-            src="/img/logos/sobre.png"
-            alt="Icono de correo electrónico"
-          />
-        </Link>
-        <p id="formulariopreinscripcion">Complete Formulario</p>
-        <p>
-          Una vez completado el formulario, nos pondremos en contacto contigo
-          para informarte sobre el proceso de preinscripción.
-        </p>
       </section>
     </>
   );
