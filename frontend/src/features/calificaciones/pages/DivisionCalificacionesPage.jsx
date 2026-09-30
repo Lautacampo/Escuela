@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
-import { getAlumnos, getMaterias , getCalificaciones, setCalificacion } from "../services/CalificacionesServices";
+import { getAlumnos, getMaterias , getCalificaciones, setCalificacion } from "../services/calificacionesServices";
 import { CalificacionesAlumnos } from "../components/CalificacionesAlumnos";
 import "../components/calificacionesdivision.css";
 
