@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useForm } from "../../../shared/hooks/useForm";
+import { useNavigate } from "react-router";
 
 const NOMBRE_CURSO = {"1": "1° Año", "2": "2° Año", "3": "3° Año"};
 
@@ -45,6 +46,8 @@ export function ListadoAlumnos({alumnos, onEditar, onEliminar,}) {
         );
         });
     }, [alumnos, filtros]);
+
+    const navigate = useNavigate();
 
     return(
         <div className="contenedor-tabla">
@@ -150,6 +153,18 @@ export function ListadoAlumnos({alumnos, onEditar, onEliminar,}) {
 
                                 <td>
                                     <div className="acciones-tabla">
+                                        <button
+                                            type="button"
+                                            className="btn-accion btn-ficha"
+                                            onClick={() => navigate(`/gestion/alumnos/${alumno.id}`,{
+                                                state:{
+                                                    alumno,
+                                                },
+                                            })}
+                                        >
+                                            <i className="fa-solid fa-id-card"></i>
+                                            <span>Ver ficha</span>
+                                        </button>
                                         <button
                                             type="button"
                                             className="btn-accion btn-editar"

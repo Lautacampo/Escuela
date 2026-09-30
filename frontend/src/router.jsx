@@ -18,6 +18,7 @@ import { LoginPage } from "./features/auth/pages/LoginPage";
 // ==================== VISTAS PRIVADAS (GESTIÓN) ====================
 import { DashboardPage } from "./features/gestion/pages/DashboardPage";
 import { AlumnosPage } from "./features/alumnos/pages/AlumnosPage";
+import { FichaAlumnoPage } from "./features/alumnos/pages/FichaAlumnoPage";
 import { AsistenciaPage } from "./features/asistencia/pages/AsistenciaPage";
 import { CalificacionesPage } from "./features/calificaciones/pages/CalificacionesPage";
 import { ReportesPage } from "./features/reportes/pages/ReportesPage";
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
       { index: true, element: <DashboardPage /> }, // Panel de Inicio por defecto
       // Rutas anidadas
       { path: "alumnos", element: <AlumnosPage /> },
+      { path: "alumnos/:id", element: <FichaAlumnoPage/>},
       { path: "asistencia", element: <AsistenciaPage /> },
       { path: "calificaciones", element: <CalificacionesPage /> },
       { path: "reportes", element: <ReportesPage /> },

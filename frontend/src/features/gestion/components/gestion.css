@@ -590,3 +590,504 @@ body:has(.contenedor-dashboard) {
   height: 18px;
   cursor: pointer;
 }
+
+.ficha-alumno {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.ficha-cabecera {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 25px;
+
+  margin-bottom: 25px;
+}
+
+.btn-volver {
+  border: 0;
+  background: transparent;
+  color: var(--gestion-primario);
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  font-size: 0.95rem;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.btn-volver.hover {
+  color: var(--gestion-secundario);
+}
+
+.ficha-titulo {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.ficha-avatar {
+  width: 65px;
+  height: 65px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: var(--gestion-radio);
+
+  background-color: var(--gestion-primario);
+  color: white;
+
+  font-size: 1.5rem;
+}
+
+.ficha-titulo h1 {
+  margin: 0 0 5px;
+
+  color: var(--gestion-primario);
+  font-family: var(--gestion-titulos);
+  font-size: 1.8rem;
+}
+
+.ficha-titulo p {
+  margin: 0;
+  color: #64748b;
+}
+
+.ficha-resumen {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+
+  margin-bottom: 25px;
+}
+
+.ficha-resumen-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+
+  padding: 20px;
+
+  background-color: white;
+
+  border: 1px solid #e2e8f0;
+  border-radius: var(--gestion-radio);
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.ficha-resumen-icono {
+  width: 45px;
+  height: 45px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background-color: #edf4fa;
+  color: var(--gestion-primario);
+}
+
+.ficha-resumen-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ficha-resumen-item span:not(.ficha-resumen-icono) {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.ficha-resumen-item strong {
+  color: var(--gestion-primario);
+  font-size: 1rem;
+}
+
+.texto-regular {
+  color: #198754 !important;
+}
+
+.texto-libre {
+  color: var(--gestion-secundario) !important;
+}
+
+/* ---------- SECCIONES ---------- */
+
+.ficha-seccion {
+  background-color: white;
+
+  border-radius: var(--gestion-radio);
+
+  padding: 25px;
+
+  margin-bottom: 25px;
+
+  border: 1px solid #e2e8f0;
+
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.ficha-seccion-titulo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+
+  margin-bottom: 25px;
+
+  padding-bottom: 18px;
+
+  border-bottom: 1px solid #edf2f7;
+}
+
+.ficha-seccion-titulo > i {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: var(--gestion-radio);
+
+  background-color: #edf4fa;
+  color: var(--gestion-primario);
+}
+
+.ficha-seccion-titulo h2 {
+  margin: 0 0 3px;
+
+  color: var(--gestion-primario);
+
+  font-family: var(--gestion-titulos);
+  font-size: 1.25rem;
+}
+
+.ficha-seccion-titulo p {
+  margin: 0;
+
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+/* ---------- DATOS PERSONALES ---------- */
+
+.ficha-datos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+
+  background-color: #e2e8f0;
+
+  border: 1px solid #e2e8f0;
+  border-radius: var(--gestion-radio);
+
+  overflow: hidden;
+}
+
+.ficha-dato {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  padding: 15px;
+
+  background-color: white;
+}
+
+.ficha-dato span {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.ficha-dato strong {
+  color: var(--gestion-texto);
+  font-size: 0.95rem;
+}
+
+/* ---------- SITUACIÓN ACADÉMICA ---------- */
+
+.ficha-academica-info {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.ficha-academica-info > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ficha-academica-info span {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.ficha-academica-info strong {
+  color: var(--gestion-primario);
+}
+
+/* ---------- TRAYECTORIA ---------- */
+
+.trayectoria {
+  position: relative;
+}
+
+.modulo-trayectoria {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 15px;
+
+  position: relative;
+}
+
+.modulo-indicador {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.modulo-indicador::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  bottom: 0;
+
+  width: 2px;
+
+  background-color: #dbe4ed;
+}
+
+.modulo-trayectoria:first-child
+  .modulo-indicador::before {
+  top: 15px;
+}
+
+.modulo-trayectoria:last-child
+  .modulo-indicador::before {
+  bottom: calc(100% - 30px);
+}
+
+.modulo-indicador span {
+  position: relative;
+
+  z-index: 1;
+
+  width: 14px;
+  height: 14px;
+
+  margin-top: 15px;
+
+  border-radius: 50%;
+
+  background-color: var(--gestion-primario);
+
+  border: 3px solid white;
+
+  box-shadow: 0 0 0 2px var(--gestion-primario);
+}
+
+.modulo-contenido {
+  padding: 20px;
+
+  margin-bottom: 15px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: var(--gestion-radio);
+}
+
+.modulo-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  margin-bottom: 20px;
+}
+
+.modulo-año {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.modulo-cabecera h3 {
+  margin: 3px 0 0;
+
+  color: var(--gestion-primario);
+  font-size: 1.05rem;
+}
+
+.estado-modulo {
+  padding: 6px 12px;
+
+  border-radius: 20px;
+
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.estado-aprobado {
+  background-color: #e8f5ed;
+  color: #198754;
+}
+
+.estado-pendiente {
+  background-color: #fff3cd;
+  color: #946200;
+}
+
+.estado-curso {
+  background-color: #e8eef7;
+  color: var(--gestion-primario);
+}
+
+.estado-no-cursado {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.modulo-detalles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+}
+
+.modulo-detalles > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.modulo-detalles span {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.modulo-detalles strong {
+  color: var(--gestion-texto);
+}
+
+/* ---------- ACREDITACIONES ---------- */
+
+.instancias-acreditacion {
+  margin-top: 20px;
+
+  padding-top: 18px;
+
+  border-top: 1px solid #edf2f7;
+}
+
+.instancias-acreditacion h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin: 0 0 12px;
+
+  color: var(--gestion-primario);
+  font-size: 0.9rem;
+}
+
+.instancia {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+
+  padding: 10px 12px;
+
+  background-color: #f8fafc;
+
+  border-radius: 5px;
+
+  font-size: 0.85rem;
+}
+
+.instancia strong {
+  color: var(--gestion-secundario);
+}
+
+/* ---------- ASISTENCIA ---------- */
+
+.tabla-asistencia th,
+.tabla-asistencia td {
+  padding: 13px 16px;
+}
+
+/* ---------- ADVERTENCIA ---------- */
+
+.ficha-advertencia {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+
+  padding: 18px 20px;
+
+  margin-bottom: 30px;
+
+  background-color: #fff8e1;
+
+  border-left: 4px solid #d39e00;
+  border-radius: var(--gestion-radio);
+}
+
+.ficha-advertencia > i {
+  color: #a57900;
+  font-size: 1.2rem;
+}
+
+.ficha-advertencia strong {
+  color: #765800;
+}
+
+.ficha-advertencia p {
+  margin: 5px 0 0;
+
+  color: #665a3c;
+  font-size: 0.85rem;
+}
+
+/* ---------- SIN ALUMNO ---------- */
+
+.ficha-no-encontrada {
+  min-height: 500px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+}
+
+.ficha-no-encontrada > i {
+  font-size: 3rem;
+  color: #94a3b8;
+  margin-bottom: 15px;
+}
+
+.ficha-no-encontrada h2 {
+  color: var(--gestion-primario);
+}
+
+.ficha-no-encontrada p {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+/* ---------- BOTÓN FICHA ---------- */
+
+.btn-ficha {
+  background-color: #edf4fa;
+  color: var(--gestion-primario);
+}
+
+.btn-ficha:hover {
+  background-color: #dce8f2;
+}
