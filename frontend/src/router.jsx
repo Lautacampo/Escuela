@@ -13,14 +13,14 @@ import { ForoPage } from "./features/foro/pages/ForoPage";
 
 // ==================== AUTENTICACIÓN ====================
 import { LoginPage } from "./features/auth/pages/LoginPage";
-import {
-  protegerRuta,
-  redirigirSiHaySesion,
-} from "./features/auth/services/authServices";
+//import {redirigirSiHaySesion,protegerRuta,} from
 
 // ==================== VISTAS PRIVADAS (GESTIÓN) ====================
 import { DashboardPage } from "./features/gestion/pages/DashboardPage";
 import { AlumnosPage } from "./features/alumnos/pages/AlumnosPage";
+import { FichaAlumnoPage } from "./features/alumnos/pages/FichaAlumnoPage";
+import { DocentesPages } from "./features/docentes/pages/DocentesPage";
+import { PreceptoresPage } from "./features/preceptores/pages/PreceptoresPage";
 import { AsistenciaPage } from "./features/asistencia/pages/AsistenciaPage";
 import { CalificacionesPage } from "./features/calificaciones/pages/CalificacionesPage";
 import { DivisionCalificacionesPage } from "./features/calificaciones/pages/DivisionCalificacionesPage";
@@ -44,7 +44,7 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
-    loader: redirigirSiHaySesion,
+    // loader: redirigirSiHaySesion, // Si el admin ya se logueó, lo patea a /gestion
     hydrateFallbackElement: <Spinner />,
   },
 
@@ -52,16 +52,22 @@ export const router = createBrowserRouter([
   {
     path: "/gestion",
     element: <LayoutPrivado />,
-    loader: protegerRuta,
+    // loader: protegerRuta, // Bloquea la entrada si no hay sesión iniciada
     hydrateFallbackElement: <Spinner />,
     errorElement: <NoEncontradaPage />,
     children: [
       { index: true, element: <DashboardPage /> }, // Panel de Inicio por defecto
       // Rutas anidadas
       { path: "alumnos", element: <AlumnosPage /> },
+      { path: "alumnos/:id", element: <FichaAlumnoPage /> },
+      { path: "docentes", element: <DocentesPages /> },
+      { path: "preceptores", element: <PreceptoresPage /> },
       { path: "asistencia", element: <AsistenciaPage /> },
-      { path: "calificaciones", element: <CalificacionesPage />},
-      { path: "calificaciones/:moduloId/:division", element: <DivisionCalificacionesPage /> },
+      { path: "calificaciones", element: <CalificacionesPage /> },
+      {
+        path: "calificaciones/:moduloId/:division",
+        element: <DivisionCalificacionesPage />,
+      },
       { path: "reportes", element: <ReportesPage /> },
     ],
   },
