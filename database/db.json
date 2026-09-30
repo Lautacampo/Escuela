@@ -1211,5 +1211,175 @@
       "id": "VWAYIV9YxgQ"
     }
   ],
+  "asistencias": [
+    {
+      "alumnoId": "1",
+      "fecha": "2026-09-30",
+      "falta": 1,
+      "id": "uDj4etBAP2E"
+    },
+    {
+      "alumnoId": "2",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "PQjEFE4iEF8"
+    },
+    {
+      "alumnoId": "3",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "1BRhx-0ALVc"
+    },
+    {
+      "alumnoId": "5",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "z4v1HAU3Tjw"
+    },
+    {
+      "alumnoId": "6",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "JaV5R4CShVU"
+    },
+    {
+      "alumnoId": "4",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "6AZQTwlAuTU"
+    },
+    {
+      "alumnoId": "1",
+      "fecha": "2026-09-29",
+      "falta": 1,
+      "id": "NrVBke3Hrlg"
+    },
+    {
+      "alumnoId": "6",
+      "fecha": "2026-10-01",
+      "falta": 0.5,
+      "id": "YvG658oNqR4"
+    },
+    {
+      "alumnoId": "6",
+      "fecha": "2026-10-02",
+      "falta": 1,
+      "id": "kUaviv_ewx4"
+    },
+    {
+      "alumnoId": "6",
+      "fecha": "",
+      "falta": 0.5,
+      "id": "8bPhN9GIyOM"
+    },
+    {
+      "alumnoId": "96",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "2pf_uhTzgs0"
+    },
+    {
+      "alumnoId": "92",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "IuLVRgdWbas"
+    },
+    {
+      "alumnoId": "94",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "5IoqrNau7Rg"
+    },
+    {
+      "alumnoId": "95",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "MkhGFhFSKW0"
+    },
+    {
+      "alumnoId": "93",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "DzPFV_3sB4E"
+    },
+    {
+      "alumnoId": "91",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "yDCxPEF_aVA"
+    },
+    {
+      "alumnoId": "8",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "WriP3E_o_As"
+    },
+    {
+      "alumnoId": "7",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "6aR4G4HGGHk"
+    },
+    {
+      "alumnoId": "12",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "TC3zpAQbuqc"
+    },
+    {
+      "alumnoId": "11",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "lVGD5Z-i_x4"
+    },
+    {
+      "alumnoId": "10",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "-kG1GFwhcYM"
+    },
+    {
+      "alumnoId": "9",
+      "fecha": "2026-09-30",
+      "falta": 0,
+      "id": "7r6irm1wLsk"
+    },
+    {
+      "alumnoId": "8",
+      "fecha": "2026-10-07",
+      "falta": 0,
+      "id": "XkMi7j6S_BA"
+    },
+    {
+      "alumnoId": "7",
+      "fecha": "2026-10-07",
+      "falta": 0,
+      "id": "lRweWRtG8y4"
+    },
+    {
+      "alumnoId": "12",
+      "fecha": "2026-10-07",
+      "falta": 0,
+      "id": "5mZLF4is1_s"
+    },
+    {
+      "alumnoId": "11",
+      "fecha": "2026-10-07",
+      "falta": 0,
+      "id": "4HMMD-bnVso"
+    },
+    {
+      "alumnoId": "9",
+      "fecha": "2026-10-07",
+      "falta": 0,
+      "id": "RqS1_xKrw1Q"
+    },
+    {
+      "alumnoId": "10",
+      "fecha": "2026-10-07",
+      "falta": 0,
+      "id": "aTyG9A2T2XI"
+    }
+  ],
   "$schema": "./node_modules/json-server/schema.json"
 }
