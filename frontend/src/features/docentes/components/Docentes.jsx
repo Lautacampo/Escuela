@@ -1,10 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "../../../shared/hooks/useForm";
 import { esDniValido, esEmailValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
 
 const CURSOS = ["1", "2", "3"];
-const DIVISIONES = ["A", "B", "C"];
+const DIVISIONES = ["A", "B", "C", "D", "E"];
 
 const MATERIAS = [
   "Biología",
@@ -56,6 +56,9 @@ const CAMPOS = [
   { nombre: "telefono", etiqueta: "Teléfono", tipo: "tel" },
 ];
 
+// Los campos se muestran de a dos por fila, igual que en Alumnos.
+const FILAS_CAMPOS = [CAMPOS.slice(0, 2), CAMPOS.slice(2, 4), CAMPOS.slice(4)];
+
 // Datos ficticios para probar el frontend.
 const DOCENTES_INICIALES = [
   {
@@ -98,12 +101,11 @@ function normalizar(texto) {
 export function Docentes() {
   const [docentes, setDocentes] = useState(DOCENTES_INICIALES);
   const [valores, setValores] = useState(DOCENTE_INICIAL);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [editando, setEditando] = useState(null);
   const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState("");
   const [hayCambios, setHayCambios] = useState(false);
-
-  const modalRef = useRef(null);
 
   const {
     valores: filtros,
@@ -168,6 +170,7 @@ export function Docentes() {
     setValores(
       docente
         ? {
+            ...DOCENTE_INICIAL,
             ...docente,
             asignaciones: docente.asignaciones.map((asignacion) => ({
               ...asignacion,
@@ -179,20 +182,39 @@ export function Docentes() {
     setErrores({});
     setMensaje("");
     setHayCambios(false);
-    modalRef.current.showModal();
+    setMostrarFormulario(true);
+  }
+
+  function cerrarSinConfirmar() {
+    setMostrarFormulario(false);
+    setEditando(null);
+    setValores(DOCENTE_INICIAL);
+    setErrores({});
+    setHayCambios(false);
   }
 
   function cerrarFormulario() {
     if (
       hayCambios &&
-      !window.confirm("Hay cambios sin guardar. ¿Querés descartarlos?")
+      !window.confirm("Hay cambios sin guardar. ¿Desea descartarlos?")
     ) {
       return;
     }
 
-    modalRef.current.close();
-    setHayCambios(false);
+    cerrarSinConfirmar();
   }
+
+  // Cierra el modal con la tecla Escape (lo que antes hacía <dialog>).
+  useEffect(() => {
+    if (!mostrarFormulario) return undefined;
+
+    function alPresionarTecla(evento) {
+      if (evento.key === "Escape") cerrarFormulario();
+    }
+
+    document.addEventListener("keydown", alPresionarTecla);
+    return () => document.removeEventListener("keydown", alPresionarTecla);
+  });
 
   function manejarCambio(evento) {
     const { name, value } = evento.target;
@@ -250,15 +272,15 @@ export function Docentes() {
     const dni = valores.dni.trim();
 
     if (!valores.nombre.trim()) {
-      nuevosErrores.nombre = "Ingresá el nombre.";
+      nuevosErrores.nombre = "Debe ingresar el nombre.";
     }
 
     if (!valores.apellido.trim()) {
-      nuevosErrores.apellido = "Ingresá el apellido.";
+      nuevosErrores.apellido = "Debe ingresar el apellido.";
     }
 
     if (!/^\d{7,8}$/.test(dni) || !esDniValido(dni)) {
-      nuevosErrores.dni = "Ingresá un DNI de 7 u 8 números, sin puntos.";
+      nuevosErrores.dni = "Debe ingresar un DNI de 7 u 8 números, sin puntos.";
     } else if (
       docentes.some((docente) => docente.dni === dni && docente.id !== editando)
     ) {
@@ -266,11 +288,12 @@ export function Docentes() {
     }
 
     if (!valores.especialidad.trim()) {
-      nuevosErrores.especialidad = "Ingresá la especialidad.";
+      nuevosErrores.especialidad = "Debe ingresar la especialidad.";
     }
 
     if (!esEmailValido(valores.email)) {
-      nuevosErrores.email = "Ingresá un correo electrónico válido.";
+      nuevosErrores.email =
+        "El formato del correo electrónico ingresado no es válido.";
     }
 
     const asignacionIncompleta = valores.asignaciones.some(
@@ -286,10 +309,10 @@ export function Docentes() {
 
     if (asignacionIncompleta) {
       nuevosErrores.asignaciones =
-        "Completá materia, curso y división en cada fila, o quitá la fila vacía.";
+        "Complete materia, curso y división en cada fila, o quite la fila vacía.";
     } else if (new Set(claves).size !== claves.length) {
       nuevosErrores.asignaciones =
-        "No podés repetir la misma materia en el mismo curso y división.";
+        "No puede repetir la misma materia en el mismo curso y división.";
     }
 
     setErrores(nuevosErrores);
@@ -325,13 +348,12 @@ export function Docentes() {
     );
 
     limpiarFiltros();
-    setHayCambios(false);
-    modalRef.current.close();
+    cerrarSinConfirmar();
   }
 
   function eliminarDocente(docente) {
     const confirmar = window.confirm(
-      `¿Querés eliminar a ${docente.apellido}, ${docente.nombre} del listado de docentes?`,
+      `¿Está seguro de eliminar al docente ${docente.apellido}, ${docente.nombre}?`,
     );
 
     if (!confirmar) return;
@@ -459,7 +481,7 @@ export function Docentes() {
                               className="personal-asignacion"
                               key={`${asignacion.materia}-${asignacion.curso}-${asignacion.division}`}
                             >
-                              <strong>{asignacion.materia}</strong>
+                              <strong>{asignacion.materia} · </strong>
                               <span>
                                 {asignacion.curso}° Año · División{" "}
                                 {asignacion.division}
@@ -507,163 +529,191 @@ export function Docentes() {
         </div>
       </div>
 
-      <dialog
-        ref={modalRef}
-        className="modal-alumno personal-modal"
-        aria-labelledby="titulo-formulario-docente"
-        onCancel={(evento) => {
-          evento.preventDefault();
-          cerrarFormulario();
-        }}
-      >
-        <div className="modal-alumno-header">
-          <div>
-            <h2 id="titulo-formulario-docente">
-              {editando !== null ? "Modificar docente" : "Registrar docente"}
-            </h2>
-            <p>Completá los datos personales y las asignaciones.</p>
-          </div>
-
-          <button
-            type="button"
-            className="btn-cerrar-modal"
-            onClick={cerrarFormulario}
-            aria-label="Cerrar formulario"
+      {mostrarFormulario && (
+        <div
+          className="modal-alumno-overlay"
+          onMouseDown={(evento) => {
+            if (evento.target === evento.currentTarget) {
+              cerrarFormulario();
+            }
+          }}
+        >
+          <div
+            className="modal-alumno personal-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-formulario-docente"
           >
-            ×
-          </button>
-        </div>
+            <div className="modal-alumno-header">
+              <div>
+                <h2 id="titulo-formulario-docente">
+                  {editando !== null ? "Editar docente" : "Registrar docente"}
+                </h2>
+                <p>Complete los datos personales y las asignaciones.</p>
+              </div>
 
-        <form className="form-gestion" onSubmit={guardarDocente} noValidate>
-          <fieldset>
-            <legend>Datos del docente</legend>
-
-            <div className="personal-campos">
-              {CAMPOS.map((campo) => (
-                <div className="form-group" key={campo.nombre}>
-                  <label htmlFor={`docente-${campo.nombre}`}>
-                    {campo.etiqueta}
-                    {campo.obligatorio && " *"}
-                  </label>
-
-                  <input
-                    id={`docente-${campo.nombre}`}
-                    name={campo.nombre}
-                    type={campo.tipo}
-                    value={valores[campo.nombre]}
-                    onChange={manejarCambio}
-                    required={campo.obligatorio}
-                    inputMode={campo.nombre === "dni" ? "numeric" : undefined}
-                    maxLength={campo.nombre === "dni" ? 8 : undefined}
-                    className={`input-gestion ${
-                      errores[campo.nombre] ? "input-error" : ""
-                    }`}
-                    aria-invalid={Boolean(errores[campo.nombre])}
-                    aria-describedby={
-                      errores[campo.nombre]
-                        ? `docente-error-${campo.nombre}`
-                        : undefined
-                    }
-                  />
-
-                  {errores[campo.nombre] && (
-                    <span
-                      id={`docente-error-${campo.nombre}`}
-                      className="mensaje-error"
-                      role="alert"
-                    >
-                      {errores[campo.nombre]}
-                    </span>
-                  )}
-                </div>
-              ))}
+              <button
+                type="button"
+                className="btn-cerrar-modal"
+                onClick={cerrarFormulario}
+                aria-label="Cerrar"
+              >
+                <i className="fa-solid fa-xmark" aria-hidden="true" />
+              </button>
             </div>
-          </fieldset>
 
-          <fieldset>
-            <legend>Materias y cursos asignados</legend>
+            <form
+              className="form-gestion"
+              onSubmit={guardarDocente}
+              noValidate
+            >
+              <fieldset>
+                <legend>Datos del docente</legend>
 
-            <p className="personal-ayuda">
-              Agregá una fila por cada materia, curso y división. También podés
-              registrar al docente sin asignaciones.
-            </p>
+                {FILAS_CAMPOS.map((fila) => (
+                  <div className="form-row" key={fila[0].nombre}>
+                    {fila.map((campo) => (
+                      <div className="form-group" key={campo.nombre}>
+                        <label htmlFor={`docente-${campo.nombre}`}>
+                          {campo.etiqueta}
+                          {campo.obligatorio && " *"}
+                        </label>
 
-            {valores.asignaciones.map((asignacion, indice) => (
-              <div className="personal-fila-asignacion" key={indice}>
-                {[
-                  { campo: "materia", etiqueta: "Materia", opciones: MATERIAS },
-                  { campo: "curso", etiqueta: "Curso", opciones: CURSOS },
-                  {
-                    campo: "division",
-                    etiqueta: "División",
-                    opciones: DIVISIONES,
-                  },
-                ].map(({ campo, etiqueta, opciones }) => (
-                  <div className="form-group" key={campo}>
-                    <label htmlFor={`docente-asignacion-${indice}-${campo}`}>
-                      {etiqueta}
-                    </label>
+                        <input
+                          id={`docente-${campo.nombre}`}
+                          name={campo.nombre}
+                          type={campo.tipo}
+                          value={valores[campo.nombre]}
+                          onChange={manejarCambio}
+                          required={campo.obligatorio}
+                          inputMode={
+                            campo.nombre === "dni" ? "numeric" : undefined
+                          }
+                          maxLength={campo.nombre === "dni" ? 8 : undefined}
+                          className={`input-gestion ${
+                            errores[campo.nombre] ? "input-error" : ""
+                          }`}
+                          aria-invalid={Boolean(errores[campo.nombre])}
+                          aria-describedby={
+                            errores[campo.nombre]
+                              ? `docente-error-${campo.nombre}`
+                              : undefined
+                          }
+                        />
 
-                    <select
-                      id={`docente-asignacion-${indice}-${campo}`}
-                      value={asignacion[campo]}
-                      onChange={(evento) =>
-                        cambiarAsignacion(indice, campo, evento.target.value)
-                      }
-                      className="input-gestion"
+                        {errores[campo.nombre] && (
+                          <span
+                            id={`docente-error-${campo.nombre}`}
+                            className="mensaje-error"
+                            role="alert"
+                          >
+                            {errores[campo.nombre]}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </fieldset>
+
+              <fieldset>
+                <legend>Materias y cursos asignados</legend>
+
+                {valores.asignaciones.map((asignacion, indice) => (
+                  <div className="personal-fila-asignacion" key={indice}>
+                    {[
+                      {
+                        campo: "materia",
+                        etiqueta: "Materia",
+                        opciones: MATERIAS,
+                      },
+                      { campo: "curso", etiqueta: "Curso", opciones: CURSOS },
+                      {
+                        campo: "division",
+                        etiqueta: "División",
+                        opciones: DIVISIONES,
+                      },
+                    ].map(({ campo, etiqueta, opciones }) => (
+                      <div className="form-group" key={campo}>
+                        <label
+                          htmlFor={`docente-asignacion-${indice}-${campo}`}
+                        >
+                          {etiqueta}
+                        </label>
+
+                        <select
+                          id={`docente-asignacion-${indice}-${campo}`}
+                          value={asignacion[campo]}
+                          onChange={(evento) =>
+                            cambiarAsignacion(
+                              indice,
+                              campo,
+                              evento.target.value,
+                            )
+                          }
+                          className="input-gestion"
+                        >
+                          <option value="">Seleccionar</option>
+                          {opciones.map((opcion) => (
+                            <option key={opcion} value={opcion}>
+                              {campo === "curso" ? `${opcion}° Año` : opcion}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      className="btn-accion btn-eliminar"
+                      onClick={() => quitarAsignacion(indice)}
+                      aria-label={`Quitar asignación ${indice + 1}`}
                     >
-                      <option value="">Seleccionar</option>
-                      {opciones.map((opcion) => (
-                        <option key={opcion} value={opcion}>
-                          {campo === "curso" ? `${opcion}° Año` : opcion}
-                        </option>
-                      ))}
-                    </select>
+                      <i className="fa-solid fa-trash" aria-hidden="true" />
+                      Quitar
+                    </button>
                   </div>
                 ))}
 
+                {errores.asignaciones && (
+                  <p className="mensaje-error" role="alert">
+                    {errores.asignaciones}
+                  </p>
+                )}
+
                 <button
                   type="button"
-                  className="btn-accion btn-eliminar"
-                  onClick={() => quitarAsignacion(indice)}
-                  aria-label={`Quitar asignación ${indice + 1}`}
+                  className="btn-secundario"
+                  onClick={agregarAsignacion}
                 >
-                  <i className="fa-solid fa-trash" aria-hidden="true" />
-                  Quitar
+                  <i className="fa-solid fa-plus" aria-hidden="true" />
+                  Agregar asignación
+                </button>
+              </fieldset>
+
+              <div className="acciones-formulario personal-acciones">
+                <button
+                  type="button"
+                  className="btn-secundario"
+                  onClick={cerrarFormulario}
+                >
+                  Cancelar
+                </button>
+
+                <button type="submit" className="btn-primario-gestion">
+                  <i
+                    className={`fa-solid ${
+                      editando !== null ? "fa-floppy-disk" : "fa-user-plus"
+                    }`}
+                    aria-hidden="true"
+                  />
+                  {editando !== null ? "Guardar cambios" : "Registrar docente"}
                 </button>
               </div>
-            ))}
-
-            {errores.asignaciones && (
-              <p className="mensaje-error" role="alert">
-                {errores.asignaciones}
-              </p>
-            )}
-
-            <button
-              type="button"
-              className="btn-secundario"
-              onClick={agregarAsignacion}
-            >
-              + Agregar asignación
-            </button>
-          </fieldset>
-
-          <div className="acciones-formulario personal-acciones">
-            <button
-              type="button"
-              className="btn-secundario"
-              onClick={cerrarFormulario}
-            >
-              Cancelar
-            </button>
-
-            <button type="submit" className="btn-primario-gestion">
-              {editando !== null ? "Guardar cambios" : "Registrar docente"}
-            </button>
+            </form>
           </div>
-        </form>
-      </dialog>
+        </div>
+      )}
     </div>
   );
 }

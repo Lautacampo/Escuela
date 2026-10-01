@@ -241,7 +241,7 @@ export function Alumnos() {
       setAlumnos((anteriores) => [...anteriores, nuevoAlumno]);
 
       alert(
-        `¡Alumno ${nombreFormateado} ${apellidoFormateado} registrado con éxito!`,
+        `¡Alumno ${alumnoPreparado.nombre} ${alumnoPreparado.apellido} registrado con éxito!`,
       );
     }
 
