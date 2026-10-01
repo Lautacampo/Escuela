@@ -1,10 +1,13 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "../../../shared/hooks/useForm";
 import { esDniValido, esEmailValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
-
-const CURSOS = ["1", "2", "3"];
-const DIVISIONES = ["A", "B", "C"];
+import {
+  getPreceptores,
+  getModulos,
+  setPreceptor,
+  borrarPreceptor,
+} from "../services/PreceptoresServices";
 
 const PRECEPTOR_INICIAL = {
   nombre: "",
@@ -28,34 +31,6 @@ const CAMPOS = [
   { nombre: "telefono", etiqueta: "Teléfono", tipo: "tel" },
 ];
 
-// Datos ficticios para probar el frontend.
-const PRECEPTORES_INICIALES = [
-  {
-    id: 1,
-    nombre: "Paula",
-    apellido: "Medina",
-    dni: "32123456",
-    email: "paula.medina@example.com",
-    telefono: "",
-    asignaciones: [
-      { curso: "1", division: "A" },
-      { curso: "1", division: "B" },
-    ],
-  },
-  {
-    id: 2,
-    nombre: "Daniel",
-    apellido: "Ramos",
-    dni: "29987654",
-    email: "daniel.ramos@example.com",
-    telefono: "",
-    asignaciones: [
-      { curso: "2", division: "A" },
-      { curso: "3", division: "C" },
-    ],
-  },
-];
-
 function normalizar(texto) {
   return String(texto)
     .normalize("NFD")
@@ -65,39 +40,73 @@ function normalizar(texto) {
 }
 
 export function Preceptores() {
-  const [preceptores, setPreceptores] = useState(PRECEPTORES_INICIALES);
+  const [preceptores, setPreceptores] = useState([]);
   const [valores, setValores] = useState(PRECEPTOR_INICIAL);
   const [editando, setEditando] = useState(null);
   const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState("");
   const [hayCambios, setHayCambios] = useState(false);
+  const [modulos, setModulos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
+  const [errorGuardar, setErrorGuardar] = useState("");
 
   const modalRef = useRef(null);
+
+  useEffect(() => {
+    async function cargar() {
+      try {
+        const [datosPreceptores, datosModulos] = await Promise.all([
+          getPreceptores(),
+          getModulos(),
+        ]);
+        setPreceptores(datosPreceptores);
+        setModulos(datosModulos);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setCargando(false);
+      }
+    }
+    cargar();
+  }, []);
 
   const {
     valores: filtros,
     manejarCambio: cambiarFiltro,
     resetearFormulario: limpiarFiltros,
   } = useForm({
-    curso: "",
+    modulo: "",
     division: "",
     busqueda: "",
   });
 
+  // Todas las divisiones que existen en algún módulo (A, B, C, D)
+  const divisionesTodas = [
+    ...new Set(modulos.flatMap((modulo) => modulo.divisiones)),
+  ].sort();
+
   const filtrosSelect = [
     {
-      nombre: "curso",
-      etiqueta: "Curso",
-      todos: "Todos los cursos",
-      opciones: CURSOS,
+      nombre: "modulo",
+      etiqueta: "Módulo",
+      todos: "Todos los módulos",
+      opciones: modulos.map((m) => ({ valor: String(m.id), texto: m.nombre })),
     },
     {
       nombre: "division",
       etiqueta: "División",
       todos: "Todas",
-      opciones: DIVISIONES,
+      opciones: divisionesTodas.map((d) => ({ valor: d, texto: d })),
     },
   ];
+
+  function nombreModulo(id) {
+    return (
+      modulos.find((m) => Number(m.id) === Number(id))?.nombre ??
+      `Módulo ${id}`
+    );
+  }
 
   const preceptoresFiltrados = preceptores.filter((preceptor) => {
     const texto = normalizar(
@@ -108,13 +117,13 @@ export function Preceptores() {
       .split(/\s+/)
       .every((palabra) => texto.includes(palabra));
 
-    const hayFiltroAsignacion = filtros.curso || filtros.division;
+    const hayFiltroAsignacion = filtros.modulo || filtros.division;
 
     const coincideAsignacion =
       !hayFiltroAsignacion ||
       preceptor.asignaciones.some(
         (asignacion) =>
-          (!filtros.curso || asignacion.curso === filtros.curso) &&
+          (!filtros.modulo || asignacion.moduloId === Number(filtros.modulo)) &&
           (!filtros.division || asignacion.division === filtros.division),
       );
 
@@ -137,6 +146,7 @@ export function Preceptores() {
 
     setErrores({});
     setMensaje("");
+    setErrorGuardar("");
     setHayCambios(false);
     modalRef.current.showModal();
   }
@@ -168,7 +178,7 @@ export function Preceptores() {
   function agregarAsignacion() {
     setValores((anteriores) => ({
       ...anteriores,
-      asignaciones: [...anteriores.asignaciones, { curso: "", division: "" }],
+      asignaciones: [...anteriores.asignaciones, { moduloId: "", division: "" }],
     }));
 
     setErrores((anteriores) => ({ ...anteriores, asignaciones: "" }));
@@ -179,7 +189,12 @@ export function Preceptores() {
     setValores((anteriores) => ({
       ...anteriores,
       asignaciones: anteriores.asignaciones.map((asignacion, posicion) =>
-        posicion === indice ? { ...asignacion, [campo]: valor } : asignacion,
+        posicion !== indice
+          ? asignacion
+          : campo === "moduloId"
+            ? // al cambiar de módulo se reinicia la división (cada módulo tiene las suyas)
+              { moduloId: valor === "" ? "" : Number(valor), division: "" }
+            : { ...asignacion, [campo]: valor },
       ),
     }));
 
@@ -199,7 +214,7 @@ export function Preceptores() {
     setHayCambios(true);
   }
 
-  function guardarPreceptor(evento) {
+  async function guardarPreceptor(evento) {
     evento.preventDefault();
 
     const nuevosErrores = {};
@@ -228,20 +243,52 @@ export function Preceptores() {
     }
 
     const asignacionIncompleta = valores.asignaciones.some(
-      ({ curso, division }) =>
-        !CURSOS.includes(curso) || !DIVISIONES.includes(division),
+      ({ moduloId, division }) => {
+        const modulo = modulos.find(
+          (m) => Number(m.id) === Number(moduloId),
+        );
+        return !modulo || !modulo.divisiones.includes(division);
+      },
     );
 
     const claves = valores.asignaciones.map(
-      ({ curso, division }) => `${curso}|${division}`,
+      ({ moduloId, division }) => `${moduloId}|${division}`,
     );
+    const asignacionesPrevias =
+      preceptores.find((preceptor) => preceptor.id === editando)?.asignaciones ??
+      [];
+
+    const conflictoAsignacion = valores.asignaciones
+      .map((asignacion) => ({
+        asignacion,
+        preceptor: asignacionesPrevias.some(
+          (asignacionPrevia) =>
+            Number(asignacionPrevia.moduloId) === Number(asignacion.moduloId) &&
+            asignacionPrevia.division === asignacion.division,
+        )
+          ? null
+          : preceptores.find(
+              (existente) =>
+                existente.id !== editando &&
+                existente.asignaciones.some(
+                  (asignacionExistente) =>
+                    Number(asignacionExistente.moduloId) ===
+                      Number(asignacion.moduloId) &&
+                    asignacionExistente.division === asignacion.division,
+                ),
+            ),
+      }))
+      .find(({ preceptor }) => preceptor);
 
     if (asignacionIncompleta) {
       nuevosErrores.asignaciones =
-        "Completá curso y división en cada fila, o quitá la fila vacía.";
+        "Completá módulo y división en cada fila, o quitá la fila vacía.";
     } else if (new Set(claves).size !== claves.length) {
       nuevosErrores.asignaciones =
-        "No podés asignar dos veces el mismo curso y división.";
+        "No podés asignar dos veces el mismo módulo y división.";
+    } else if (conflictoAsignacion) {
+      const { asignacion, preceptor } = conflictoAsignacion;
+      nuevosErrores.asignaciones = `${nombreModulo(asignacion.moduloId)}, división ${asignacion.division} ya está asignado a ${preceptor.apellido}, ${preceptor.nombre}.`;
     }
 
     setErrores(nuevosErrores);
@@ -250,7 +297,6 @@ export function Preceptores() {
 
     const preceptorPreparado = {
       ...valores,
-      id: editando ?? crypto.randomUUID(),
       nombre: capitalizarNombre(valores.nombre.trim().replace(/\s+/g, " ")),
       apellido: capitalizarNombre(valores.apellido.trim().replace(/\s+/g, " ")),
       dni,
@@ -261,38 +307,56 @@ export function Preceptores() {
       })),
     };
 
-    setPreceptores((anteriores) =>
-      editando !== null
-        ? anteriores.map((preceptor) =>
-            preceptor.id === editando ? preceptorPreparado : preceptor,
-          )
-        : [...anteriores, preceptorPreparado],
-    );
+    try {
+      setErrorGuardar("");
 
-    setMensaje(
-      editando !== null
-        ? "Datos del preceptor actualizados."
-        : "Preceptor registrado correctamente.",
-    );
+      // Si preceptorPreparado trae id -> PUT (editar). Si no -> POST (crear).
+      const guardado = await setPreceptor(preceptorPreparado);
 
-    limpiarFiltros();
-    setHayCambios(false);
-    modalRef.current.close();
+      setPreceptores((anteriores) =>
+        editando !== null
+          ? anteriores.map((preceptor) =>
+              preceptor.id === editando ? guardado : preceptor,
+            )
+          : [...anteriores, guardado],
+      );
+
+      setMensaje(
+        editando !== null
+          ? "Datos del preceptor actualizados."
+          : "Preceptor registrado correctamente.",
+      );
+
+      limpiarFiltros();
+      setHayCambios(false);
+      modalRef.current.close();
+    } catch (e) {
+      setErrorGuardar(e.message);
+    }
   }
 
-  function eliminarPreceptor(preceptor) {
+  async function eliminarPreceptor(preceptor) {
     const confirmar = window.confirm(
       `¿Querés eliminar a ${preceptor.apellido}, ${preceptor.nombre} del listado de preceptores?`,
     );
 
     if (!confirmar) return;
 
-    setPreceptores((anteriores) =>
-      anteriores.filter((registro) => registro.id !== preceptor.id),
-    );
+    try {
+      await borrarPreceptor(preceptor.id);
 
-    setMensaje("Preceptor eliminado del listado.");
+      setPreceptores((anteriores) =>
+        anteriores.filter((registro) => registro.id !== preceptor.id),
+      );
+
+      setMensaje("Preceptor eliminado del listado.");
+    } catch (e) {
+      setMensaje(e.message);
+    }
   }
+
+  if (cargando) return <p>Cargando preceptores...</p>;
+  if (error) return <p role="alert">{error}</p>;
 
   return (
     <div className="gestion-personal">
@@ -346,8 +410,8 @@ export function Preceptores() {
                 <option value="">{filtro.todos}</option>
 
                 {filtro.opciones.map((opcion) => (
-                  <option key={opcion} value={opcion}>
-                    {filtro.nombre === "curso" ? `${opcion}° Año` : opcion}
+                  <option key={opcion.valor} value={opcion.valor}>
+                    {opcion.texto}
                   </option>
                 ))}
               </select>
@@ -383,7 +447,7 @@ export function Preceptores() {
                 <th>Apellido y nombre</th>
                 <th>DNI</th>
                 <th>Contacto</th>
-                <th>Cursos y divisiones</th>
+                <th>Módulos y divisiones</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -413,9 +477,9 @@ export function Preceptores() {
                         : preceptor.asignaciones.map((asignacion) => (
                             <div
                               className="personal-asignacion"
-                              key={`${asignacion.curso}-${asignacion.division}`}
+                              key={`${asignacion.moduloId}-${asignacion.division}`}
                             >
-                              {asignacion.curso}° Año · División{" "}
+                              {nombreModulo(asignacion.moduloId)} · División{" "}
                               {asignacion.division}
                             </div>
                           ))}
@@ -536,57 +600,75 @@ export function Preceptores() {
           </fieldset>
 
           <fieldset>
-            <legend>Cursos y divisiones a cargo</legend>
+            <legend>Módulos y divisiones a cargo</legend>
 
             <p className="personal-ayuda">
               Agregá una fila por cada grupo. También podés registrar al
               preceptor sin asignaciones.
             </p>
 
-            {valores.asignaciones.map((asignacion, indice) => (
-              <div className="personal-fila-asignacion" key={indice}>
-                {[
-                  { campo: "curso", etiqueta: "Curso", opciones: CURSOS },
-                  {
-                    campo: "division",
-                    etiqueta: "División",
-                    opciones: DIVISIONES,
-                  },
-                ].map(({ campo, etiqueta, opciones }) => (
-                  <div className="form-group" key={campo}>
-                    <label htmlFor={`preceptor-asignacion-${indice}-${campo}`}>
-                      {etiqueta}
-                    </label>
+            {valores.asignaciones.map((asignacion, indice) => {
+              const moduloElegido = modulos.find(
+                (m) => Number(m.id) === Number(asignacion.moduloId),
+              );
 
+              return (
+                <div className="personal-fila-asignacion" key={indice}>
+                  <div className="form-group">
+                    <label htmlFor={`preceptor-asignacion-${indice}-moduloId`}>
+                      Módulo
+                    </label>
                     <select
-                      id={`preceptor-asignacion-${indice}-${campo}`}
-                      value={asignacion[campo]}
+                      id={`preceptor-asignacion-${indice}-moduloId`}
+                      value={asignacion.moduloId}
                       onChange={(evento) =>
-                        cambiarAsignacion(indice, campo, evento.target.value)
+                        cambiarAsignacion(indice, "moduloId", evento.target.value)
                       }
                       className="input-gestion"
                     >
                       <option value="">Seleccionar</option>
-                      {opciones.map((opcion) => (
-                        <option key={opcion} value={opcion}>
-                          {campo === "curso" ? `${opcion}° Año` : opcion}
+                      {modulos.map((modulo) => (
+                        <option key={modulo.id} value={modulo.id}>
+                          {modulo.nombre}
                         </option>
                       ))}
                     </select>
                   </div>
-                ))}
 
-                <button
-                  type="button"
-                  className="btn-accion btn-eliminar"
-                  onClick={() => quitarAsignacion(indice)}
-                  aria-label={`Quitar asignación ${indice + 1}`}
-                >
-                  <i className="fa-solid fa-trash" aria-hidden="true" />
-                  Quitar
-                </button>
-              </div>
-            ))}
+                  <div className="form-group">
+                    <label htmlFor={`preceptor-asignacion-${indice}-division`}>
+                      División
+                    </label>
+                    <select
+                      id={`preceptor-asignacion-${indice}-division`}
+                      value={asignacion.division}
+                      onChange={(evento) =>
+                        cambiarAsignacion(indice, "division", evento.target.value)
+                      }
+                      disabled={!moduloElegido}
+                      className="input-gestion"
+                    >
+                      <option value="">Seleccionar</option>
+                      {(moduloElegido?.divisiones ?? []).map((division) => (
+                        <option key={division} value={division}>
+                          {division}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn-accion btn-eliminar"
+                    onClick={() => quitarAsignacion(indice)}
+                    aria-label={`Quitar asignación ${indice + 1}`}
+                  >
+                    <i className="fa-solid fa-trash" aria-hidden="true" />
+                    Quitar
+                  </button>
+                </div>
+              );
+            })}
 
             {errores.asignaciones && (
               <p className="mensaje-error" role="alert">
@@ -602,6 +684,12 @@ export function Preceptores() {
               + Agregar grupo
             </button>
           </fieldset>
+
+          {errorGuardar && (
+            <p className="mensaje-error" role="alert">
+              {errorGuardar}
+            </p>
+          )}
 
           <div className="acciones-formulario personal-acciones">
             <button
