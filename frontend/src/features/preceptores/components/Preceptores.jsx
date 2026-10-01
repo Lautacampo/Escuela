@@ -102,7 +102,10 @@ export function Preceptores() {
   ];
 
   function nombreModulo(id) {
-    return modulos.find((m) => m.id === Number(id))?.nombre ?? `Módulo ${id}`;
+    return (
+      modulos.find((m) => Number(m.id) === Number(id))?.nombre ??
+      `Módulo ${id}`
+    );
   }
 
   const preceptoresFiltrados = preceptores.filter((preceptor) => {
@@ -241,7 +244,9 @@ export function Preceptores() {
 
     const asignacionIncompleta = valores.asignaciones.some(
       ({ moduloId, division }) => {
-        const modulo = modulos.find((m) => m.id === Number(moduloId));
+        const modulo = modulos.find(
+          (m) => Number(m.id) === Number(moduloId),
+        );
         return !modulo || !modulo.divisiones.includes(division);
       },
     );
@@ -249,6 +254,31 @@ export function Preceptores() {
     const claves = valores.asignaciones.map(
       ({ moduloId, division }) => `${moduloId}|${division}`,
     );
+    const asignacionesPrevias =
+      preceptores.find((preceptor) => preceptor.id === editando)?.asignaciones ??
+      [];
+
+    const conflictoAsignacion = valores.asignaciones
+      .map((asignacion) => ({
+        asignacion,
+        preceptor: asignacionesPrevias.some(
+          (asignacionPrevia) =>
+            Number(asignacionPrevia.moduloId) === Number(asignacion.moduloId) &&
+            asignacionPrevia.division === asignacion.division,
+        )
+          ? null
+          : preceptores.find(
+              (existente) =>
+                existente.id !== editando &&
+                existente.asignaciones.some(
+                  (asignacionExistente) =>
+                    Number(asignacionExistente.moduloId) ===
+                      Number(asignacion.moduloId) &&
+                    asignacionExistente.division === asignacion.division,
+                ),
+            ),
+      }))
+      .find(({ preceptor }) => preceptor);
 
     if (asignacionIncompleta) {
       nuevosErrores.asignaciones =
@@ -256,6 +286,9 @@ export function Preceptores() {
     } else if (new Set(claves).size !== claves.length) {
       nuevosErrores.asignaciones =
         "No podés asignar dos veces el mismo módulo y división.";
+    } else if (conflictoAsignacion) {
+      const { asignacion, preceptor } = conflictoAsignacion;
+      nuevosErrores.asignaciones = `${nombreModulo(asignacion.moduloId)}, división ${asignacion.division} ya está asignado a ${preceptor.apellido}, ${preceptor.nombre}.`;
     }
 
     setErrores(nuevosErrores);
@@ -576,7 +609,7 @@ export function Preceptores() {
 
             {valores.asignaciones.map((asignacion, indice) => {
               const moduloElegido = modulos.find(
-                (m) => m.id === Number(asignacion.moduloId),
+                (m) => Number(m.id) === Number(asignacion.moduloId),
               );
 
               return (
