@@ -25,6 +25,7 @@ import { AsistenciaPage } from "./features/asistencia/pages/AsistenciaPage";
 import { DivisionAsistenciaPage } from "./features/asistencia/pages/DivisionAsistenciaPage";
 import { CalificacionesPage } from "./features/calificaciones/pages/CalificacionesPage";
 import { DivisionCalificacionesPage } from "./features/calificaciones/pages/DivisionCalificacionesPage";
+import { PlanEstudiosPage } from "./features/planestudios/pages/PlanEstudiosPage";
 import { ReportesPage } from "./features/reportes/pages/ReportesPage";
 
 export const router = createBrowserRouter([
@@ -60,13 +61,20 @@ export const router = createBrowserRouter([
       { index: true, element: <DashboardPage /> }, // Panel de Inicio por defecto
       // Rutas anidadas
       { path: "alumnos", element: <AlumnosPage /> },
-      { path: "alumnos/:id", element: <FichaAlumnoPage/>},
+      { path: "alumnos/:id", element: <FichaAlumnoPage /> },
       { path: "docentes", element: <DocentesPages /> },
       { path: "preceptores", element: <PreceptoresPage /> },
       { path: "asistencia", element: <AsistenciaPage /> },
-      { path: "asistencia/:moduloId/:division", element: <DivisionAsistenciaPage /> },
-      { path: "calificaciones", element: <CalificacionesPage />},
-      { path: "calificaciones/:moduloId/:division", element: <DivisionCalificacionesPage /> },
+      {
+        path: "asistencia/:moduloId/:division",
+        element: <DivisionAsistenciaPage />,
+      },
+      { path: "calificaciones", element: <CalificacionesPage /> },
+      {
+        path: "calificaciones/:moduloId/:division",
+        element: <DivisionCalificacionesPage />,
+      },
+      { path: "plan-estudios", element: <PlanEstudiosPage /> },
       { path: "reportes", element: <ReportesPage /> },
     ],
   },
