@@ -30,7 +30,7 @@ function Navbar() {
           <div className="container-fluid">
             <Link className="navbar-brand navlogo" to="/">
               <img
-                src="/img/logos/logo-tomas-baras-letras-blancas.png"
+                src="/img/logos/logo-principal.png"
                 alt="Logo de la Escuela Tomás Baras"
               />
             </Link>
@@ -85,4 +85,3 @@ function Navbar() {
 }
 
 export default Navbar;
-
