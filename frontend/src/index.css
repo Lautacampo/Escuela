@@ -108,11 +108,12 @@ h4 {
 
 .navbar-principal .navlogo img {
   display: block;
-  width: 10rem;
+  width: auto;
+  height: 65px;
   max-width: 100%;
-  height: auto;
+  object-fit: contain;
 
-  transition: width 0.3s ease;
+  transition: height 0.3s ease;
 }
 
 /* Enlaces */
@@ -204,7 +205,8 @@ h4 {
 }
 
 .navbar-principal.navbar-compacta .navlogo img {
-  width: 5rem;
+  width: auto;
+  height: 45px;
 }
 
 .navbar-principal.navbar-compacta .nav-link {
@@ -1848,8 +1850,11 @@ footer p {
 }
 
 #imgfooter img {
-  width: 20rem;
+  display: block;
+  width: auto;
+  height: 220px;
   max-width: 100%;
+  object-fit: contain;
 }
 
 #redes-iconos {
