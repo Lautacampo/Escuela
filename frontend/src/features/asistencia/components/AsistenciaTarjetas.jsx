@@ -1,9 +1,17 @@
 import { Link } from "react-router";
 
 export function AsistenciaTarjetas({ modulo }) {
+    Number(modulo.id) <= 2
+      ? "Primer Año"
+      : Number(modulo.id) <= 4
+        ? "Segundo Año"
+        : "Tercer Año";
+
   return (
     <div className="modulotarjeta">
-      <h3>{modulo.nombre}</h3>
+      <div className="modulo-header">
+        <h3>{modulo.nombre}</h3>
+      </div>
       <h5>Divisiones :</h5>
       <div className="divisiones">
         {modulo.divisiones.map((division) => (
