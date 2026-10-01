@@ -508,6 +508,55 @@
       ]
     }
   ],
+  "docentes": [
+    {
+      "id": "1",
+      "nombre": "Lucía",
+      "apellido": "Fernández",
+      "dni": "30123456",
+      "especialidad": "Matemáticas y Física",
+      "email": "lucia.fernandez@example.com",
+      "telefono": "",
+      "asignaciones": [
+        {
+          "materia": "Matemáticas",
+          "curso": "1",
+          "division": "A"
+        },
+        {
+          "materia": "Matemáticas",
+          "curso": "2",
+          "division": "B"
+        },
+        {
+          "materia": "Física",
+          "curso": "3",
+          "division": "A"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "nombre": "Martín",
+      "apellido": "Suárez",
+      "dni": "28987654",
+      "especialidad": "Lengua y Literatura",
+      "email": "martin.suarez@example.com",
+      "telefono": "",
+      "asignaciones": [
+        {
+          "materia": "Lengua",
+          "curso": "1",
+          "division": "B"
+        },
+        {
+          "materia": "Literatura",
+          "curso": "3",
+          "division": "C"
+        }
+      ]
+    }
+  ],
   "alumnos": [
     {
       "id": "1",
