@@ -221,80 +221,193 @@ export function Home() {
           </figcaption>
         </figure>
       </section>
-
       {/* 4. HISTORIA Y MATERIAS */}
-      <section id="historia-evolucion" className="seccion-moderna">
-        <div className="bloque-historia">
-          <h2>Nuestra Raíz Histórica</h2>
-          <div className="texto-destacado">
+      <section
+        id="historia-evolucion"
+        className="historia-home"
+        aria-labelledby="historia-titulo"
+      >
+        <header className="historia-encabezado">
+          <p className="historia-etiqueta">Nuestra identidad</p>
+          <h2 id="historia-titulo">Una historia que sigue creciendo</h2>
+          <p className="historia-introduccion">
+            Recordamos nuestras raíces y seguimos acompañando a jóvenes y
+            adultos a completar sus estudios secundarios.
+          </p>
+        </header>
+
+        <div className="historia-presentacion">
+          <figure className="historia-fotografia">
+            <a
+              href="/img/portadas/historia.png"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Ver la fotografía histórica completa en una nueva pestaña"
+            >
+              <img
+                src="/img/portadas/historia.png"
+                alt="Fotografía de un grupo de personas frente al cartel del Colegio para Adultos Nº 3 Tomás Baras"
+                width="719"
+                height="539"
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+
+            <figcaption>
+              Parte de nuestra memoria institucional.
+              <span aria-hidden="true"> ↗</span>
+            </figcaption>
+          </figure>
+
+          <div className="historia-relato">
+            <span className="historia-fecha">1991 · Memoria institucional</span>
+
+            <h3>Nuestra raíz histórica</h3>
+
             <p>
-              En un documento de planta permanente de 1991, se observan a 12
-              docentes, una secretaria y el Director Oscar Sosa. En ese momento,
-              el colegio se denominaba
+              Un documento de planta permanente de 1991 registra a 12 docentes,
+              una secretaria y al director Oscar Sosa. En aquel momento, la
+              institución se denominaba{" "}
               <strong>
-                “Centro Educativo de nivel secundario N° 240” (CENS N° 240)
-              </strong>
-              y funcionaba en nuestra actual dirección de Pringles 319.
+                Centro Educativo de Nivel Secundario Nº 240 (CENS Nº 240)
+              </strong>{" "}
+              y funcionaba en Pringles 319.
             </p>
+
+            <p>
+              Hoy, esa historia forma parte de la identidad del Colegio para
+              Adultos Nº 3 Tomás Baras.
+            </p>
+
+            <figure className="historia-homenaje">
+              <a
+                href="/img/portadas/recuadro.png"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Ver la placa conmemorativa completa en una nueva pestaña"
+              >
+                <img
+                  src="/img/portadas/recuadro.png"
+                  alt="Placa del Gobierno de San Luis en homenaje al capitán Tomás Baras y a los puntanos que integraron el Regimiento de Granaderos a Caballo"
+                  width="621"
+                  height="778"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </a>
+
+              <figcaption>
+                <h4>Un nombre con historia</h4>
+                <p>
+                  La placa conmemorativa recuerda al capitán Tomás Baras y el
+                  aporte del pueblo puntano al Regimiento de Granaderos a
+                  Caballo.
+                </p>
+                <span>Seleccioná la imagen para leerla completa ↗</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
 
-        <div className="bloque-materias">
-          <h2>Plan de Estudios Actual</h2>
-          <div className="grilla-anios">
-            <article className="tarjeta-anio">
-              <h3>Primer Año</h3>
-              <span className="badge">8 Materias</span>
-              <ul>
-                <li>Historia</li>
-                <li>Lengua</li>
-                <li>Educación Cívica</li>
-                <li>Inglés</li>
-                <li>Biologia</li>
-                <li>Criminalística</li>
-                <li>Identificación Humana</li>
-                <li>Matemáticas</li>
-              </ul>
-            </article>
+        <div className="historia-plan">
+          <header className="historia-plan-encabezado">
+            <div>
+              <p className="historia-etiqueta">Nuestra propuesta educativa</p>
+              <h3>Plan de estudios actual</h3>
+              <p>
+                Bachiller en Ciencias Sociales · Materias por año de cursado.
+                Actualmente usamos el plan de estudios que dicta el Decreto N°
+                3795 -ME-2021.-
+              </p>
+            </div>
 
-            <article className="tarjeta-anio">
-              <h3>Segundo Año</h3>
-              <span className="badge">10 Materias</span>
-              <ul>
-                <li>Matemáticas</li>
-                <li>Fisica</li>
-                <li>Filosofía</li>
-                <li>Psicología</li>
-                <li>Historia</li>
-                <li>Lengua</li>
-                <li>Inglés</li>
-                <li>Biologia</li>
-                <li>Criminalística</li>
-                <li>Identificación Humana</li>
-                <li>Química</li>
-              </ul>
-            </article>
+            <span className="historia-duracion">3 años · 6 módulos</span>
+          </header>
 
-            <article className="tarjeta-anio">
-              <h3>Tercer Año</h3>
-              <span className="badge">11 Materias</span>
-              <ul>
-                <li>Toxicomanía</li>
-                <li>Sociologia</li>
-                <li>Matemáticas</li>
-                <li>Fisica</li>
-                <li>Economía</li>
-                <li>Derecho</li>
-                <li>Historia</li>
-                <li>Literatura</li>
-                <li>Inglés</li>
-                <li>Química</li>
-                <li>Tránsito Público</li>
-              </ul>
-            </article>
+          <div className="historia-anios">
+            {[
+              {
+                anio: 1,
+                titulo: "Primer año",
+                modulos: "Módulos I y II",
+                materias: [
+                  "Matemática",
+                  "Informática",
+                  "Lengua",
+                  "Tecnología de la Información y la Comunicación",
+                  "Geografía",
+                  "Historia",
+                  "Biología",
+                  "Educación para la Salud",
+                  "Artes Visuales",
+                  "Lengua Extranjera: Inglés",
+                  "Formación Ética y Ciudadana",
+                ],
+              },
+              {
+                anio: 2,
+                titulo: "Segundo año",
+                modulos: "Módulos III y IV",
+                materias: [
+                  "Matemática",
+                  "Informática",
+                  "Lengua y Literatura",
+                  "Tecnología de la Información y la Comunicación",
+                  "Psicología",
+                  "Derecho",
+                  "Química",
+                  "Educación para la Salud",
+                  "Artes Audiovisuales",
+                  "Lengua Extranjera: Inglés",
+                  "Proyecto Sociocomunitario",
+                ],
+              },
+              {
+                anio: 3,
+                titulo: "Tercer año",
+                modulos: "Módulos V y VI",
+                materias: [
+                  "Matemática",
+                  "Física",
+                  "Cultura y Comunicación",
+                  "Proyecto de Investigación",
+                  "Formación para la Vida y el Trabajo",
+                  "Educación para la Salud",
+                  "Teatro",
+                  "Lengua Extranjera: Inglés",
+                  "Política y Ciudadanía",
+                ],
+              },
+            ].map((curso) => (
+              <article className="historia-anio" key={curso.anio}>
+                <header className="historia-anio-cabecera">
+                  <span className="historia-anio-numero" aria-hidden="true">
+                    {curso.anio}º
+                  </span>
+
+                  <div>
+                    <h4>{curso.titulo}</h4>
+                    <p>{curso.modulos}</p>
+                  </div>
+                </header>
+
+                <span className="historia-cantidad">
+                  {curso.materias.length} materias
+                </span>
+
+                <ul className="historia-materias">
+                  {curso.materias.map((materia) => (
+                    <li key={materia}>{materia}</li>
+                  ))}
+                </ul>
+              </article>
+            ))}
           </div>
         </div>
       </section>
+
+      
 
       {/* 5. EQUIPO DIRECTIVO */}
       <section id="equipo">

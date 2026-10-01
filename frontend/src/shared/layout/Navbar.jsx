@@ -61,13 +61,13 @@ function Navbar() {
                 </li>
                 <li className="nav-item">
                   <a className="nav-link" href="/#equipo">
-                    EQUIPO DOCENTE
+                    EQUIPO INSTITUCIONAL
                   </a>
                 </li>
-                {/* Enlace al Foro actualizado */}
+                {/* Enlace a las Consultas actualizadas */}
                 <li className="nav-item">
                   <Link className="nav-link" to="/foro">
-                    FORO
+                    CONSULTAS
                   </Link>
                 </li>
                 <li className="nav-item">
@@ -85,3 +85,4 @@ function Navbar() {
 }
 
 export default Navbar;
+
