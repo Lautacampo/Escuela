@@ -70,6 +70,15 @@ export default function NavBarGestionLateral() {
         </li>
         <li>
           <NavLink
+            to="/gestion/plan-estudios"
+            className={({ isActive }) => (isActive ? "activo" : "")}
+          >
+            <i className="fa-solid fa-book-open" aria-hidden="true"></i>
+            Plan de Estudios
+          </NavLink>
+        </li>
+        <li>
+          <NavLink
             to="/gestion/reportes"
             className={({ isActive }) => (isActive ? "activo" : "")}
           >
