@@ -30,10 +30,7 @@ export function Login() {
           <div className="login-presentacion">
             <div className="login-imagen-sistema">
               {/* Ajustá la ruta de la imagen si es necesario */}
-              <img
-                src="/img/logos/logo-tomas-baras.png"
-                alt="Foto del sistema"
-              />
+              <img src="/img/logos/logo-principal.png" alt="Foto del sistema" />
             </div>
             <h1>
               Colegio N° 3<br />

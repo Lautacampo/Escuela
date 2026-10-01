@@ -48,9 +48,11 @@ body:has(.contenedor-dashboard) {
 }
 
 .logo-sidebar img {
-  width: 100%;
-  max-width: 160px;
+  display: block;
+  width: 100px;
+  max-width: 100%;
   height: auto;
+  margin: 0 auto;
 }
 
 .menu-sidebar {
@@ -154,13 +156,14 @@ body:has(.contenedor-dashboard) {
   color: white;
   text-decoration: none;
 
-  transition: 
+  transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
     transform 0.2s ease;
 }
 
-.btn-cerrar-sesion:hover, .btn-cerrar-sesion:focus-visible {
+.btn-cerrar-sesion:hover,
+.btn-cerrar-sesion:focus-visible {
   color: white;
   background-color: var(--gestion-secundario-hover);
   border-color: var(--gestion-secundario-hover);
@@ -269,7 +272,8 @@ body:has(.contenedor-dashboard) {
   color: red;
 }
 
-.condicion-regular, .condicion-libre {
+.condicion-regular,
+.condicion-libre {
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 0.8rem;
@@ -370,14 +374,14 @@ body:has(.contenedor-dashboard) {
 }
 
 .acciones-formulario {
-  display:flex;
+  display: flex;
   gap: 12px;
   margin-top: 10px;
 }
 
 .btn-primario-gestion {
   background-color: var(--gestion-primario);
-  color:white;
+  color: white;
   border: 1px solid var(--gestion-primario);
   padding: 10px 22px;
   border-radius: var(--gestion-radio);
@@ -413,7 +417,7 @@ body:has(.contenedor-dashboard) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap:20px;
+  gap: 20px;
   margin-bottom: 30px;
 }
 
@@ -463,7 +467,7 @@ body:has(.contenedor-dashboard) {
   color: var(--gestion-primario);
 }
 
-.btn-editar:hover{
+.btn-editar:hover {
   background-color: #d8e2f0;
 }
 
@@ -512,7 +516,7 @@ body:has(.contenedor-dashboard) {
 }
 
 .modal-alumno-header {
-  display:flex;
+  display: flex;
   justify-content: space-between;
   align-items: flex-start;
 
@@ -866,13 +870,11 @@ body:has(.contenedor-dashboard) {
   background-color: #dbe4ed;
 }
 
-.modulo-trayectoria:first-child
-  .modulo-indicador::before {
+.modulo-trayectoria:first-child .modulo-indicador::before {
   top: 15px;
 }
 
-.modulo-trayectoria:last-child
-  .modulo-indicador::before {
+.modulo-trayectoria:last-child .modulo-indicador::before {
   bottom: calc(100% - 30px);
 }
 
@@ -1019,7 +1021,7 @@ body:has(.contenedor-dashboard) {
   padding: 13px 16px;
 }
 
-.tabla-asistencia tbody tr:hover{
+.tabla-asistencia tbody tr:hover {
   background-color: #36517f;
 }
 
@@ -1098,4 +1100,451 @@ body:has(.contenedor-dashboard) {
 
 .btn-ficha:hover {
   background-color: #dce8f2;
+}
+/* ==================== PLAN DE ESTUDIOS ==================== */
+
+.gestion-plan {
+  color: #334155;
+  font-family: var(--gestion-fuente, "Segoe UI", sans-serif);
+  padding-bottom: 30px;
+}
+
+.gestion-plan,
+.gestion-plan * {
+  box-sizing: border-box;
+}
+
+.gestion-plan :is(h1, h2, h3) {
+  color: #152238;
+  font-family: inherit;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.gestion-plan h1 {
+  margin: 0 0 8px;
+  font-size: 2rem;
+}
+
+.gestion-plan h2 {
+  margin: 0 0 12px;
+  font-size: 1.35rem;
+}
+
+.gestion-plan h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.gestion-plan p,
+.gestion-plan li {
+  color: #475569;
+  line-height: 1.6;
+}
+
+.gestion-plan .pe-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.gestion-plan .pe-cabecera p {
+  margin: 0;
+}
+
+.gestion-plan .pe-acciones,
+.gestion-plan .pe-indicadores {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.gestion-plan .pe-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.gestion-plan .pe-principal {
+  background: #152238;
+  color: #fff;
+}
+
+.gestion-plan .pe-principal:hover {
+  background: #243b5c;
+}
+
+.gestion-plan .pe-secundario {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #152238;
+}
+
+.gestion-plan .pe-secundario:hover {
+  background: #f1f5f9;
+}
+
+.gestion-plan .pe-peligro {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #a4161a;
+}
+
+.gestion-plan .pe-peligro:hover {
+  background: #ffe4e6;
+}
+
+.gestion-plan button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gestion-plan :is(button, input, select, textarea):focus-visible {
+  outline: 3px solid #208080;
+  outline-offset: 3px;
+}
+
+.gestion-plan .pe-resumen,
+.gestion-plan .pe-vacio {
+  padding: 28px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 3px 14px rgb(15 23 42 / 4%);
+}
+
+.gestion-plan .pe-resumen {
+  border-top: 4px solid #152238;
+}
+
+.gestion-plan .pe-etiqueta {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: #e5f4ef;
+  color: #16624a;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.gestion-plan .pe-indicadores span {
+  padding: 7px 12px;
+  border-radius: 7px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.gestion-plan .pe-filtros {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 26px 0;
+}
+
+.gestion-plan .pe-filtros label {
+  margin: 0;
+  color: #334155;
+  font-weight: 600;
+}
+
+.gestion-plan .pe-filtros select {
+  width: 200px;
+}
+
+.gestion-plan .pe-anio {
+  margin-top: 28px;
+}
+
+.gestion-plan .pe-anio > h2 {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.gestion-plan .pe-grilla {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.gestion-plan .pe-tarjeta {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #208080;
+  border-radius: 10px;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+
+.gestion-plan .pe-cantidad {
+  margin: 10px 0 14px;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.gestion-plan .pe-tarjeta ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gestion-plan .pe-tarjeta li {
+  padding: 9px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.gestion-plan .pe-tarjeta li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.gestion-plan .pe-vacio {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.gestion-plan .pe-vacio > i {
+  display: block;
+  margin-bottom: 20px;
+  font-size: 2.5rem;
+  color: #208080;
+}
+
+.gestion-plan .pe-vacio p {
+  max-width: 520px;
+  margin: 0 auto 24px;
+}
+
+.gestion-plan .pe-aviso,
+.gestion-plan .pe-error {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+}
+
+.gestion-plan .pe-aviso {
+  background: #edf5fa;
+  color: #234660;
+}
+
+.gestion-plan .pe-error {
+  background: #fff1f2;
+  color: #a4161a;
+  border: 1px solid #fecdd3;
+}
+
+/* Formulario */
+
+.gestion-plan .pe-dialogo {
+  width: min(860px, calc(100% - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 40px);
+  margin: auto;
+  padding: 28px;
+  border: 0;
+  border-radius: 14px;
+  background: #fff;
+  color: #334155;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 25%);
+  overflow-y: auto;
+}
+
+.gestion-plan .pe-dialogo::backdrop {
+  background: rgb(15 23 42 / 65%);
+}
+
+.gestion-plan .pe-dialogo form {
+  display: grid;
+  gap: 22px;
+  margin: 0;
+}
+
+.gestion-plan .pe-dialogo .pe-cabecera {
+  margin-bottom: 0;
+}
+
+.gestion-plan .pe-dialogo h2 {
+  margin: 0;
+}
+
+.gestion-plan .pe-cerrar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 1.7rem;
+  cursor: pointer;
+}
+
+.gestion-plan .pe-campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.gestion-plan .pe-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  color: #334155;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.gestion-plan .pe-campo-completo {
+  grid-column: 1 / -1;
+}
+
+.gestion-plan :is(input:not([type="checkbox"]), select, textarea) {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+  font-weight: 400;
+}
+
+.gestion-plan .pe-campo :is(input, textarea) {
+  width: 100%;
+}
+
+.gestion-plan textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.gestion-plan .pe-configuracion {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 10px;
+  background: #f1f5f9;
+}
+
+.gestion-plan .pe-configuracion p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.gestion-plan .pe-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: #152238;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gestion-plan .pe-checkbox input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #152238;
+}
+
+.gestion-plan .pe-bloques {
+  display: grid;
+  gap: 20px;
+}
+
+.gestion-plan .pe-editor {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid #dce4ed;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.gestion-plan .pe-pie-formulario {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+@media (max-width: 1100px) {
+  .gestion-plan .pe-grilla {
+    grid-template-columns: 1fr;
+  }
+
+  .gestion-plan > .pe-cabecera {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 600px) {
+  .gestion-plan h1 {
+    font-size: 1.6rem;
+  }
+
+  .gestion-plan .pe-campos {
+    grid-template-columns: 1fr;
+  }
+
+  .gestion-plan .pe-filtros {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .gestion-plan .pe-filtros select {
+    width: 100%;
+  }
+
+  .gestion-plan .pe-acciones {
+    width: 100%;
+  }
+
+  .gestion-plan .pe-acciones .pe-boton {
+    flex: 1;
+  }
+
+  .gestion-plan .pe-resumen,
+  .gestion-plan .pe-tarjeta,
+  .gestion-plan .pe-editor,
+  .gestion-plan .pe-configuracion {
+    padding: 18px;
+  }
+
+  .gestion-plan .pe-dialogo {
+    width: calc(100% - 20px);
+    max-height: calc(100dvh - 20px);
+    padding: 18px;
+  }
+
+  .gestion-plan .pe-pie-formulario .pe-boton {
+    flex: 1;
+  }
 }

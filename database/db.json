@@ -371,6 +371,143 @@
       "nombre": "Politica y Ciudadania"
     }
   ],
+  "preceptores": [
+    {
+      "id": "1",
+      "nombre": "Paula",
+      "apellido": "Medina",
+      "dni": "32123456",
+      "email": "paula.medina@example.com",
+      "telefono": "",
+      "asignaciones": [
+        {
+          "moduloId": 1,
+          "division": "C"
+        },
+        {
+          "moduloId": 1,
+          "division": "B"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "nombre": "Daniel",
+      "apellido": "Ramos",
+      "dni": "29987654",
+      "email": "daniel.ramos@example.com",
+      "telefono": "",
+      "asignaciones": [
+        {
+          "moduloId": 2,
+          "division": "A"
+        },
+        {
+          "moduloId": 3,
+          "division": "C"
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "nombre": "Silvia",
+      "apellido": "Acosta",
+      "dni": "31234567",
+      "email": "silvia.acosta@example.com",
+      "telefono": "",
+      "asignaciones": [
+        {
+          "moduloId": 3,
+          "division": "A"
+        },
+        {
+          "moduloId": 3,
+          "division": "B"
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "nombre": "Mariana",
+      "apellido": "Sosa",
+      "dni": "33567890",
+      "email": "mariana.sosa@example.com",
+      "telefono": "",
+      "asignaciones": [
+        {
+          "moduloId": 4,
+          "division": "B"
+        },
+        {
+          "moduloId": 4,
+          "division": "C"
+        }
+      ]
+    },
+    {
+      "id": "9",
+      "nombre": "Carolina",
+      "apellido": "Vega",
+      "dni": "34123987",
+      "email": "carolina.vega@example.com",
+      "telefono": "",
+      "asignaciones": [
+        {
+          "moduloId": 5,
+          "division": "C"
+        },
+        {
+          "moduloId": 6,
+          "division": "A"
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "nombre": "Federico",
+      "apellido": "Ledesma",
+      "dni": "29345612",
+      "email": "federico.ledesma@example.com",
+      "telefono": "3547345612",
+      "asignaciones": [
+        {
+          "moduloId": 6,
+          "division": "B"
+        },
+        {
+          "moduloId": 6,
+          "division": "C"
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "nombre": "Natalia",
+      "apellido": "Cabrera",
+      "dni": "35678123",
+      "email": "natalia.cabrera@example.com",
+      "telefono": "",
+      "asignaciones": []
+    },
+    {
+      "id": "12",
+      "nombre": "Héctor",
+      "apellido": "Molina",
+      "dni": "25432198",
+      "email": "hector.molina@example.com",
+      "telefono": "3515432198",
+      "asignaciones": [
+        {
+          "moduloId": 3,
+          "division": "D"
+        },
+        {
+          "moduloId": 4,
+          "division": "D"
+        }
+      ]
+    }
+  ],
   "alumnos": [
     {
       "id": "1",

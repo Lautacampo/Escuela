@@ -7,7 +7,7 @@ export default function NavBarGestionLateral() {
     <nav className="navlateral">
       <div className="logo-sidebar">
         <img
-          src="/img/logos/logo-tomas-baras-letras-blancas.png"
+          src="/img/logos/logo-principal.png"
           alt="Logo Colegio Tomás Baras"
         />
       </div>
@@ -66,6 +66,15 @@ export default function NavBarGestionLateral() {
           >
             <i className="fa-solid fa-graduation-cap"></i>
             Calificaciones
+          </NavLink>
+        </li>
+        <li>
+          <NavLink
+            to="/gestion/plan-estudios"
+            className={({ isActive }) => (isActive ? "activo" : "")}
+          >
+            <i className="fa-solid fa-book-open" aria-hidden="true"></i>
+            Plan de Estudios
           </NavLink>
         </li>
         <li>
