@@ -7,7 +7,7 @@ export default function NavBarGestionLateral() {
     <nav className="navlateral">
       <div className="logo-sidebar">
         <img
-          src="/img/logos/logo-tomas-baras-letras-blancas.png"
+          src="/img/logos/logo-principal.png"
           alt="Logo Colegio Tomás Baras"
         />
       </div>
