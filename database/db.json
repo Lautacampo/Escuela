@@ -1379,6 +1379,18 @@
       "fecha": "2026-10-07",
       "falta": 0,
       "id": "aTyG9A2T2XI"
+    },
+    {
+      "alumnoId": "16",
+      "fecha": "2026-10-01",
+      "falta": 1,
+      "id": "b-4U0sVz7_k"
+    },
+    {
+      "alumnoId": "8",
+      "fecha": "2026-10-01",
+      "falta": 0,
+      "id": "IpiCwGwKi-o"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"
