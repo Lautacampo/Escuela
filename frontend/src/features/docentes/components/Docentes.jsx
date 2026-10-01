@@ -1,10 +1,13 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "../../../shared/hooks/useForm";
 import { esDniValido, esEmailValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
-
-const CURSOS = ["1", "2", "3"];
-const DIVISIONES = ["A", "B", "C"];
+import {
+  borrarDocente as borrarDocenteApi,
+  getDocentes,
+  getModulos,
+  setDocente,
+} from "../services/DocentesServices";
 
 const MATERIAS = [
   "Biología",
@@ -56,37 +59,6 @@ const CAMPOS = [
   { nombre: "telefono", etiqueta: "Teléfono", tipo: "tel" },
 ];
 
-// Datos ficticios para probar el frontend.
-const DOCENTES_INICIALES = [
-  {
-    id: 1,
-    nombre: "Lucía",
-    apellido: "Fernández",
-    dni: "30123456",
-    especialidad: "Matemáticas y Física",
-    email: "lucia.fernandez@example.com",
-    telefono: "",
-    asignaciones: [
-      { materia: "Matemáticas", curso: "1", division: "A" },
-      { materia: "Matemáticas", curso: "2", division: "B" },
-      { materia: "Física", curso: "3", division: "A" },
-    ],
-  },
-  {
-    id: 2,
-    nombre: "Martín",
-    apellido: "Suárez",
-    dni: "28987654",
-    especialidad: "Lengua y Literatura",
-    email: "martin.suarez@example.com",
-    telefono: "",
-    asignaciones: [
-      { materia: "Lengua", curso: "1", division: "B" },
-      { materia: "Literatura", curso: "3", division: "C" },
-    ],
-  },
-];
-
 function normalizar(texto) {
   return String(texto)
     .normalize("NFD")
@@ -96,14 +68,37 @@ function normalizar(texto) {
 }
 
 export function Docentes() {
-  const [docentes, setDocentes] = useState(DOCENTES_INICIALES);
+  const [docentes, setDocentes] = useState([]);
+  const [modulos, setModulos] = useState([]);
   const [valores, setValores] = useState(DOCENTE_INICIAL);
   const [editando, setEditando] = useState(null);
   const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState("");
   const [hayCambios, setHayCambios] = useState(false);
+  const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState("");
+  const [errorOperacion, setErrorOperacion] = useState("");
 
   const modalRef = useRef(null);
+
+  useEffect(() => {
+    async function cargarDocentes() {
+      try {
+        const [datosDocentes, datosModulos] = await Promise.all([
+          getDocentes(),
+          getModulos(),
+        ]);
+        setDocentes(datosDocentes);
+        setModulos(datosModulos);
+      } catch (error) {
+        setErrorCarga(error.message);
+      } finally {
+        setCargando(false);
+      }
+    }
+
+    cargarDocentes();
+  }, []);
 
   const {
     valores: filtros,
@@ -116,18 +111,32 @@ export function Docentes() {
     busqueda: "",
   });
 
+  const divisionesPorCurso = modulos.reduce((cursosPorDivision, modulo) => {
+    const curso = String(Math.ceil(Number(modulo.id) / 2));
+    const divisionesCurso = new Set([
+      ...(cursosPorDivision[curso] ?? []),
+      ...modulo.divisiones,
+    ]);
+    cursosPorDivision[curso] = [...divisionesCurso].sort();
+    return cursosPorDivision;
+  }, {});
+  const cursos = Object.keys(divisionesPorCurso).sort(
+    (a, b) => Number(a) - Number(b),
+  );
+  const divisiones = [...new Set(Object.values(divisionesPorCurso).flat())].sort();
+
   const filtrosSelect = [
     {
       nombre: "curso",
       etiqueta: "Curso",
       todos: "Todos los cursos",
-      opciones: CURSOS,
+      opciones: cursos,
     },
     {
       nombre: "division",
       etiqueta: "División",
       todos: "Todas",
-      opciones: DIVISIONES,
+      opciones: divisiones,
     },
     {
       nombre: "materia",
@@ -178,6 +187,7 @@ export function Docentes() {
 
     setErrores({});
     setMensaje("");
+    setErrorOperacion("");
     setHayCambios(false);
     modalRef.current.showModal();
   }
@@ -223,7 +233,11 @@ export function Docentes() {
     setValores((anteriores) => ({
       ...anteriores,
       asignaciones: anteriores.asignaciones.map((asignacion, posicion) =>
-        posicion === indice ? { ...asignacion, [campo]: valor } : asignacion,
+        posicion !== indice
+          ? asignacion
+          : campo === "curso"
+            ? { ...asignacion, curso: valor, division: "" }
+            : { ...asignacion, [campo]: valor },
       ),
     }));
 
@@ -243,7 +257,7 @@ export function Docentes() {
     setHayCambios(true);
   }
 
-  function guardarDocente(evento) {
+  async function guardarDocente(evento) {
     evento.preventDefault();
 
     const nuevosErrores = {};
@@ -276,8 +290,8 @@ export function Docentes() {
     const asignacionIncompleta = valores.asignaciones.some(
       ({ materia, curso, division }) =>
         !MATERIAS.includes(materia) ||
-        !CURSOS.includes(curso) ||
-        !DIVISIONES.includes(division),
+        !cursos.includes(curso) ||
+        !divisionesPorCurso[curso]?.includes(division),
     );
 
     const claves = valores.asignaciones.map(
@@ -298,7 +312,6 @@ export function Docentes() {
 
     const docentePreparado = {
       ...valores,
-      id: editando ?? crypto.randomUUID(),
       nombre: capitalizarNombre(valores.nombre.trim().replace(/\s+/g, " ")),
       apellido: capitalizarNombre(valores.apellido.trim().replace(/\s+/g, " ")),
       dni,
@@ -310,38 +323,56 @@ export function Docentes() {
       })),
     };
 
-    setDocentes((anteriores) =>
-      editando !== null
-        ? anteriores.map((docente) =>
-            docente.id === editando ? docentePreparado : docente,
-          )
-        : [...anteriores, docentePreparado],
-    );
+    if (editando !== null) docentePreparado.id = editando;
 
-    setMensaje(
-      editando !== null
-        ? "Datos del docente actualizados."
-        : "Docente registrado correctamente.",
-    );
+    try {
+      setErrorOperacion("");
+      const guardado = await setDocente(docentePreparado);
 
-    limpiarFiltros();
-    setHayCambios(false);
-    modalRef.current.close();
+      setDocentes((anteriores) =>
+        editando !== null
+          ? anteriores.map((docente) =>
+              docente.id === editando ? guardado : docente,
+            )
+          : [...anteriores, guardado],
+      );
+
+      setMensaje(
+        editando !== null
+          ? "Datos del docente actualizados."
+          : "Docente registrado correctamente.",
+      );
+
+      limpiarFiltros();
+      setHayCambios(false);
+      modalRef.current.close();
+    } catch (error) {
+      setErrorOperacion(error.message);
+    }
   }
 
-  function eliminarDocente(docente) {
+  async function eliminarDocente(docente) {
     const confirmar = window.confirm(
       `¿Querés eliminar a ${docente.apellido}, ${docente.nombre} del listado de docentes?`,
     );
 
     if (!confirmar) return;
 
-    setDocentes((anteriores) =>
-      anteriores.filter((registro) => registro.id !== docente.id),
-    );
+    try {
+      setErrorOperacion("");
+      await borrarDocenteApi(docente.id);
+      setDocentes((anteriores) =>
+        anteriores.filter((registro) => registro.id !== docente.id),
+      );
 
-    setMensaje("Docente eliminado del listado.");
+      setMensaje("Docente eliminado del listado.");
+    } catch (error) {
+      setErrorOperacion(error.message);
+    }
   }
+
+  if (cargando) return <p>Cargando docentes...</p>;
+  if (errorCarga) return <p role="alert">{errorCarga}</p>;
 
   return (
     <div className="gestion-personal">
@@ -364,6 +395,12 @@ export function Docentes() {
       {mensaje && (
         <p className="personal-aviso" role="status">
           {mensaje}
+        </p>
+      )}
+
+      {errorOperacion && (
+        <p className="mensaje-error" role="alert">
+          {errorOperacion}
         </p>
       )}
 
@@ -535,6 +572,12 @@ export function Docentes() {
         </div>
 
         <form className="form-gestion" onSubmit={guardarDocente} noValidate>
+          {errorOperacion && (
+            <p className="mensaje-error" role="alert">
+              {errorOperacion}
+            </p>
+          )}
+
           <fieldset>
             <legend>Datos del docente</legend>
 
@@ -592,11 +635,11 @@ export function Docentes() {
               <div className="personal-fila-asignacion" key={indice}>
                 {[
                   { campo: "materia", etiqueta: "Materia", opciones: MATERIAS },
-                  { campo: "curso", etiqueta: "Curso", opciones: CURSOS },
+                  { campo: "curso", etiqueta: "Curso", opciones: cursos },
                   {
                     campo: "division",
                     etiqueta: "División",
-                    opciones: DIVISIONES,
+                    opciones: divisionesPorCurso[asignacion.curso] ?? [],
                   },
                 ].map(({ campo, etiqueta, opciones }) => (
                   <div className="form-group" key={campo}>
