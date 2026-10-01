@@ -80,8 +80,6 @@ export function Docentes() {
   const [errorCarga, setErrorCarga] = useState("");
   const [errorOperacion, setErrorOperacion] = useState("");
 
-  const modalRef = useRef(null);
-
   useEffect(() => {
     async function cargarDocentes() {
       try {

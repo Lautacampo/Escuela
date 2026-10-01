@@ -54,8 +54,6 @@ export function Preceptores() {
   const [error, setError] = useState(null);
   const [errorGuardar, setErrorGuardar] = useState("");
 
-  const modalRef = useRef(null);
-
   useEffect(() => {
     async function cargar() {
       try {
