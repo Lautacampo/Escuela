@@ -102,6 +102,19 @@
   white-space: nowrap;
 }
 
+.pagina-calificaciones-division .tabla-gestion th:first-child,
+.pagina-calificaciones-division .tabla-gestion td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fff;
+}
+
+.pagina-calificaciones-division .tabla-gestion th:first-child {
+  z-index: 3;
+  background: #f1f5f8;
+}
+
 .pagina-calificaciones-division .tabla-gestion td {
   padding: 12px 16px;
   border-bottom-color: #e9eef2;
@@ -112,13 +125,22 @@
   color: #23384d;
   font-weight: 650;
   white-space: nowrap;
+  box-shadow: 1px 0 0 #e9eef2;
 }
 
 .pagina-calificaciones-division .tabla-gestion tbody tr:nth-child(even) {
   background: #f8fafb;
 }
 
+.pagina-calificaciones-division .tabla-gestion tbody tr:nth-child(even) td:first-child {
+  background: #f8fafb;
+}
+
 .pagina-calificaciones-division .tabla-gestion tbody tr:hover {
+  background: #f0f7f6;
+}
+
+.pagina-calificaciones-division .tabla-gestion tbody tr:hover td:first-child {
   background: #f0f7f6;
 }
 

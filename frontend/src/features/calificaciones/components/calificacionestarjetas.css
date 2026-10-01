@@ -1,6 +1,33 @@
+.anio-grupo {
+  margin-bottom: 26px;
+  padding: 18px 18px 20px;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.13), rgba(255, 255, 255, 0.45));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.anio-grupo.primer-ano,
+.anio-grupo.segundo-ano,
+.anio-grupo.tercer-ano {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.16), rgba(255, 255, 255, 0.5));
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.anio-titulo {
+  margin: 0 0 14px;
+  padding: 0 4px;
+  color: #1d2d3d;
+  font-family: var(--gestion-titulos, "Segoe UI", sans-serif);
+  font-size: clamp(1.35rem, 1.5vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
 .modulosdivision {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
   align-items: stretch;
 }
@@ -45,7 +72,13 @@
   box-shadow: 0 8px 22px rgba(32, 52, 73, 0.12);
 }
 
-.modulo h3{
+.modulo-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modulo h3 {
   margin: 0;
   color: #1e3148;
   font-family: var(--fuente-encabezados);
@@ -56,7 +89,7 @@
   gap: 8px;
 }
 
-.modulo h5{
+.modulo h5 {
   margin: 0;
   padding: 3px;
   color: #526478;
@@ -64,7 +97,6 @@
   font-size: 1.25rem;
   display: flex;
   align-items: center;
-
 }
 
 /* Contenedor de botones de división */

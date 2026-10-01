@@ -63,62 +63,312 @@
     {
       "id": "1",
       "moduloId": 1,
-      "nombre": "Historia"
+      "nombre": "Matematica"
     },
     {
       "id": "2",
       "moduloId": 1,
-      "nombre": "Lengua"
+      "nombre": "Informatica"
     },
     {
       "id": "3",
+      "moduloId": 1,
+      "nombre": "Lengua"
+    },
+    {
+      "id": "4",
+      "moduloId": 1,
+      "nombre": "Tecnologia de la Informacion y la Comunicacion"
+    },
+    {
+      "id": "5",
+      "moduloId": 1,
+      "nombre": "Geografia"
+    },
+    {
+      "id": "6",
+      "moduloId": 1,
+      "nombre": "Historia"
+    },
+    {
+      "id": "7",
+      "moduloId": 1,
+      "nombre": "Biologia"
+    },
+    {
+      "id": "8",
+      "moduloId": 1,
+      "nombre": "Educacion para la Salud"
+    },
+    {
+      "id": "9",
+      "moduloId": 1,
+      "nombre": "Artes Visuales"
+    },
+    {
+      "id": "10",
+      "moduloId": 1,
+      "nombre": "Lengua Extranjera Ingles"
+    },
+    {
+      "id": "11",
+      "moduloId": 1,
+      "nombre": "Formacion Etica y Ciudadana"
+    },
+    {
+      "id": "12",
       "moduloId": 2,
       "nombre": "Matematica"
     },
     {
-      "id": "4",
+      "id": "13",
       "moduloId": 2,
-      "nombre": "Identificación Humana"
+      "nombre": "Informatica"
     },
     {
-      "id": "5",
+      "id": "14",
+      "moduloId": 2,
+      "nombre": "Lengua"
+    },
+    {
+      "id": "15",
+      "moduloId": 2,
+      "nombre": "Tecnologia de la Informacion y la Comunicacion"
+    },
+    {
+      "id": "16",
+      "moduloId": 2,
+      "nombre": "Geografia"
+    },
+    {
+      "id": "17",
+      "moduloId": 2,
+      "nombre": "Historia"
+    },
+    {
+      "id": "18",
+      "moduloId": 2,
+      "nombre": "Biologia"
+    },
+    {
+      "id": "19",
+      "moduloId": 2,
+      "nombre": "Educacion para la Salud"
+    },
+    {
+      "id": "20",
+      "moduloId": 2,
+      "nombre": "Artes Visuales"
+    },
+    {
+      "id": "21",
+      "moduloId": 2,
+      "nombre": "Lengua Extranjera Ingles"
+    },
+    {
+      "id": "22",
+      "moduloId": 2,
+      "nombre": "Formacion Etica y Ciudadana"
+    },
+    {
+      "id": "23",
       "moduloId": 3,
-      "nombre": "Fisica"
+      "nombre": "Matematica"
     },
     {
-      "id": "6",
+      "id": "24",
       "moduloId": 3,
-      "nombre": "Filosofia"
+      "nombre": "Informatica"
     },
     {
-      "id": "7",
+      "id": "25",
+      "moduloId": 3,
+      "nombre": "Lengua y Literatura"
+    },
+    {
+      "id": "26",
+      "moduloId": 3,
+      "nombre": "Tecnologia de la Informacion y la Comunicacion"
+    },
+    {
+      "id": "27",
+      "moduloId": 3,
+      "nombre": "Psicologia"
+    },
+    {
+      "id": "28",
+      "moduloId": 3,
+      "nombre": "Derecho"
+    },
+    {
+      "id": "29",
+      "moduloId": 3,
+      "nombre": "Quimica"
+    },
+    {
+      "id": "30",
+      "moduloId": 3,
+      "nombre": "Educacion para la Salud"
+    },
+    {
+      "id": "31",
+      "moduloId": 3,
+      "nombre": "Artes Audiovisuales"
+    },
+    {
+      "id": "32",
+      "moduloId": 3,
+      "nombre": "Lengua Extranjera Ingles"
+    },
+    {
+      "id": "33",
+      "moduloId": 3,
+      "nombre": "Proyecto Socio Comunitario"
+    },
+    {
+      "id": "34",
+      "moduloId": 4,
+      "nombre": "Matematica"
+    },
+    {
+      "id": "35",
+      "moduloId": 4,
+      "nombre": "Informatica"
+    },
+    {
+      "id": "36",
+      "moduloId": 4,
+      "nombre": "Lengua y Literatura"
+    },
+    {
+      "id": "37",
+      "moduloId": 4,
+      "nombre": "Tecnologia de la Informacion y la Comunicacion"
+    },
+    {
+      "id": "38",
+      "moduloId": 4,
+      "nombre": "Psicologia"
+    },
+    {
+      "id": "39",
+      "moduloId": 4,
+      "nombre": "Derecho"
+    },
+    {
+      "id": "40",
       "moduloId": 4,
       "nombre": "Quimica"
     },
     {
-      "id": "8",
+      "id": "41",
       "moduloId": 4,
-      "nombre": "Criminalistica"
+      "nombre": "Educacion para la Salud"
     },
     {
-      "id": "9",
+      "id": "42",
+      "moduloId": 4,
+      "nombre": "Artes Audiovisuales"
+    },
+    {
+      "id": "43",
+      "moduloId": 4,
+      "nombre": "Lengua Extranjera Ingles"
+    },
+    {
+      "id": "44",
+      "moduloId": 4,
+      "nombre": "Proyecto Socio Comunitario"
+    },
+    {
+      "id": "45",
       "moduloId": 5,
-      "nombre": "Toxicomania"
+      "nombre": "Matematica"
     },
     {
-      "id": "10",
+      "id": "46",
       "moduloId": 5,
-      "nombre": "Sociologia"
+      "nombre": "Fisica"
     },
     {
-      "id": "11",
-      "moduloId": 6,
-      "nombre": "Ingles"
+      "id": "47",
+      "moduloId": 5,
+      "nombre": "Cultura y Comunicacion"
     },
     {
-      "id": "12",
+      "id": "48",
+      "moduloId": 5,
+      "nombre": "Proyecto de Investigacion"
+    },
+    {
+      "id": "49",
+      "moduloId": 5,
+      "nombre": "Formacion para la Vida y el Trabajo"
+    },
+    {
+      "id": "50",
+      "moduloId": 5,
+      "nombre": "Educacion para la Salud"
+    },
+    {
+      "id": "51",
+      "moduloId": 5,
+      "nombre": "Teatro"
+    },
+    {
+      "id": "52",
+      "moduloId": 5,
+      "nombre": "Lengua Extranjera Ingles"
+    },
+    {
+      "id": "53",
+      "moduloId": 5,
+      "nombre": "Politica y Ciudadania"
+    },
+    {
+      "id": "54",
       "moduloId": 6,
-      "nombre": "Transito Publico"
+      "nombre": "Matematica"
+    },
+    {
+      "id": "55",
+      "moduloId": 6,
+      "nombre": "Fisica"
+    },
+    {
+      "id": "56",
+      "moduloId": 6,
+      "nombre": "Cultura y Comunicacion"
+    },
+    {
+      "id": "57",
+      "moduloId": 6,
+      "nombre": "Proyecto de Investigacion"
+    },
+    {
+      "id": "58",
+      "moduloId": 6,
+      "nombre": "Formacion para la Vida y el Trabajo"
+    },
+    {
+      "id": "59",
+      "moduloId": 6,
+      "nombre": "Educacion para la Salud"
+    },
+    {
+      "id": "60",
+      "moduloId": 6,
+      "nombre": "Teatro"
+    },
+    {
+      "id": "61",
+      "moduloId": 6,
+      "nombre": "Lengua Extranjera Ingles"
+    },
+    {
+      "id": "62",
+      "moduloId": 6,
+      "nombre": "Politica y Ciudadania"
     }
   ],
   "alumnos": [

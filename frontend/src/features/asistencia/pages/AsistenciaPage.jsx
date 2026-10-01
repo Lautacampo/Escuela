@@ -27,14 +27,34 @@ export function AsistenciaPage() {
   if (cargando) return <p>Cargando...</p>;
   if (error) return <p>{error}</p>;
 
+  const grupos = [
+    { titulo: "Primer Año", modulos: modulos.filter((m) => Number(m.id) <= 2) },
+    { titulo: "Segundo Año", modulos: modulos.filter((m) => Number(m.id) >= 3 && Number(m.id) <= 4) },
+    { titulo: "Tercer Año", modulos: modulos.filter((m) => Number(m.id) >= 5 && Number(m.id) <= 6) },
+  ];
+
   return (
     <section className="pagina-asistencia-modulos">
       <h2>Asistencia</h2>
-      <div className="modulosdivision">
-        {modulos.map((modulo)=> (
-          <AsistenciaTarjetas key={modulo.id} modulo={modulo}/>
-        ))}
-      </div>
+      {grupos.map((grupo, index) => {
+        const clase =
+          index === 0
+            ? "primer-ano"
+            : index === 1
+              ? "segundo-ano"
+              : "tercer-ano";
+
+        return (
+          <div key={grupo.titulo} className={`anio-grupo ${clase}`}>
+            <h3 className="anio-titulo">{grupo.titulo}</h3>
+            <div className="modulosdivision">
+              {grupo.modulos.map((modulo)=> (
+                <AsistenciaTarjetas key={modulo.id} modulo={modulo}/>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </section>
   );
 }
