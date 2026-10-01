@@ -371,6 +371,25 @@
       "nombre": "Politica y Ciudadania"
     }
   ],
+  "preceptores": [
+  {"id": 1, "nombre": "Paula", "apellido": "Medina", "dni": "32123456", "email": "paula.medina@example.com", "telefono": "", "asignaciones": [{"moduloId": 1, "division": "A"}, {"moduloId": 1, "division": "B"}]},
+  {"id": 2, "nombre": "Daniel", "apellido": "Ramos", "dni": "29987654", "email": "daniel.ramos@example.com", "telefono": "", "asignaciones": [{"moduloId": 2, "division": "A"}, {"moduloId": 3, "division": "C"}]},
+  {"id": 3, "nombre": "Laura", "apellido": "Fernández", "dni": "30456789", "email": "laura.fernandez@example.com", "telefono": "3541456789", "asignaciones": [{"moduloId": 1, "division": "C"}, {"moduloId": 1, "division": "D"}]},
+  {"id": 4, "nombre": "Marcelo", "apellido": "Gutiérrez", "dni": "28345678", "email": "marcelo.gutierrez@example.com", "telefono": "3512345678", "asignaciones": [{"moduloId": 2, "division": "B"}, {"moduloId": 2, "division": "C"}, {"moduloId": 2, "division": "D"}]},
+  {"id": 5, "nombre": "Silvia", "apellido": "Acosta", "dni": "31234567", "email": "silvia.acosta@example.com", "telefono": "", "asignaciones": [{"moduloId": 3, "division": "A"}, {"moduloId": 3, "division": "B"}]},
+  {"id": 6, "nombre": "Gustavo", "apellido": "Peralta", "dni": "27876543", "email": "gustavo.peralta@example.com", "telefono": "3544567890", "asignaciones": [{"moduloId": 4, "division": "A"}]},
+  {"id": 7, "nombre": "Mariana", "apellido": "Sosa", "dni": "33567890", "email": "mariana.sosa@example.com", "telefono": "", "asignaciones": [{"moduloId": 4, "division": "B"}, {"moduloId": 4, "division": "C"}]},
+  {"id": 8, "nombre": "Raúl", "apellido": "Benítez", "dni": "26789012", "email": "raul.benitez@example.com", "telefono": "3516789012", "asignaciones": [{"moduloId": 5, "division": "A"}, {"moduloId": 5, "division": "B"}]},
+  {"id": 9, "nombre": "Carolina", "apellido": "Vega", "dni": "34123987", "email": "carolina.vega@example.com", "telefono": "", "asignaciones": [{"moduloId": 5, "division": "C"}, {"moduloId": 6, "division": "A"}]},
+  {"id": 10, "nombre": "Federico", "apellido": "Ledesma", "dni": "29345612", "email": "federico.ledesma@example.com", "telefono": "3547345612", "asignaciones": [{"moduloId": 6, "division": "B"}, {"moduloId": 6, "division": "C"}]},
+  {"id": 11, "nombre": "Natalia", "apellido": "Cabrera", "dni": "35678123", "email": "natalia.cabrera@example.com", "telefono": "", "asignaciones": [{"moduloId": 1, "division": "A"}, {"moduloId": 2, "division": "A"}, {"moduloId": 3, "division": "A"}, {"moduloId": 4, "division": "A"}]},
+  {"id": 12, "nombre": "Héctor", "apellido": "Molina", "dni": "25432198", "email": "hector.molina@example.com", "telefono": "3515432198", "asignaciones": [{"moduloId": 3, "division": "D"}, {"moduloId": 4, "division": "D"}]},
+  {"id": 13, "nombre": "Verónica", "apellido": "Ríos", "dni": "32987345", "email": "veronica.rios@example.com", "telefono": "", "asignaciones": [{"moduloId": 6, "division": "A"}]},
+  {"id": 14, "nombre": "Sebastián", "apellido": "Luna", "dni": "36123456", "email": "sebastian.luna@example.com", "telefono": "3546123456", "asignaciones": []},
+  {"id": 15, "nombre": "Andrea", "apellido": "Torres", "dni": "31765432", "email": "andrea.torres@example.com", "telefono": "", "asignaciones": [{"moduloId": 2, "division": "D"}, {"moduloId": 5, "division": "A"}]}
+],
+
+
   "alumnos": [
     {
       "id": "1",
