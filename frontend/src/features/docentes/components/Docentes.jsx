@@ -59,6 +59,12 @@ const CAMPOS = [
   { nombre: "telefono", etiqueta: "Teléfono", tipo: "tel" },
 ];
 
+const FILAS_CAMPOS = [
+  [CAMPOS[0], CAMPOS[1]],
+  [CAMPOS[2], CAMPOS[3]],
+  [CAMPOS[4],CAMPOS[5]]
+];
+
 function normalizar(texto) {
   return String(texto)
     .normalize("NFD")
