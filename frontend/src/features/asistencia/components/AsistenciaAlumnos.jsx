@@ -36,7 +36,7 @@ export function AsistenciaAlumnos ({alumnos,fecha,onCambiarFecha,registrosDia,to
                 alumnos.map((a, i) => {
                   const registro = registrosDia[a.id];
                   const total = totales[a.id] ?? 0;
-                  const libre = total > limite;
+                  const libre = total >= limite;
 
                   return (
                     <tr key={a.id} className={libre ? "fila-libre" : ""}>
@@ -60,7 +60,7 @@ export function AsistenciaAlumnos ({alumnos,fecha,onCambiarFecha,registrosDia,to
                       </td>
                       <td>{total} / {limite}</td>
                       <td>
-                        <span className={libre ? "estado-des" : "estado-ap"}>
+                        <span className={libre ? "estado-dp" : "estado-ap"}>
                           {libre ? "Libre" : "Regular"}
                         </span>
                       </td>
