@@ -1,13 +1,6 @@
 import { Link } from "react-router";
 
 export function CalificacionesTarjetas({ modulo }) {
-  const anio =
-    Number(modulo.id) <= 2
-      ? "Primer Año"
-      : Number(modulo.id) <= 4
-        ? "Segundo Año"
-        : "Tercer Año";
-
   return (
     <div className="modulo">
       <div className="modulo-header">

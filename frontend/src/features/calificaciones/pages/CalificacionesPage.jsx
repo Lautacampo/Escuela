@@ -26,33 +26,24 @@ export function CalificacionesPage() {
   if (error) return <p role="alert">No se pudieron cargar los módulos: {error}</p>;
 
   const grupos = [
-    { titulo: "Primer Año", modulos: modulos.filter((m) => Number(m.id) <= 2) },
-    { titulo: "Segundo Año", modulos: modulos.filter((m) => Number(m.id) >= 3 && Number(m.id) <= 4) },
-    { titulo: "Tercer Año", modulos: modulos.filter((m) => Number(m.id) >= 5 && Number(m.id) <= 6) },
+    { titulo: "Primer Año", clase: "primer-anio", modulos: modulos.filter((m) => Number(m.id) <= 2) },
+    { titulo: "Segundo Año", clase: "segundo-anio", modulos: modulos.filter((m) => Number(m.id) >= 3 && Number(m.id) <= 4) },
+    { titulo: "Tercer Año", clase: "tercer-anio", modulos: modulos.filter((m) => Number(m.id) >= 5 && Number(m.id) <= 6) },
   ];
 
   return (
     <section className="pagina-calificaciones-modulos">
       <h2>Calificaciones</h2>
-      {grupos.map((grupo, index) => {
-        const clase =
-          index === 0
-            ? "primer-ano"
-            : index === 1
-              ? "segundo-ano"
-              : "tercer-ano";
-
-        return (
-          <div key={grupo.titulo} className={`anio-grupo ${clase}`}>
+      {grupos.map((grupo) => (
+        <div key={grupo.titulo} className={`anio-grupo ${grupo.clase}`}>
             <h3 className="anio-titulo">{grupo.titulo}</h3>
             <div className="modulosdivision">
               {grupo.modulos.map((modulo) => (
                 <CalificacionesTarjetas key={modulo.id} modulo={modulo} />
               ))}
             </div>
-          </div>
-        );
-      })}
+        </div>
+      ))}
     </section>
   );
 }

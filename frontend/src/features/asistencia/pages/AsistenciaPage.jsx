@@ -36,16 +36,8 @@ export function AsistenciaPage() {
   return (
     <section className="pagina-asistencia-modulos">
       <h2>Asistencia</h2>
-      {grupos.map((grupo, index) => {
-        const clase =
-          index === 0
-            ? "primer-ano"
-            : index === 1
-              ? "segundo-ano"
-              : "tercer-ano";
-
-        return (
-          <div key={grupo.titulo} className={`anio-grupo ${clase}`}>
+      {grupos.map((grupo) => (
+          <div key={grupo.titulo} className="anio-grupo">
             <h3 className="anio-titulo">{grupo.titulo}</h3>
             <div className="modulosdivision">
               {grupo.modulos.map((modulo)=> (
@@ -53,8 +45,7 @@ export function AsistenciaPage() {
               ))}
             </div>
           </div>
-        );
-      })}
+      ))}
     </section>
   );
 }

@@ -1,12 +1,6 @@
 import { Link } from "react-router";
 
 export function AsistenciaTarjetas({ modulo }) {
-    Number(modulo.id) <= 2
-      ? "Primer Año"
-      : Number(modulo.id) <= 4
-        ? "Segundo Año"
-        : "Tercer Año";
-
   return (
     <div className="modulotarjeta">
       <div className="modulo-header">

@@ -1,7 +1,6 @@
 export function AsistenciaAlumnos ({alumnos,fecha,onCambiarFecha,registrosDia,totales,limite,onCambiar}){
     return (
     <>
-      
       <div className="contenedor-tabla">
         <div className="cabecera-tabla">
           <div className="controles-asistencia">

@@ -7,13 +7,6 @@
 	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
-.anio-grupo.primer-ano,
-.anio-grupo.segundo-ano,
-.anio-grupo.tercer-ano {
-	background: linear-gradient(180deg, rgba(59, 130, 246, 0.16), rgba(255, 255, 255, 0.5));
-	border-color: rgba(59, 130, 246, 0.25);
-}
-
 .anio-titulo {
 	margin: 0 0 14px;
 	padding: 0 4px;
@@ -93,8 +86,8 @@
 	margin: 0;
 	padding: 3px;
 	color: #526478;
-	font-family: var(--fuente-encabezados, var(--gestion-titulos, "Segoe UI", sans-serif));
-	font-size: 1rem;
+	font-family: var(--fuente-encabezados);
+	font-size: 1.25rem;
 	display: flex;
 	align-items: center;
 }
