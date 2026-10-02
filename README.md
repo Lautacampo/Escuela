@@ -1,4 +1,5 @@
 # Sistema de Gestión Académica — Colegio Tomás Baras
+### Desarrollado por: Becerra Santiago, Campo Lautaro y Gallardo Máximo.
 
 Proyecto de frontend para el Colegio para Adultos Nº 3 “Tomás Baras”.
 
