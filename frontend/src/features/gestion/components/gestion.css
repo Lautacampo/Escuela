@@ -113,6 +113,8 @@ body:has(.contenedor-dashboard) {
   display: flex;
   flex-direction: column;
   margin-left: 270px;
+  width: calc(100% - 270px);
+  min-height: 100vh;
 }
 
 /* navsup */
@@ -189,6 +191,10 @@ body:has(.contenedor-dashboard) {
   border-radius: var(--gestion-radio);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
   padding: 25px;
+}
+
+.contenedor-tabla p {
+  color: var(--gestion-primario);
 }
 
 .cabecera-tabla {
@@ -1865,5 +1871,333 @@ body:has(.contenedor-dashboard) {
     .reportes-panel .rep-demo {
       align-items: flex-start;
     }
+  }
+}
+
+/* =========================================================
+   RESPONSIVE - DASHBOARD
+   ========================================================= */
+
+/* ---------- Tablet ---------- */
+
+@media (max-width: 1100px) {
+  .navlateral {
+    width: 230px;
+  }
+
+  .contenido-principal {
+    margin-left: 230px;
+    width: calc(100% - 230px);
+  }
+
+  .menu-sidebar li a {
+    font-size: 1rem;
+    padding: 12px 13px;
+    gap: 10px;
+  }
+
+  .dashboard-main {
+    padding: 30px 24px;
+  }
+}
+
+
+/* ---------- Celular ---------- */
+
+.btn-menu-hamburguesa,
+.overlay-menu {
+  display: none;
+}
+
+@media (max-width: 768px) {
+
+  /* Sidebar */
+
+  .navlateral {
+    width: 270px;
+    max-width: 85vw;
+    height: 100vh;
+
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+
+    z-index: 2000;
+
+    overflow-y: auto;
+  }
+
+  .navlateral.menu-abierto {
+    transform: translateX(0);
+  }
+
+  /* Logo */
+
+  .logo-sidebar {
+    padding: 20px;
+  }
+
+  .logo-sidebar img {
+    width: 90px;
+  }
+
+  /* Menú */
+
+  .menu-sidebar {
+    flex-direction: column;
+    padding: 12px;
+    overflow-x: visible;
+  }
+
+  .menu-sidebar li {
+    flex-shrink: 0;
+  }
+
+  .menu-sidebar li a {
+    padding: 13px 16px;
+    border-left: 3px solid transparent;
+    border-bottom: 0;
+    font-size: 1rem;
+    white-space: normal;
+  }
+
+  .menu-sidebar li a:hover,
+  .menu-sidebar li a:focus-visible {
+    padding-left: 22px;
+  }
+
+  .menu-sidebar li a.activo {
+    border-left-color: var(--gestion-acento);
+    border-bottom-color: transparent;
+  }
+
+
+  /* Botón hamburguesa */
+
+  .btn-menu-hamburguesa {
+    display: grid;
+    place-items: center;
+
+    position: fixed;
+    top: 12px;
+    left: 12px;
+
+    width: 44px;
+    height: 44px;
+
+    z-index: 3000;
+
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--gestion-radio);
+
+    background-color: var(--gestion-primario);
+    color: white;
+
+    font-size: 1.2rem;
+
+    cursor: pointer;
+
+    transition:
+      background-color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .btn-menu-hamburguesa:hover {
+    background-color: var(--gestion-sidebar);
+  }
+
+
+  /* Fondo detrás del menú */
+
+  .overlay-menu {
+    display: block;
+
+    position: fixed;
+    inset: 0;
+
+    z-index: 1500;
+
+    background-color: rgba(15, 25, 41, 0.65);
+  }
+
+
+  /* Contenido */
+
+  .contenido-principal {
+    margin-left: 0;
+    min-width: 0;
+    width: 100%;
+  }
+
+
+  /* Navbar superior */
+
+  .navhorizontal {
+    min-height: 68px;
+    padding: 12px 16px 12px 70px;
+
+    align-items: center;
+  }
+
+  .navhorizontal-usuario {
+    margin-left: auto;
+  }
+
+
+  /* Main */
+
+  .dashboard-main {
+    padding: 24px 16px;
+  }
+
+  .dashboard-main h1 {
+    font-size: 1.6rem;
+    margin-bottom: 20px;
+  }
+
+
+  /* Encabezados */
+
+  .encabezado-gestion {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .encabezado-gestion .btn-primario-gestion {
+    width: 100%;
+    justify-content: center;
+  }
+
+
+  /* Tablas */
+
+  .contenedor-tabla {
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  .tabla-responsive {
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
+
+/* ---------- Celulares pequeños ---------- */
+
+@media (max-width: 480px) {
+
+  .navhorizontal {
+    padding-left: 68px;
+  }
+
+  .navhorizontal-usuario p {
+    font-size: 0.85rem;
+  }
+
+  .navhorizontal-usuario p strong {
+    display: none;
+  }
+
+  .btn-cerrar-sesion {
+    width: 38px;
+    height: 38px;
+  }
+
+  .dashboard-main {
+    padding: 20px 12px;
+  }
+
+  .contenedor-tabla {
+    padding: 12px;
+  }
+
+  .btn-menu-hamburguesa {
+    width: 42px;
+    height: 42px;
+  }
+}
+ 
+@media (max-width: 700px) {
+  .barra-filtros {
+    gap: 14px;
+  }
+ 
+  .barra-filtros .form-group {
+    flex: 1 1 100%;
+  }
+ 
+  .tabla-gestion th,
+  .tabla-gestion td {
+    padding: 12px;
+  }
+ 
+  .modal-alumno-overlay {
+    padding: 10px;
+  }
+ 
+  .modal-alumno {
+    max-height: 96vh;
+  }
+ 
+  .modal-alumno-header {
+    padding: 18px 20px;
+  }
+ 
+  .modal-alumno .form-gestion {
+    padding: 20px;
+  }
+ 
+  .modal-alumno fieldset {
+    padding: 14px;
+  }
+ 
+  .modal-alumno .form-row {
+    flex-direction: column;
+    gap: 15px;
+  }
+ 
+  .modal-alumno .acciones-formulario {
+    flex-direction: column-reverse;
+  }
+}
+ 
+@media (max-width: 1000px) {
+  .ficha-resumen,
+  .ficha-datos-grid,
+  .ficha-academica-info,
+  .modulo-detalles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+ 
+@media (max-width: 700px) {
+  .ficha-cabecera {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+ 
+  .ficha-resumen,
+  .ficha-datos-grid,
+  .ficha-academica-info,
+  .modulo-detalles {
+    grid-template-columns: 1fr;
+  }
+ 
+  .ficha-seccion {
+    padding: 16px;
+  }
+ 
+  .modulo-cabecera {
+    flex-direction: column;
+    gap: 10px;
+  }
+ 
+  .instancia {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }

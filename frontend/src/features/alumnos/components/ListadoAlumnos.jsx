@@ -1,75 +1,74 @@
-import { useMemo } from "react";
-import { useForm } from "../../../shared/hooks/useForm";
 import { useNavigate } from "react-router";
+import { useForm } from "../../../shared/hooks/useForm";
+import { formatearDNI } from "../../../shared/utils/formato";
 
-const NOMBRE_CURSO = {"1": "1° Año", "2": "2° Año", "3": "3° Año"};
+const CURSOS = ["1", "2", "3"];
 const LIMITE_FALTAS = 25;
 
+function normalizar(texto) {
+  return String(texto)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}) {
-    const { valores: filtros, manejarCambio } = useForm({
+    const navigate = useNavigate();
+
+    const { valores: filtros, manejarCambio, resetearFormulario: limpiarFiltros } = useForm({
         curso: "",
         division: "",
         busqueda: "",
     });
 
-    const divisionesDisponibles = useMemo(() => {
-        return [
+    const divisiones = [
         ...new Set(alumnos.map((alumno) => alumno.division).filter(Boolean)),
-        ].sort();
-    }, [alumnos]);
-     
-    const alumnosConAsistencia = useMemo(() => {
-        return alumnos.map((alumno) => {
-            const faltas = asistencias
-                .filter(
-                    (asistencia) => String(asistencia.alumnoId) === String(alumno.id)
-                )
-                .reduce(
-                    (total, asistencia) =>
-                        total + Number(asistencia.falta || 0),
-                    0
-                );
-            
-            const condicion = faltas >= LIMITE_FALTAS ? "Libre" : "Regular";
+    ].sort();
 
+    const filtrosSelect = [
+        {
+            nombre: "curso",
+            etiqueta: "Curso",
+            todos: "Todos los cursos",
+            opciones: CURSOS.map((curso) => ({ valor: curso, texto: `${curso}° Año` })),
+        },
+        {
+            nombre: "division",
+            etiqueta: "División",
+            todos: "Todas",
+            opciones: divisiones.map((division) => ({
+                valor: division,
+                texto: `División ${division}`,
+            })),
+        },
+    ];
+    
+    const alumnosFiltrados = alumnos
+        .map((alumno) => {
+            const faltas = asistencias
+                .filter((asistencia) => String(asistencia.alumnoId) === String(alumno.id))
+                .reduce((total, asistencia) => total + Number(asistencia.falta || 0), 0);
+        
             return {
                 ...alumno,
                 faltas,
-                condicion
+                condicion: faltas >= LIMITE_FALTAS ? "Libre" : "Regular",
             };
+        })
+        .filter((alumno) => {
+            const texto = normalizar(`${alumno.apellido} ${alumno.nombre} ${alumno.dni}`);
+        
+            const coincideBusqueda = normalizar(filtros.busqueda)
+                .split(/\s+/)
+                .every((palabra) => texto.includes(palabra));
+        
+            return (
+                coincideBusqueda &&
+                (!filtros.curso || alumno.curso === filtros.curso) &&
+                (!filtros.division || alumno.division === filtros.division)
+            );
         });
-    }, [alumnos, asistencias]);
-
-    const alumnosFiltrados = useMemo(() => {
-        return alumnosConAsistencia.filter((alumno) => {
-        const coincideCurso =
-            !filtros.curso || alumno.curso === filtros.curso;
-
-        const coincideDivision =
-            !filtros.division ||
-            alumno.division === filtros.division;
-
-        const textoBusqueda = filtros.busqueda
-            .trim()
-            .toLowerCase();
-
-        const nombreCompleto =
-            `${alumno.apellido} ${alumno.nombre}`.toLowerCase();
-
-        const coincideBusqueda =
-            !textoBusqueda ||
-            nombreCompleto.includes(textoBusqueda) ||
-            String(alumno.dni).includes(textoBusqueda);
-
-        return (
-            coincideCurso &&
-            coincideDivision &&
-            coincideBusqueda
-        );
-        });
-    }, [alumnosConAsistencia, filtros]);
-
-    const navigate = useNavigate();
 
     return(
         <div className="contenedor-tabla">
@@ -84,54 +83,48 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
             </div>
 
             <div className="barra-filtros">
-                <div className="form-group">
-                    <label htmlFor="filtro-curso">Curso</label>
+                {filtrosSelect.map((filtro) => (
+                    <div className="form-group" key={filtro.nombre}>
+                        <label htmlFor={`alumno-filtro-${filtro.nombre}`}>
+                            {filtro.etiqueta}
+                        </label>
+    
+                        <select
+                            id={`alumno-filtro-${filtro.nombre}`}
+                            name={filtro.nombre}
+                            value={filtros[filtro.nombre]}
+                            onChange={manejarCambio}
+                            className="input-gestion"
+                        >
+                            <option value="">{filtro.todos}</option>
+        
+                            {filtro.opciones.map((opcion) => (
+                                <option key={opcion.valor} value={opcion.valor}>
+                                    {opcion.texto}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                ))}
+ 
+        <div className="form-group form-group-buscador">
+            <label htmlFor="alumno-busqueda">Buscar</label>
+            <input
+                id="alumno-busqueda"
+                name="busqueda"
+                type="search"
+                placeholder="Nombre, apellido o DNI"
+                value={filtros.busqueda}
+                onChange={manejarCambio}
+                className="input-gestion"
+            />
+        </div>
+ 
+        <button type="button" className="btn-secundario" onClick={limpiarFiltros}>
+            Limpiar
+        </button>
+      </div>
 
-                    <select
-                        name="curso"
-                        id="filtro-curso"
-                        value={filtros.curso}
-                        onChange={manejarCambio}
-                        className="input-gestion"
-                    >
-                        <option value=""> Todos los cursos </option>
-                        <option value="1"> 1° Año </option>
-                        <option value="2"> 2° Año </option>
-                        <option value="3"> 3° Año </option>
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="filtro-division">División</label>
-                    <select
-                        name="division"
-                        id="filtro-division"
-                        value={filtros.division}
-                        onChange={manejarCambio}
-                        className="input-gestion"
-                    >
-                        <option value=""> Todas </option>
-                        {divisionesDisponibles.map((division) => (
-                            <option key={division} value={division}>
-                                División {division}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="form-group form-group-buscador">
-                    <label htmlFor="filtro-busqueda"> Buscar </label>
-                    <input
-                        type="text" 
-                        id="filtro-busqueda"
-                        name="busqueda"
-                        placeholder="Nombre, apellido o DNI"
-                        value={filtros.busqueda}
-                        onChange={manejarCambio}
-                        className="input-gestion"
-                    />
-                </div>
-            </div>
 
             <div className="tabla-responsive">
                 <table className="tabla-gestion">
@@ -156,21 +149,23 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
                                     </strong>
                                 </td>
 
-                                <td>{alumno.dni}</td>
+                                <td>{formatearDNI(alumno.dni)}</td>
                                 
                                 <td>
-                                    {NOMBRE_CURSO[alumno.curso] || "-"}{" "}
-                                    {alumno.division && `- ${alumno.division}`}
+                                    {alumno.curso ? `${alumno.curso}° Año` : "-"}
+                                    {alumno.division && ` - ${alumno.division}`}
                                 </td>
+
                                 
                                 <td>{alumno.moduloActual || "-"}</td>
                                 
-                                <td>{alumno.faltas ?? 0}</td>
+                                <td>{alumno.faltas}</td>
                                 
                                 <td>
-                                    <span className={alumno.condicion === "Regular" ? "condicion-regular" : "condicion-libre"}>
-                                        {alumno.condicion || "Regular"}
+                                    <span className={`condicion-${alumno.condicion.toLowerCase()}`}>
+                                        {alumno.condicion}
                                     </span>
+
                                 </td>
 
                                 <td>
@@ -183,17 +178,18 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
                                                     alumno,
                                                 },
                                             })}
+                                            aria-label={`Ver ficha de ${alumno.nombre} ${alumno.apellido}`}
                                         >
-                                            <i className="fa-solid fa-id-card"></i>
+                                            <i className="fa-solid fa-id-card" aria-hidden="true"></i>
                                             <span>Ver ficha</span>
                                         </button>
                                         <button
                                             type="button"
                                             className="btn-accion btn-editar"
                                             onClick={() => onEditar(alumno)}
-                                            title="Editar Alumno"
+                                            aria-label={`Editar a ${alumno.nombre} ${alumno.apellido}`}
                                         >
-                                            <i className="fa-solid fa-pen"></i>
+                                            <i className="fa-solid fa-pen" aria-hidden="true"></i>
                                             <span>Editar</span>
                                         </button>
 
@@ -201,9 +197,9 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
                                             type="button"
                                             className="btn-accion btn-eliminar"
                                             onClick={() => onEliminar(alumno.id)}
-                                            title="Eliminar alumno"
+                                            aria-label={`Eliminar a ${alumno.nombre} ${alumno.apellido}`}
                                         >
-                                            <i className="fa-solid fa-trash"></i>
+                                            <i className="fa-solid fa-trash" aria-hidden="true"></i>
                                             <span>Eliminar</span>
                                         </button>
                                     </div>

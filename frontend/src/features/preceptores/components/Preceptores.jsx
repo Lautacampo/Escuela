@@ -350,7 +350,7 @@ export function Preceptores() {
       );
 
       limpiarFiltros();
-      setHayCambios(false);
+      cerrarSinConfirmar();
     } catch (e) {
       setErrorGuardar(e.message);
     }

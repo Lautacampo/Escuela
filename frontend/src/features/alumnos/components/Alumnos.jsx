@@ -48,14 +48,6 @@ function calcularEdad(fechaNacimiento) {
   return edad;
 }
 
-function normalizar(texto) {
-  return String(texto)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
-}
-
 export function Alumnos() {
   const [alumnos, setAlumnos] = useState([]);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
