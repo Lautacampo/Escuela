@@ -53,7 +53,9 @@ En Visual Studio Code:
 
 Ejecutar:
 
+```bash
 npm install --include=dev
+```
 
 Esperar a que termine la instalación. 
 Este comando instala las dependencias del proyecto, incluidas las de desarrollo, y genera la carpeta `node_modules`.
@@ -62,7 +64,9 @@ Este paso se realiza la primera vez que se prepara el proyecto en una computador
 ## 4. Iniciar el frontend
 En la primera terminal, ejecutar:
 
+```bash
 npm run dev
+```
 
 Vite mostrará la dirección donde está disponible la aplicación, normalmente:
 
@@ -83,7 +87,9 @@ En Visual Studio Code abrir una nueva terminal **Terminal → Nueva terminal**.
 Atencion al aplicar el comando se tiene que asegurar de no estar ubicado dentro de carpeta frontend, sino en la carpeta de la Escuela. Si estamos en la carpeta frontend simplemente ejecutar cd ../ para volver atras
 Ejecutar:
 
-npx json-server ./database/db.json --port 3000
+```bash
+npx json-server ./database/db.json --port 3001
+```
 
 Este proceso utiliza el archivo `database/db.json` para ofrecer una API local en:
 
