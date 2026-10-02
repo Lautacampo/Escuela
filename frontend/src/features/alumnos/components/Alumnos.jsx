@@ -4,7 +4,6 @@ import { capitalizarNombre } from "../../../shared/utils/formato";
 import { ListadoAlumnos } from "./ListadoAlumnos";
 import {
   getAlumnos,
-  getModulos,
   getAsistencias,
   setAlumno,
   borrarAlumno,
@@ -54,7 +53,6 @@ export function Alumnos() {
   const [alumnoEditando, setAlumnoEditando] = useState(null);
   const [valores, setValores] = useState(ALUMNO_INICIAL);
   const [errores, setErrores] = useState({});
-  const [modulos, setModulos] = useState([]);
   const [asistencias, setAsistencias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -63,10 +61,9 @@ export function Alumnos() {
   useEffect(() => {
     async function cargar() {
       try {
-        const [datosAlumnos, datosModulos, datosAsistencias] =
-          await Promise.all([getAlumnos(), getModulos(), getAsistencias()]);
+        const [datosAlumnos, datosAsistencias] =
+          await Promise.all([getAlumnos(), getAsistencias()]);
         setAlumnos(datosAlumnos);
-        setModulos(datosModulos);
         setAsistencias(datosAsistencias);
       } catch (e) {
         setError(e.message);

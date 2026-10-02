@@ -1,11 +1,5 @@
 const API_URL = "http://localhost:3000";
 
-export async function getModulos() {
-    const res = await fetch(`${API_URL}/modulos`);
-    if (!res.ok) throw new Error ("Los módulos no pudieron ser cargados");
-    return res.json();
-}
-
 export async function getAsistencias(){
     const res = await fetch(`${API_URL}/asistencias`);
     if (!res.ok) throw new Error ("Las asistencias no pudieron ser cargadas");
