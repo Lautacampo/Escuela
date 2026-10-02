@@ -1,7 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { esEmailValido, esDniValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre } from "../../../shared/utils/formato";
 import { ListadoAlumnos } from "./ListadoAlumnos";
+import {
+  getAlumnos,
+  getModulos,
+  getAsistencias,
+  setAlumno,
+  borrarAlumno,
+} from "../services/AlumnosServices";
 
 const ALUMNO_INICIAL = {
   nombre: "",
@@ -21,89 +28,6 @@ const ALUMNO_INICIAL = {
   moduloActual: "",
 };
 
-const ALUMNOS_INICIALES = [
-  {
-    id: 1,
-    apellido: "Pérez",
-    nombre: "Juan",
-    dni: "40123456",
-    fechaNacimiento: "2000-05-10",
-    cuil: "",
-    lugarNacimiento: "San Luis",
-    domicilio: "",
-    telefono: "",
-    email: "juan.perez@email.com",
-    trabaja: true,
-    telefonoEmergencia: "",
-    cantidadHijos: 1,
-    curso: "1",
-    division: "A",
-    moduloActual: "Módulo II",
-    faltas: 4,
-    condicion: "Regular",
-  },
-  {
-    id: 2,
-    apellido: "González",
-    nombre: "María",
-    dni: "38987654",
-    fechaNacimiento: "1998-08-22",
-    cuil: "",
-    lugarNacimiento: "San Luis",
-    domicilio: "",
-    telefono: "",
-    email: "maria.gonzalez@email.com",
-    trabaja: false,
-    telefonoEmergencia: "",
-    cantidadHijos: 0,
-    curso: "1",
-    division: "A",
-    moduloActual: "Módulo II",
-    faltas: 12,
-    condicion: "Regular",
-  },
-  {
-    id: 3,
-    apellido: "López",
-    nombre: "Carlos",
-    dni: "41567890",
-    fechaNacimiento: "2001-03-15",
-    cuil: "",
-    lugarNacimiento: "Villa Mercedes",
-    domicilio: "",
-    telefono: "",
-    email: "carlos.lopez@email.com",
-    trabaja: true,
-    telefonoEmergencia: "",
-    cantidadHijos: 2,
-    curso: "1",
-    division: "B",
-    moduloActual: "Módulo I",
-    faltas: 24,
-    condicion: "Regular",
-  },
-  {
-    id: 4,
-    apellido: "Rodríguez",
-    nombre: "Laura",
-    dni: "37543210",
-    fechaNacimiento: "1995-11-03",
-    cuil: "",
-    lugarNacimiento: "San Luis",
-    domicilio: "",
-    telefono: "",
-    email: "laura.rodriguez@email.com",
-    trabaja: true,
-    telefonoEmergencia: "",
-    cantidadHijos: 3,
-    curso: "1",
-    division: "B",
-    moduloActual: "Módulo I",
-    faltas: 25,
-    condicion: "Libre",
-  },
-];
-
 function calcularEdad(fechaNacimiento) {
   if (!fechaNacimiento) return "";
 
@@ -112,7 +36,10 @@ function calcularEdad(fechaNacimiento) {
 
   let edad = hoy.getFullYear() - nacimiento.getFullYear();
 
-  const noCumplio = hoy.getMonth() < nacimiento.getMonth() || (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate());
+  const noCumplio =
+    hoy.getMonth() < nacimiento.getMonth() ||
+    (hoy.getMonth() === nacimiento.getMonth() &&
+      hoy.getDate() < nacimiento.getDate());
 
   if (noCumplio) {
     edad--;
@@ -121,19 +48,45 @@ function calcularEdad(fechaNacimiento) {
   return edad;
 }
 
+function normalizar(texto) {
+  return String(texto)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 export function Alumnos() {
-  const [alumnos, setAlumnos] = useState(ALUMNOS_INICIALES);
-
+  const [alumnos, setAlumnos] = useState([]);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
-
   const [alumnoEditando, setAlumnoEditando] = useState(null);
-
   const [valores, setValores] = useState(ALUMNO_INICIAL);
-
   const [errores, setErrores] = useState({});
+  const [modulos, setModulos] = useState([]);
+  const [asistencias, setAsistencias] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
+  const [errorGuardar, setErrorGuardar] = useState("");
+
+  useEffect(() => {
+    async function cargar() {
+      try {
+        const [datosAlumnos, datosModulos, datosAsistencias] =
+          await Promise.all([getAlumnos(), getModulos(), getAsistencias()]);
+        setAlumnos(datosAlumnos);
+        setModulos(datosModulos);
+        setAsistencias(datosAsistencias);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setCargando(false);
+      }
+    }
+    cargar();
+  }, []);
 
   const manejarCambio = (e) => {
-    const {name, value, type, checked} = e.target;
+    const { name, value, type, checked } = e.target;
 
     setValores((anteriores) => ({
       ...anteriores,
@@ -165,29 +118,39 @@ export function Alumnos() {
     setErrores({});
   };
 
-  const eliminarAlumno = (id) => {
+  async function eliminarAlumno(id) {
     const alumno = alumnos.find((a) => a.id === id);
 
     if (!alumno) return;
 
-    const confirmar = window.confirm(`¿Está seguro de eliminar al alumno ${alumno.apellido}, ${alumno.nombre}?`,);
+    const confirmar = window.confirm(
+      `¿Está seguro de eliminar al alumno ${alumno.apellido}, ${alumno.nombre}?`
+    );
 
-    if (!confirmar) return
-    
-    setAlumnos((anteriores) => anteriores.filter((alumno) => alumno.id !== id),);
-  };
+    if (!confirmar) return;
 
-  const handleSubmit = (e) => {
+    try {
+      await borrarAlumno(id);
+      setAlumnos((anteriores) =>
+        anteriores.filter((alumno) => alumno.id !== id)
+      );
+    } catch (e) {
+      setError(e.message);
+    }
+  } // <-- Llave agregada correctamente aquí
+
+  async function handleSubmit(e) {
     e.preventDefault();
     const nuevosErrores = {};
 
-
     if (!esDniValido(valores.dni)) {
-      nuevosErrores.dni = "El DNI debe contener un número válido entre 1.000.000 y 99.999.999.";
+      nuevosErrores.dni =
+        "El DNI debe contener un número válido entre 1.000.000 y 99.999.999.";
     }
 
     if (!esEmailValido(valores.email)) {
-      nuevosErrores.email = "El formato del correo electrónico ingresado no es válido.";
+      nuevosErrores.email =
+        "El formato del correo electrónico ingresado no es válido.";
     }
 
     if (!valores.fechaNacimiento) {
@@ -202,8 +165,6 @@ export function Alumnos() {
       nuevosErrores.division = "Debe seleccionar una división.";
     }
 
-
-    // Si hay errores, frenamos acá y los mostramos
     if (Object.keys(nuevosErrores).length > 0) {
       setErrores(nuevosErrores);
       return;
@@ -211,42 +172,57 @@ export function Alumnos() {
 
     const alumnoPreparado = {
       ...valores,
-      nombre: capitalizarNombre(valores.nombre),
-      apellido: capitalizarNombre(valores.apellido),
-      dni: String(valores.dni),
+      nombre: capitalizarNombre(valores.nombre.trim().replace(/\s+/g, " ")),
+      apellido: capitalizarNombre(
+        valores.apellido.trim().replace(/\s+/g, " ")
+      ),
+      dni: String(valores.dni).trim(),
       cantidadHijos: Number(valores.cantidadHijos) || 0,
       edad: calcularEdad(valores.fechaNacimiento),
       faltas: alumnoEditando?.faltas ?? 0,
       condicion: alumnoEditando?.condicion ?? "Regular",
+      moduloActual: valores.moduloActual || "Módulo I",
     };
 
-    if (alumnoEditando) {
-      setAlumnos((anteriores) =>
-        anteriores.map((alumno) =>
-          alumno.id === alumnoEditando.id ?
-            {
-              ...alumno,
-              ...alumnoPreparado,
-            }
-            : alumno,
-        ),
-      );
-    } else {
-      const nuevoAlumno = {
-        id: Date.now(),
-        ...alumnoPreparado,
-        moduloActual: valores.moduloActual || "Módulo 1",
-      };
+    try {
+      setErrorGuardar("");
 
-      setAlumnos((anteriores) => [...anteriores, nuevoAlumno]);
+      const guardado = await setAlumno(
+        alumnoEditando
+          ? {
+              ...alumnoPreparado,
+              id: alumnoEditando.id,
+            }
+          : alumnoPreparado
+      );
+
+      setAlumnos((anteriores) =>
+        alumnoEditando
+          ? anteriores.map((alumno) =>
+              alumno.id === alumnoEditando.id ? guardado : alumno
+            )
+          : [...anteriores, guardado]
+      );
 
       alert(
-        `¡Alumno ${alumnoPreparado.nombre} ${alumnoPreparado.apellido} registrado con éxito!`,
+        alumnoEditando
+          ? "Datos del alumno actualizados correctamente."
+          : `¡Alumno ${alumnoPreparado.nombre} ${alumnoPreparado.apellido} registrado con éxito!`
       );
-    }
 
-    cerrarFormulario();
-  };
+      cerrarFormulario();
+    } catch (e) {
+      setErrorGuardar(e.message);
+    }
+  }
+
+  if (cargando) {
+    return <p>Cargando alumnos...</p>;
+  }
+
+  if (error) {
+    return <p role="alert">{error}</p>;
+  }
 
   return (
     <>
@@ -258,15 +234,19 @@ export function Alumnos() {
           </p>
         </div>
 
-        <button type="button" className="btn-primario-gestion" onClick={abrirFormulario}>
+        <button
+          type="button"
+          className="btn-primario-gestion"
+          onClick={abrirFormulario}
+        >
           <i className="fa-solid fa-user-plus"></i>
           Registrar alumno
         </button>
       </div>
-      
 
       <ListadoAlumnos
         alumnos={alumnos}
+        asistencias={asistencias}
         onEditar={abrirEdicion}
         onEliminar={eliminarAlumno}
       />
@@ -354,9 +334,7 @@ export function Alumnos() {
                     />
 
                     {errores.dni && (
-                      <span className="mensaje-error">
-                        {errores.dni}
-                      </span>
+                      <span className="mensaje-error">{errores.dni}</span>
                     )}
                   </div>
 
@@ -390,9 +368,7 @@ export function Alumnos() {
                       type="text"
                       value={
                         calcularEdad(valores.fechaNacimiento) !== ""
-                          ? `${calcularEdad(
-                              valores.fechaNacimiento,
-                            )} años`
+                          ? `${calcularEdad(valores.fechaNacimiento)} años`
                           : ""
                       }
                       className="input-gestion"
@@ -470,9 +446,7 @@ export function Alumnos() {
                     />
 
                     {errores.email && (
-                      <span className="mensaje-error">
-                        {errores.email}
-                      </span>
+                      <span className="mensaje-error">{errores.email}</span>
                     )}
                   </div>
                 </div>
@@ -493,9 +467,7 @@ export function Alumnos() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="cantidadHijos">
-                      Cantidad de hijos
-                    </label>
+                    <label htmlFor="cantidadHijos">Cantidad de hijos</label>
                     <input
                       type="number"
                       min="0"
@@ -520,7 +492,6 @@ export function Alumnos() {
                     </label>
                   </div>
                 </div>
-
               </fieldset>
 
               <fieldset>
@@ -546,9 +517,7 @@ export function Alumnos() {
                     </select>
 
                     {errores.curso && (
-                      <span className="mensaje-error">
-                        {errores.curso}
-                      </span>
+                      <span className="mensaje-error">{errores.curso}</span>
                     )}
                   </div>
 
@@ -573,16 +542,12 @@ export function Alumnos() {
                     </select>
 
                     {errores.division && (
-                      <span className="mensaje-error">
-                        {errores.division}
-                      </span>
+                      <span className="mensaje-error">{errores.division}</span>
                     )}
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="moduloActual">
-                      Módulo actual
-                    </label>
+                    <label htmlFor="moduloActual">Módulo actual</label>
                     <select
                       id="moduloActual"
                       name="moduloActual"
@@ -602,13 +567,27 @@ export function Alumnos() {
                 </div>
               </fieldset>
 
+              {errorGuardar && (
+                <p className="mensaje-error" role="alert">
+                  {errorGuardar}
+                </p>
+              )}
+
               <div className="acciones-formulario">
-                <button type="button" onClick={cerrarFormulario} className="btn-secundario">
+                <button
+                  type="button"
+                  onClick={cerrarFormulario}
+                  className="btn-secundario"
+                >
                   Cancelar
                 </button>
 
                 <button type="submit" className="btn-primario-gestion">
-                  <i className={`fa-solid ${alumnoEditando ? "fa-floppy-disk" : "fa-user-plus"}`}></i>
+                  <i
+                    className={`fa-solid ${
+                      alumnoEditando ? "fa-floppy-disk" : "fa-user-plus"
+                    }`}
+                  ></i>
 
                   {alumnoEditando ? "Guardar cambios" : "Registrar alumno"}
                 </button>

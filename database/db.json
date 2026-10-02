@@ -3069,13 +3069,13 @@
   ],
   "calificaciones": [
     {
-      "alumnoId": "1",
+      "alumnoId": null,
       "materiaId": "1",
       "estado": "aprobado",
       "id": "aqQ7HJlfdTY"
     },
     {
-      "alumnoId": "2",
+      "alumnoId": null,
       "materiaId": "1",
       "estado": "desaprobado",
       "id": "j6YNenDRSIM"
@@ -3093,7 +3093,7 @@
       "id": "ilJzuRFdLXo"
     },
     {
-      "alumnoId": "2",
+      "alumnoId": null,
       "materiaId": "2",
       "estado": "desaprobado",
       "id": "VWAYIV9YxgQ"
@@ -3101,19 +3101,19 @@
   ],
   "asistencias": [
     {
-      "alumnoId": "1",
+      "alumnoId": null,
       "fecha": "2026-09-30",
       "falta": 1,
       "id": "uDj4etBAP2E"
     },
     {
-      "alumnoId": "2",
+      "alumnoId": null,
       "fecha": "2026-09-30",
       "falta": 0,
       "id": "PQjEFE4iEF8"
     },
     {
-      "alumnoId": "3",
+      "alumnoId": null,
       "fecha": "2026-09-30",
       "falta": 0,
       "id": "1BRhx-0ALVc"
@@ -3137,7 +3137,7 @@
       "id": "6AZQTwlAuTU"
     },
     {
-      "alumnoId": "1",
+      "alumnoId": null,
       "fecha": "2026-09-29",
       "falta": 1,
       "id": "NrVBke3Hrlg"
@@ -3279,6 +3279,12 @@
       "fecha": "2026-10-01",
       "falta": 0,
       "id": "IpiCwGwKi-o"
+    },
+    {
+      "alumnoId": "1",
+      "fecha": "2026-10-01",
+      "falta": 1,
+      "id": "e2j-e66Eu1w"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

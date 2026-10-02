@@ -3,8 +3,9 @@ import { useForm } from "../../../shared/hooks/useForm";
 import { useNavigate } from "react-router";
 
 const NOMBRE_CURSO = {"1": "1° Año", "2": "2° Año", "3": "3° Año"};
+const LIMITE_FALTAS = 25;
 
-export function ListadoAlumnos({alumnos, onEditar, onEliminar,}) {
+export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}) {
     const { valores: filtros, manejarCambio } = useForm({
         curso: "",
         division: "",
@@ -17,9 +18,30 @@ export function ListadoAlumnos({alumnos, onEditar, onEliminar,}) {
         ].sort();
     }, [alumnos]);
      
+    const alumnosConAsistencia = useMemo(() => {
+        return alumnos.map((alumno) => {
+            const faltas = asistencias
+                .filter(
+                    (asistencia) => String(asistencia.alumnoId) === String(alumno.id)
+                )
+                .reduce(
+                    (total, asistencia) =>
+                        total + Number(asistencia.falta || 0),
+                    0
+                );
+            
+            const condicion = faltas >= LIMITE_FALTAS ? "Libre" : "Regular";
+
+            return {
+                ...alumno,
+                faltas,
+                condicion
+            };
+        });
+    }, [alumnos, asistencias]);
 
     const alumnosFiltrados = useMemo(() => {
-        return alumnos.filter((alumno) => {
+        return alumnosConAsistencia.filter((alumno) => {
         const coincideCurso =
             !filtros.curso || alumno.curso === filtros.curso;
 
@@ -45,7 +67,7 @@ export function ListadoAlumnos({alumnos, onEditar, onEliminar,}) {
             coincideBusqueda
         );
         });
-    }, [alumnos, filtros]);
+    }, [alumnosConAsistencia, filtros]);
 
     const navigate = useNavigate();
 
