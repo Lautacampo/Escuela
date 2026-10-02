@@ -88,7 +88,7 @@ Atencion al aplicar el comando se tiene que asegurar de no estar ubicado dentro 
 Ejecutar:
 
 ```bash
-npx json-server ./database/db.json --port 3001
+npx json-server ./database/db.json --port 3000
 ```
 
 Este proceso utiliza el archivo `database/db.json` para ofrecer una API local en:
@@ -110,12 +110,12 @@ Debe aparecer una lista de alumnos en formato JSON.
 
 También están disponibles las siguientes rutas:
 
-- http://localhost:3001/docentes
-- http://localhost:3001/preceptores
-- http://localhost:3001/materias
-- http://localhost:3001/modulos
-- http://localhost:3001/asistencias
-- http://localhost:3001/calificaciones
+- http://localhost:3000/docentes
+- http://localhost:3000/preceptores
+- http://localhost:3000/materias
+- http://localhost:3000/modulos
+- http://localhost:3000/asistencias
+- http://localhost:3000/calificaciones
 
 Una vez iniciado el servidor de datos, volver a la aplicación y recargar la página.
 
