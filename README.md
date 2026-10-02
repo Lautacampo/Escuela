@@ -128,12 +128,10 @@ Esta implementación se utiliza para demostrar la navegación del frontend. La a
 
 ## 8. Funcionamiento de esta entrega
 
-La aplicación necesita dos procesos en ejecución:
+La aplicación necesita dos procesos en ejecución en la terminal:
 
-| Proceso|                  |  Comando |                                         | Función |
-
-| Frontend     | `npm run dev`                                    | Ejecuta la interfaz React mediante Vite. |
-| API simulada | `npx json-server ./database/db.json --port 3000` | Proporciona los datos del archivo JSON. |
+ Frontend: `npm run dev`. Ejecuta la interfaz React mediante Vite. 
+ API simulada : `npx json-server ./database/db.json --port 3000. Proporciona los datos del archivo JSON. 
 
 Las pantallas que consultan la API necesitan que JSON Server esté funcionando.
 
