@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8080/api";
+const API_URL = "http://localhost:3000";
 
 export async function crearEvaluacionModulo(evaluacion) {
     const res = await fetch(`${API_URL}/evaluaciones-modulo`, {

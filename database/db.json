@@ -3097,6 +3097,24 @@
       "materiaId": "2",
       "estado": "desaprobado",
       "id": "VWAYIV9YxgQ"
+    },
+    {
+      "alumnoId": "1",
+      "materiaId": "1",
+      "estado": "aprobado",
+      "id": "k8MwC4wXiHQ"
+    },
+    {
+      "alumnoId": "1",
+      "materiaId": "2",
+      "estado": "desaprobado",
+      "id": "Jxm-mI_qOjw"
+    },
+    {
+      "alumnoId": "1",
+      "materiaId": "3",
+      "estado": "aprobado",
+      "id": "K_AwrKDvlW8"
     }
   ],
   "asistencias": [

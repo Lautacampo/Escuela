@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { getAlumnos } from "../../SoftwareII/AlumnoService-is";
-import { crearEvaluacionModulo } from "../services/EvaluacionesModuloService";
+import { crearEvaluacionModulo } from "../../SoftwareII/EvaluacionesModuloService-is";
 
 const NOMBRE_CURSO = {
     "1": "1° Año",
@@ -91,7 +91,6 @@ export function FichaAlumno() {
     const [evaluacion, setEvaluacion] = useState({
         fecha: fechaActual(),
         nota: "",
-        nroInstancia: "1",
     });
     const [guardandoEvaluacion, setGuardandoEvaluacion] = useState(false);
     const [errorEvaluacion, setErrorEvaluacion] = useState("");
@@ -152,21 +151,19 @@ export function FichaAlumno() {
         setErrorEvaluacion("");
         setEvaluacionGuardada(null);
 
-        if (alumno.cursadaModuloId === undefined || alumno.cursadaModuloId === null) {
+        if (idCursadaModulo === undefined || idCursadaModulo === null) {
             setErrorEvaluacion(
-                "El alumno no tiene cursadaModuloId disponible para registrar la evaluación."
+                "No se encontró el ID de la cursada para registrar la evaluación."
             );
             return;
         }
 
         const payload = {
-            idCursadaModulo: Number(alumno.cursadaModuloId),
+            idCursadaModulo: Number(idCursadaModulo),
             fecha: evaluacion.fecha,
             nota: Number(evaluacion.nota),
-            nroInstancia: Number(evaluacion.nroInstancia),
-            tipoInstancia: obtenerTipoInstancia(
-                Number(evaluacion.nroInstancia)
-            ),
+            nroInstancia: proximaInstancia,
+            tipoInstancia: obtenerTipoInstancia(proximaInstancia),
         };
 
         if (
@@ -178,12 +175,13 @@ export function FichaAlumno() {
             return;
         }
 
-        if (
-            !Number.isInteger(payload.nroInstancia) ||
-            payload.nroInstancia < 1 ||
-            payload.nroInstancia > 4
-        ) {
-            setErrorEvaluacion("El número de instancia debe estar entre 1 y 4.");
+        if (moduloAprobado) {
+            setErrorEvaluacion("El módulo ya está aprobado; no admite otra instancia.");
+            return;
+        }
+
+        if (!Number.isInteger(payload.nroInstancia) || payload.nroInstancia > 4) {
+            setErrorEvaluacion("El módulo ya alcanzó el máximo de 4 instancias.");
             return;
         }
 
@@ -258,12 +256,53 @@ export function FichaAlumno() {
         );
     }
 
-    const moduloActual = alumno.moduloActual ?? alumno.modulo;
-    const faltasActuales = alumno.faltas ?? alumno.faltasAcumuladas;
-    const condicionActual = formatearCondicion(alumno.condicion);
     const trayectoria = Array.isArray(alumno.trayectoria)
         ? alumno.trayectoria
         : [];
+    const cursadaPorId = trayectoria.find(
+        (cursada) =>
+            alumno.cursadaModuloId != null &&
+            String(cursada.idCursada ?? cursada.cursadaModuloId) ===
+                String(alumno.cursadaModuloId)
+    );
+    const cursadaPendiente = [...trayectoria]
+        .reverse()
+        .find(
+            (cursada) =>
+                String(cursada.estadoAcademico ?? "").toUpperCase() !==
+                "APROBADO"
+        );
+    const cursadaParaCalificar =
+        cursadaPorId ?? cursadaPendiente ?? trayectoria.at(-1);
+    const idCursadaModulo =
+        alumno.cursadaModuloId ??
+        cursadaParaCalificar?.idCursada ??
+        cursadaParaCalificar?.cursadaModuloId;
+    const evaluacionesActuales =
+        cursadaParaCalificar?.evaluaciones ??
+        cursadaParaCalificar?.instancias ??
+        [];
+    const proximaInstancia =
+        evaluacionesActuales.reduce(
+            (maximo, instancia) =>
+                Math.max(
+                    maximo,
+                    Number(instancia.nroInstancia ?? instancia.numero) || 0
+                ),
+            0
+        ) + 1;
+    const moduloAprobado =
+        String(cursadaParaCalificar?.estadoAcademico ?? "").toUpperCase() ===
+            "APROBADO" ||
+        evaluacionesActuales.some(
+            (instancia) => Number(instancia.nota) >= 7
+        );
+    const moduloActual =
+        alumno.moduloActual ??
+        alumno.modulo ??
+        cursadaParaCalificar?.modulo;
+    const faltasActuales = alumno.faltas ?? alumno.faltasAcumuladas;
+    const condicionActual = formatearCondicion(alumno.condicion);
     const datosAcademicos = trayectoria.length > 0
         ? trayectoria.map((cursada, index) => ({
             id: cursada.idCursada ?? cursada.cursadaModuloId ?? index,
@@ -495,21 +534,33 @@ export function FichaAlumno() {
                     <div>
                         <h2>Calificar módulo actual</h2>
                         <p>
-                            Registrar una nota para {alumno.moduloActual || "el módulo actual"}.
+                            Registrar una nota para {moduloActual || "el módulo actual"}.
                         </p>
                     </div>
                 </div>
 
-                {alumno.cursadaModuloId === undefined ||
-                alumno.cursadaModuloId === null ? (
+                {idCursadaModulo === undefined || idCursadaModulo === null ? (
                     <div className="ficha-advertencia" role="alert">
                         <i className="fa-solid fa-circle-exclamation"></i>
                         <div>
                             <strong>No se puede identificar la cursada</strong>
                             <p>
-                                El GET del alumno debe incluir cursadaModuloId para
-                                asociar la evaluación al módulo correcto.
+                                La respuesta del alumno no incluye un ID de cursada
+                                para asociar la evaluación al módulo correcto.
                             </p>
+                        </div>
+                    </div>
+                ) : moduloAprobado ? (
+                    <div className="ficha-evaluacion-guardada" role="status">
+                        <i className="fa-solid fa-circle-check"></i>
+                        Este módulo ya está aprobado.
+                    </div>
+                ) : proximaInstancia > 4 ? (
+                    <div className="ficha-advertencia" role="status">
+                        <i className="fa-solid fa-circle-exclamation"></i>
+                        <div>
+                            <strong>Se alcanzó el máximo de instancias</strong>
+                            <p>El módulo permite hasta 4 instancias de evaluación.</p>
                         </div>
                     </div>
                 ) : (
@@ -552,22 +603,13 @@ export function FichaAlumno() {
                         </label>
 
                         <label>
-                            <span>Número de instancia (1 a 4)</span>
+                            <span>Próxima instancia</span>
                             <input
                                 className="input-gestion"
                                 type="number"
                                 name="nroInstancia"
-                                min="1"
-                                max="4"
-                                step="1"
-                                value={evaluacion.nroInstancia}
-                                onChange={(e) =>
-                                    setEvaluacion((anterior) => ({
-                                        ...anterior,
-                                        nroInstancia: e.target.value,
-                                    }))
-                                }
-                                required
+                                value={proximaInstancia}
+                                readOnly
                             />
                         </label>
 
@@ -576,9 +618,7 @@ export function FichaAlumno() {
                             <input
                                 className="input-gestion"
                                 type="text"
-                                value={obtenerTipoInstancia(
-                                    Number(evaluacion.nroInstancia)
-                                )}
+                                value={obtenerTipoInstancia(proximaInstancia)}
                                 readOnly
                             />
                         </label>
