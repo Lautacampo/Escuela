@@ -1,73 +1,13 @@
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
+import { getAlumnos } from "../../SoftwareII/AlumnoService-is";
+import { crearEvaluacionModulo } from "../services/EvaluacionesModuloService";
 
 const NOMBRE_CURSO = {
     "1": "1° Año",
     "2": "2° Año",
     "3": "3° Año",
 };
-
-const DATOS_ACADEMICOS = [
-    {
-        modulo: "Módulo I",
-        año: "1° Año",
-        estado: "Aprobado",
-        nota: 8,
-        faltas: 6,
-        condicion: "Regular",
-        instancias: [],
-    },
-    {
-        modulo: "Módulo II",
-        año: "1° Año",
-        estado: "Aprobado",
-        nota: 7,
-        faltas: 8,
-        condicion: "Regular",
-        instancias: [],
-    },
-    {
-        modulo: "Módulo III",
-        año: "2° Año",
-        estado: "Pendiente",
-        nota: null,
-        faltas: 12,
-        condicion: "Regular",
-        instancias: [
-        {
-            numero: "Primera",
-            fecha: "15/07/2026",
-            resultado: "No aprobado",
-        },
-        ],
-    },
-    {
-        modulo: "Módulo IV",
-        año: "2° Año",
-        estado: "En curso",
-        nota: null,
-        faltas: 4,
-        condicion: "Regular",
-        instancias: [],
-    },
-    {
-        modulo: "Módulo V",
-        año: "3° Año",
-        estado: "No cursado",
-        nota: null,
-        faltas: 0,
-        condicion: "-",
-        instancias: [],
-    },
-    {
-        modulo: "Módulo VI",
-        año: "3° Año",
-        estado: "No cursado",
-        nota: null,
-        faltas: 0,
-        condicion: "-",
-        instancias: [],
-    },
-];
 
 function calcularEdad(fechaNacimiento){
     if (!fechaNacimiento) return "-";
@@ -99,13 +39,204 @@ function formatearFecha(fecha) {
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
+function fechaActual() {
+    const hoy = new Date();
+    const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+    const dia = String(hoy.getDate()).padStart(2, "0");
+
+    return `${hoy.getFullYear()}-${mes}-${dia}`;
+}
+
+function obtenerTipoInstancia(nroInstancia) {
+    if (nroInstancia === 1) return "COLEGIADA";
+    if (nroInstancia === 4) return "ESPECIAL";
+    if (nroInstancia === 2 || nroInstancia === 3) return "CALENDARIO";
+
+    return "";
+}
+
+function formatearCondicion(condicion) {
+    if (!condicion) return "-";
+
+    const texto = String(condicion).toLowerCase();
+    return `${texto[0].toUpperCase()}${texto.slice(1)}`;
+}
+
+function formatearEstadoAcademico(estado) {
+    if (!estado) return "Sin estado";
+
+    return String(estado)
+        .toLowerCase()
+        .split("_")
+        .map((parte) => `${parte[0].toUpperCase()}${parte.slice(1)}`)
+        .join(" ");
+}
+
+function obtenerResultadoEvaluacion(nota) {
+    if (nota === null || nota === undefined || nota === "") {
+        return "Sin calificación";
+    }
+
+    return Number(nota) >= 7 ? "Aprobado" : "Desaprobado";
+}
+
 
 export function FichaAlumno() {
     const { id } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
+    const [alumno, setAlumno] = useState(location.state?.alumno ?? null);
+    const [cargando, setCargando] = useState(true);
+    const [error, setError] = useState("");
+    const [evaluacion, setEvaluacion] = useState({
+        fecha: fechaActual(),
+        nota: "",
+        nroInstancia: "1",
+    });
+    const [guardandoEvaluacion, setGuardandoEvaluacion] = useState(false);
+    const [errorEvaluacion, setErrorEvaluacion] = useState("");
+    const [evaluacionGuardada, setEvaluacionGuardada] = useState(null);
 
-    const alumno = location.state?.alumno;
+    useEffect(() => {
+        let activa = true;
+
+        async function cargarAlumno() {
+            try {
+                const alumnos = await getAlumnos();
+                const alumnoDesdeApi = alumnos.find(
+                    (registro) => String(registro.id) === String(id)
+                );
+
+                if (!alumnoDesdeApi) {
+                    throw new Error("No se encontró el alumno solicitado.");
+                }
+
+                if (activa) {
+                    setAlumno((anterior) => ({
+                        ...anterior,
+                        ...alumnoDesdeApi,
+                        curso:
+                            alumnoDesdeApi.curso ??
+                            alumnoDesdeApi.anioCurso ??
+                            anterior?.curso,
+                        moduloActual:
+                            alumnoDesdeApi.moduloActual ??
+                            alumnoDesdeApi.modulo ??
+                            anterior?.moduloActual,
+                        faltas:
+                            alumnoDesdeApi.faltas ??
+                            alumnoDesdeApi.faltasAcumuladas ??
+                            anterior?.faltas,
+                    }));
+                }
+            } catch (e) {
+                if (activa) {
+                    setError(e.message);
+                }
+            } finally {
+                if (activa) {
+                    setCargando(false);
+                }
+            }
+        }
+
+        cargarAlumno();
+
+        return () => {
+            activa = false;
+        };
+    }, [id]);
+
+    async function guardarEvaluacion(e) {
+        e.preventDefault();
+        setErrorEvaluacion("");
+        setEvaluacionGuardada(null);
+
+        if (alumno.cursadaModuloId === undefined || alumno.cursadaModuloId === null) {
+            setErrorEvaluacion(
+                "El alumno no tiene cursadaModuloId disponible para registrar la evaluación."
+            );
+            return;
+        }
+
+        const payload = {
+            idCursadaModulo: Number(alumno.cursadaModuloId),
+            fecha: evaluacion.fecha,
+            nota: Number(evaluacion.nota),
+            nroInstancia: Number(evaluacion.nroInstancia),
+            tipoInstancia: obtenerTipoInstancia(
+                Number(evaluacion.nroInstancia)
+            ),
+        };
+
+        if (
+            !Number.isFinite(payload.nota) ||
+            payload.nota < 0 ||
+            payload.nota > 10
+        ) {
+            setErrorEvaluacion("La nota debe ser un número entre 0 y 10.");
+            return;
+        }
+
+        if (
+            !Number.isInteger(payload.nroInstancia) ||
+            payload.nroInstancia < 1 ||
+            payload.nroInstancia > 4
+        ) {
+            setErrorEvaluacion("El número de instancia debe estar entre 1 y 4.");
+            return;
+        }
+
+        try {
+            setGuardandoEvaluacion(true);
+            const respuesta = await crearEvaluacionModulo(payload);
+            setEvaluacionGuardada(respuesta ?? payload);
+
+            try {
+                const alumnos = await getAlumnos();
+                const alumnoActualizado = alumnos.find(
+                    (registro) => String(registro.id) === String(id)
+                );
+
+                if (alumnoActualizado) {
+                    setAlumno((anterior) => ({
+                        ...anterior,
+                        ...alumnoActualizado,
+                    }));
+                }
+            } catch (errorActualizacion) {
+                setErrorEvaluacion(
+                    `La nota se guardó, pero no se pudo actualizar la trayectoria: ${errorActualizacion.message}`
+                );
+            }
+        } catch (e) {
+            setErrorEvaluacion(e.message);
+        } finally {
+            setGuardandoEvaluacion(false);
+        }
+    }
+
+    if (cargando) {
+        return <p>Cargando ficha del alumno...</p>;
+    }
+
+    if (error) {
+        return (
+            <div className="ficha-no-encontrada" role="alert">
+                <i className="fa-solid fa-circle-exclamation"></i>
+                <h2>No se pudo cargar la ficha</h2>
+                <p>{error}</p>
+                <button
+                    type="button"
+                    className="btn-primario-gestion"
+                    onClick={() => navigate("/gestion/alumnos")}
+                >
+                    <i className="fa-solid fa-arrow-left"></i>
+                    Volver al listado
+                </button>
+            </div>
+        );
+    }
 
     if (!alumno) {
         return (
@@ -127,13 +258,65 @@ export function FichaAlumno() {
         );
     }
 
-    const datosAcademicos = DATOS_ACADEMICOS;
-
-    const moduloAdicional = datosAcademicos.find((modulo) => modulo.estado === "En curso") || null;
-
-    const modulosAprobados = datosAcademicos.filter((modulo) => modulo.estado === "Aprobado");
-
-    const totalFaltas = datosAcademicos.reduce((total, modulo) => total + (modulo.faltas || 0), 0);
+    const moduloActual = alumno.moduloActual ?? alumno.modulo;
+    const faltasActuales = alumno.faltas ?? alumno.faltasAcumuladas;
+    const condicionActual = formatearCondicion(alumno.condicion);
+    const trayectoria = Array.isArray(alumno.trayectoria)
+        ? alumno.trayectoria
+        : [];
+    const datosAcademicos = trayectoria.length > 0
+        ? trayectoria.map((cursada, index) => ({
+            id: cursada.idCursada ?? cursada.cursadaModuloId ?? index,
+            modulo: cursada.modulo ?? "Módulo sin nombre",
+            año:
+                NOMBRE_CURSO[String(cursada.anioCurso)] ??
+                (cursada.anioCurso ? `${cursada.anioCurso}° Año` : "-"),
+            estado: formatearEstadoAcademico(cursada.estadoAcademico),
+            nota: cursada.notaFinal ?? cursada.nota ?? null,
+            faltas: cursada.faltas ?? cursada.cantidadFaltasAcumuladas ?? null,
+            condicion: formatearCondicion(cursada.condicion),
+            instancias: (cursada.evaluaciones ?? cursada.instancias ?? []).map(
+                (evaluacion) => ({
+                    ...evaluacion,
+                    resultado: obtenerResultadoEvaluacion(evaluacion.nota),
+                })
+            ),
+        }))
+        : moduloActual
+            ? [{
+                id: alumno.cursadaModuloId ?? "actual",
+                modulo: moduloActual,
+                año: NOMBRE_CURSO[String(alumno.curso ?? alumno.anioCurso)] ?? "-",
+                estado: "En curso",
+                nota: null,
+                faltas: faltasActuales,
+                condicion: condicionActual,
+                instancias: null,
+            }]
+            : [];
+    const historialTieneInstancias = trayectoria.some(
+        (cursada) =>
+            Array.isArray(cursada.evaluaciones) ||
+            Array.isArray(cursada.instancias)
+    );
+    const modulosAprobados = datosAcademicos.filter(
+        (modulo) => modulo.estado.toLowerCase() === "aprobado"
+    ).length;
+    const totalFaltas = datosAcademicos.reduce(
+        (total, modulo) => total + (Number(modulo.faltas) || 0),
+        0
+    );
+    const tieneDatosPersonales = [
+        "fechaNacimiento",
+        "cuil",
+        "lugarNacimiento",
+        "domicilio",
+        "telefono",
+        "email",
+        "telefonoEmergencia",
+        "cantidadHijos",
+        "trabaja",
+    ].some((campo) => alumno[campo] !== undefined && alumno[campo] !== null);
 
     return(
         <div className="ficha-alumno">
@@ -189,7 +372,7 @@ export function FichaAlumno() {
                     <div>
                         <span>Módulos aprobados</span>
                         <strong>
-                            {modulosAprobados.length}
+                            {modulosAprobados}
                         </strong>
                     </div>
                 </div>
@@ -201,7 +384,11 @@ export function FichaAlumno() {
 
                     <div>
                         <span>Faltas acumuladas</span>
-                        <strong>{totalFaltas}</strong>
+                        <strong>
+                            {datosAcademicos.length > 0
+                                ? totalFaltas
+                                : faltasActuales ?? "-"}
+                        </strong>
                     </div>
                     </div>
 
@@ -220,7 +407,7 @@ export function FichaAlumno() {
                             : "texto-regular"
                         }
                         >
-                        {alumno.condicion || "Regular"}
+                        {condicionActual}
                         </strong>
                     </div>
                 </div>
@@ -235,11 +422,25 @@ export function FichaAlumno() {
                     </div>
                 </div>
 
+                {!tieneDatosPersonales && (
+                    <div className="ficha-advertencia" role="status">
+                        <i className="fa-solid fa-circle-info"></i>
+                        <div>
+                            <strong>Datos personales no disponibles</strong>
+                            <p>
+                                La respuesta de GET /api/alumnos no incluye estos
+                                campos. Cuando el backend los devuelva, aparecerán
+                                aquí automáticamente.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <div className="ficha-datos-grid">
                     <Dato label="Nombre" valor={alumno.nombre}></Dato>
                     <Dato label="Apellido" valor={alumno.apellido}></Dato>
                     <Dato label="DNI" valor={alumno.dni}></Dato>
-                    <Dato label="Fecha de nacimiento" valor={alumno.fechaNacimiento}></Dato>
+                    <Dato label="Fecha de nacimiento" valor={formatearFecha(alumno.fechaNacimiento)}></Dato>
                     <Dato label="Edad" valor={calcularEdad(alumno.fechaNacimiento)}></Dato>
                     <Dato label="CUIL" valor={alumno.cuil}></Dato>
                     <Dato label="Lugar de nacimiento" valor={alumno.lugarNacimiento}></Dato>
@@ -281,8 +482,8 @@ export function FichaAlumno() {
 
                     <div>
                         <span>Condición</span>
-                        <strong className={alumno.condicion === "Libre" ? "texto-libre" : "texto-regular"}>
-                            {alumno.condicion || "Regular"}
+                        <strong className={condicionActual === "Libre" ? "texto-libre" : "texto-regular"}>
+                                        {condicionActual}
                         </strong>
                     </div>
                 </div>
@@ -290,18 +491,165 @@ export function FichaAlumno() {
 
             <section className="ficha-seccion">
                 <div className="ficha-seccion-titulo">
-                    <i className="fa-solid fa-route"></i>
+                    <i className="fa-solid fa-pen-to-square"></i>
                     <div>
-                        <h2>Trayectoria académica</h2>
+                        <h2>Calificar módulo actual</h2>
                         <p>
-                            Historial de los módulos cursados y acreditados.
+                            Registrar una nota para {alumno.moduloActual || "el módulo actual"}.
                         </p>
                     </div>
                 </div>
 
+                {alumno.cursadaModuloId === undefined ||
+                alumno.cursadaModuloId === null ? (
+                    <div className="ficha-advertencia" role="alert">
+                        <i className="fa-solid fa-circle-exclamation"></i>
+                        <div>
+                            <strong>No se puede identificar la cursada</strong>
+                            <p>
+                                El GET del alumno debe incluir cursadaModuloId para
+                                asociar la evaluación al módulo correcto.
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <form className="ficha-evaluacion-form" onSubmit={guardarEvaluacion}>
+                        <label>
+                            <span>Nota (0 a 10)</span>
+                            <input
+                                className="input-gestion"
+                                type="number"
+                                name="nota"
+                                min="0"
+                                max="10"
+                                step="0.01"
+                                value={evaluacion.nota}
+                                onChange={(e) =>
+                                    setEvaluacion((anterior) => ({
+                                        ...anterior,
+                                        nota: e.target.value,
+                                    }))
+                                }
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            <span>Fecha</span>
+                            <input
+                                className="input-gestion"
+                                type="date"
+                                name="fecha"
+                                value={evaluacion.fecha}
+                                onChange={(e) =>
+                                    setEvaluacion((anterior) => ({
+                                        ...anterior,
+                                        fecha: e.target.value,
+                                    }))
+                                }
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            <span>Número de instancia (1 a 4)</span>
+                            <input
+                                className="input-gestion"
+                                type="number"
+                                name="nroInstancia"
+                                min="1"
+                                max="4"
+                                step="1"
+                                value={evaluacion.nroInstancia}
+                                onChange={(e) =>
+                                    setEvaluacion((anterior) => ({
+                                        ...anterior,
+                                        nroInstancia: e.target.value,
+                                    }))
+                                }
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            <span>Tipo de instancia (automático)</span>
+                            <input
+                                className="input-gestion"
+                                type="text"
+                                value={obtenerTipoInstancia(
+                                    Number(evaluacion.nroInstancia)
+                                )}
+                                readOnly
+                            />
+                        </label>
+
+                        <button
+                            className="btn-primario-gestion"
+                            type="submit"
+                            disabled={guardandoEvaluacion}
+                        >
+                            {guardandoEvaluacion ? "Guardando..." : "Guardar calificación"}
+                        </button>
+                    </form>
+                )}
+
+                {errorEvaluacion && (
+                    <div className="ficha-advertencia ficha-evaluacion-mensaje" role="alert">
+                        <i className="fa-solid fa-circle-exclamation"></i>
+                        <p>{errorEvaluacion}</p>
+                    </div>
+                )}
+
+                {evaluacionGuardada && (
+                    <div className="ficha-evaluacion-guardada" role="status">
+                        <i className="fa-solid fa-circle-check"></i>
+                        Calificación guardada: {evaluacionGuardada.nota} —{" "}
+                        {formatearFecha(evaluacionGuardada.fecha)} —{" "}
+                        {evaluacionGuardada.tipoInstancia}, instancia{" "}
+                        {evaluacionGuardada.nroInstancia}.
+                    </div>
+                )}
+            </section>
+
+            <section className="ficha-seccion">
+                <div className="ficha-seccion-titulo">
+                    <i className="fa-solid fa-route"></i>
+                    <div>
+                        <h2>Trayectoria académica</h2>
+                        <p>Historial de los módulos cursados y sus resultados.</p>
+                    </div>
+                </div>
+
                 <div className="trayectoria">
+                    {datosAcademicos.length === 0 ? (
+                        <div className="ficha-advertencia" role="status">
+                            <i className="fa-solid fa-circle-info"></i>
+                            <div>
+                                <strong>No hay trayectoria académica disponible</strong>
+                                <p>
+                                    El GET del alumno no devolvió módulos cursados
+                                    para mostrar en la trayectoria.
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                    <>
+                    {!historialTieneInstancias && (
+                    <div className="ficha-advertencia" role="status">
+                        <i className="fa-solid fa-circle-info"></i>
+                        <div>
+                            <strong>Detalle de instancias no disponible</strong>
+                            <p>
+                                Se muestra el estado real de cada cursada. La
+                                respuesta de trayectoria todavía no incluye las
+                                evaluaciones rendidas, por lo que no es posible
+                                mostrar sus fechas y notas.
+                            </p>
+                        </div>
+                    </div>
+                    )}
                     {datosAcademicos.map((modulo) => (
-                        <div className="modulo-trayectoria" key={modulo.modulo}>
+                        <div className="modulo-trayectoria" key={modulo.id}>
                             <div className="modulo-indicador"><span></span></div>
 
                             <div className="modulo-contenido">
@@ -338,12 +686,12 @@ export function FichaAlumno() {
                                     <div>
                                         <span>Instancias utilizadas</span>
                                         <strong>
-                                            {modulo.instancias.length}
+                                            {modulo.instancias?.length ?? "-"}
                                         </strong>
                                     </div>
                                 </div>
 
-                                {modulo.instancias.length > 0 && (
+                                {modulo.instancias?.length > 0 && (
                                     <div className="instancias-acreditacion">
                                         <h4>
                                             <i className="fa solid fa-clipboard-check"></i>
@@ -354,14 +702,27 @@ export function FichaAlumno() {
                                             (instancia, index) => (
                                                 <div className="instancia" key={index}>
                                                     <span>
-                                                        {instancia.numero} instancia
+                                                        Instancia{" "}
+                                                        {instancia.nroInstancia ??
+                                                            instancia.numero ??
+                                                            "-"}
+                                                        {instancia.tipoInstancia
+                                                            ? ` · ${instancia.tipoInstancia}`
+                                                            : ""}
                                                     </span>
 
                                                     <span>
-                                                        {instancia.fecha}
+                                                        {formatearFecha(instancia.fecha)}
                                                     </span>
 
-                                                    <strong>
+                                                    <strong className={
+                                                        instancia.resultado === "Aprobado"
+                                                            ? "resultado-instancia-aprobada"
+                                                            : instancia.resultado === "Desaprobado"
+                                                                ? "resultado-instancia-desaprobada"
+                                                                : ""
+                                                    }>
+                                                        Nota: {instancia.nota ?? "-"} —{" "}
                                                         {instancia.resultado}
                                                     </strong>
                                                 </div>
@@ -372,6 +733,8 @@ export function FichaAlumno() {
                             </div>
                         </div>
                     ))}
+                    </>
+                    )}
                 </div>
             </section>
 
@@ -397,21 +760,25 @@ export function FichaAlumno() {
                         </thead>
 
                         <tbody>
-                            {datosAcademicos.map((modulo => (
-                                <tr key={modulo.modulo}>
+                            {datosAcademicos.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4">No hay datos de cursada disponibles.</td>
+                                </tr>
+                            ) : datosAcademicos.map((modulo => (
+                                <tr key={modulo.id}>
                                     <td>
                                         <strong>{modulo.modulo}</strong>
                                     </td>
 
                                     <td>
-                                        {modulo.faltas}
+                                        {modulo.faltas ?? "-"}
                                     </td>
 
                                     <td>25</td>
 
                                     <td>
-                                        <span className={modulo.faltas >= 25 ? "condicion-libre" : "condicion-regular"}>
-                                            {modulo.faltas >= 25 ? "Libre" : "Regular"}
+                                        <span className={modulo.condicion === "Libre" ? "condicion-libre" : "condicion-regular"}>
+                                            {modulo.condicion}
                                         </span>
                                     </td>
                                 </tr>
@@ -442,7 +809,7 @@ function Dato({ label, valor }) {
     return (
         <div className="ficha-dato">
             <span>{label}</span>
-            <strong>{valor || "-"}</strong>
+            <strong>{valor ?? "-"}</strong>
         </div>
     );
 }
@@ -452,6 +819,8 @@ function EstadoModulo({ estado }) {
 
     if (estado === "Aprobado") {
         clase += " estado-aprobado";
+    } else if (estado === "Desaprobado") {
+        clase += " estado-desaprobado";
     } else if (estado === "Pendiente") {
         clase += " estado-pendiente";
     } else if (estado === "En curso") {
@@ -462,4 +831,3 @@ function EstadoModulo({ estado }) {
 
     return <span className={clase}> {estado} </span>;
 }
-

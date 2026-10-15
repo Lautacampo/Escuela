@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { esEmailValido, esDniValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre } from "../../../shared/utils/formato";
 import { ListadoAlumnos } from "./ListadoAlumnos";
 import {
   getAlumnos,
-  getAsistencias,
+  getCursos,
   setAlumno,
+  matricularAlumno,
   borrarAlumno,
-} from "../services/AlumnosServices";
-
+} from "../../SoftwareII/AlumnoService-is";
+import { getAsistencias } from "../services/AlumnosServices";
 const ALUMNO_INICIAL = {
   nombre: "",
   apellido: "",
@@ -24,7 +25,7 @@ const ALUMNO_INICIAL = {
   cantidadHijos: 0,
   curso: "",
   division: "",
-  moduloActual: "",
+  moduloId: "",
 };
 
 function calcularEdad(fechaNacimiento) {
@@ -49,6 +50,7 @@ function calcularEdad(fechaNacimiento) {
 
 export function Alumnos() {
   const [alumnos, setAlumnos] = useState([]);
+  const [cursos, setCursos] = useState([]);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [alumnoEditando, setAlumnoEditando] = useState(null);
   const [valores, setValores] = useState(ALUMNO_INICIAL);
@@ -57,14 +59,65 @@ export function Alumnos() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [errorGuardar, setErrorGuardar] = useState("");
+  const [errorEliminar, setErrorEliminar] = useState("");
 
   useEffect(() => {
     async function cargar() {
       try {
-        const [datosAlumnos, datosAsistencias] =
-          await Promise.all([getAlumnos(), getAsistencias()]);
-        setAlumnos(datosAlumnos);
+        const [datosAlumnos, datosAsistencias, datosCursos] =
+          await Promise.all([getAlumnos(), getAsistencias(), getCursos()]);
+        setAlumnos(
+          datosAlumnos.map((alumno) => {
+            const trayectoria = Array.isArray(alumno.trayectoria)
+              ? alumno.trayectoria
+              : [];
+            const cursadaActual =
+              trayectoria.find(
+                (cursada) =>
+                  alumno.cursadaModuloId != null &&
+                  String(cursada.idCursada ?? cursada.cursadaModuloId) ===
+                    String(alumno.cursadaModuloId)
+              ) ?? trayectoria[trayectoria.length - 1];
+            const anioCurso =
+              alumno.curso ?? alumno.anioCurso ?? cursadaActual?.anioCurso;
+            const division = alumno.division ?? cursadaActual?.division;
+            const curso = datosCursos.find(
+              (opcion) =>
+                String(opcion.anioCurso) === String(anioCurso) &&
+                opcion.division === division
+            );
+            const nombreModulo =
+              alumno.moduloActual ?? alumno.modulo ?? cursadaActual?.modulo;
+            const modulo = curso?.modulos?.find(
+              (opcion) =>
+                String(opcion.numeroLeyenda).trim().toLowerCase() ===
+                String(nombreModulo ?? "").trim().toLowerCase()
+            );
+
+            return {
+              ...alumno,
+              curso: anioCurso,
+              division,
+              cursoId: alumno.cursoId ?? curso?.id,
+              moduloId: alumno.moduloId ?? modulo?.id,
+              moduloActual: nombreModulo,
+              faltas:
+                alumno.faltas ??
+                alumno.faltasAcumuladas ??
+                cursadaActual?.faltas ??
+                cursadaActual?.cantidadFaltasAcumuladas,
+              condicion: (alumno.condicion ?? cursadaActual?.condicion)
+                ? `${(alumno.condicion ?? cursadaActual.condicion)[0]}${(
+                    alumno.condicion ?? cursadaActual.condicion
+                  )
+                    .slice(1)
+                    .toLowerCase()}`
+                : alumno.condicion,
+            };
+          })
+        );
         setAsistencias(datosAsistencias);
+        setCursos(datosCursos);
       } catch (e) {
         setError(e.message);
       } finally {
@@ -80,8 +133,30 @@ export function Alumnos() {
     setValores((anteriores) => ({
       ...anteriores,
       [name]: type === "checkbox" ? checked : value,
+      ...(name === "curso" ? { division: "", moduloId: "" } : {}),
+      ...(name === "division" ? { moduloId: "" } : {}),
     }));
   };
+
+  const aniosCurso = [
+    ...new Set(cursos.map((curso) => String(curso.anioCurso))),
+  ].sort((a, b) => Number(a) - Number(b));
+  const divisiones = [
+    ...new Set(
+      cursos
+        .filter((curso) => String(curso.anioCurso) === String(valores.curso))
+        .map((curso) => curso.division)
+    ),
+  ].sort();
+  const cursoSeleccionado = cursos.find(
+    (curso) =>
+      String(curso.anioCurso) === String(valores.curso) &&
+      curso.division === valores.division
+  );
+  const modulos = cursoSeleccionado?.modulos ?? [];
+  const moduloSeleccionado = modulos.find(
+    (modulo) => String(modulo.id) === String(valores.moduloId)
+  );
 
   const abrirFormulario = () => {
     setAlumnoEditando(null);
@@ -95,6 +170,8 @@ export function Alumnos() {
     setValores({
       ...ALUMNO_INICIAL,
       ...alumno,
+      curso: String(alumno.curso ?? ""),
+      moduloId: String(alumno.moduloId ?? ""),
     });
     setErrores({});
     setMostrarFormulario(true);
@@ -119,14 +196,15 @@ export function Alumnos() {
     if (!confirmar) return;
 
     try {
+      setErrorEliminar("");
       await borrarAlumno(id);
       setAlumnos((anteriores) =>
         anteriores.filter((alumno) => alumno.id !== id)
       );
     } catch (e) {
-      setError(e.message);
+      setErrorEliminar(e.message);
     }
-  } // <-- Llave agregada correctamente aquí
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -148,10 +226,18 @@ export function Alumnos() {
 
     if (!valores.curso) {
       nuevosErrores.curso = "Debe seleccionar un curso.";
+    } else if (!cursoSeleccionado) {
+      nuevosErrores.curso = "El curso seleccionado ya no está disponible.";
     }
 
     if (!valores.division) {
       nuevosErrores.division = "Debe seleccionar una división.";
+    }
+
+    if (!valores.moduloId) {
+      nuevosErrores.moduloId = "Debe seleccionar un módulo.";
+    } else if (!moduloSeleccionado) {
+      nuevosErrores.moduloId = "El módulo seleccionado no corresponde al curso.";
     }
 
     if (Object.keys(nuevosErrores).length > 0) {
@@ -161,6 +247,11 @@ export function Alumnos() {
 
     const alumnoPreparado = {
       ...valores,
+      curso: cursoSeleccionado?.anioCurso,
+      cursoId: cursoSeleccionado?.id,
+      division: cursoSeleccionado?.division,
+      moduloId: Number(valores.moduloId),
+      moduloActual: moduloSeleccionado?.numeroLeyenda ?? "",
       nombre: capitalizarNombre(valores.nombre.trim().replace(/\s+/g, " ")),
       apellido: capitalizarNombre(
         valores.apellido.trim().replace(/\s+/g, " ")
@@ -170,27 +261,57 @@ export function Alumnos() {
       edad: calcularEdad(valores.fechaNacimiento),
       faltas: alumnoEditando?.faltas ?? 0,
       condicion: alumnoEditando?.condicion ?? "Regular",
-      moduloActual: valores.moduloActual || "Módulo I",
     };
 
     try {
       setErrorGuardar("");
 
+      const datosAlumno = {
+        nombre: alumnoPreparado.nombre,
+        apellido: alumnoPreparado.apellido,
+        dni: alumnoPreparado.dni,
+        fechaNacimiento: alumnoPreparado.fechaNacimiento,
+        cuil: alumnoPreparado.cuil,
+        lugarNacimiento: alumnoPreparado.lugarNacimiento,
+        domicilio: alumnoPreparado.domicilio,
+        telefono: alumnoPreparado.telefono,
+        email: alumnoPreparado.email,
+        trabaja: alumnoPreparado.trabaja,
+        telefonoEmergencia: alumnoPreparado.telefonoEmergencia,
+        cantidadHijos: alumnoPreparado.cantidadHijos,
+      };
       const guardado = await setAlumno(
         alumnoEditando
           ? {
-              ...alumnoPreparado,
+              ...datosAlumno,
               id: alumnoEditando.id,
             }
-          : alumnoPreparado
+          : datosAlumno
       );
+      if (!alumnoEditando) {
+        await matricularAlumno(
+          guardado.id,
+          alumnoPreparado.cursoId,
+          alumnoPreparado.moduloId
+        );
+      }
+
+      const alumnoConCursada = {
+        ...guardado,
+        curso: alumnoPreparado.curso,
+        division: alumnoPreparado.division,
+        moduloId: alumnoPreparado.moduloId,
+        moduloActual: alumnoPreparado.moduloActual,
+        faltas: guardado.faltas ?? 0,
+        condicion: guardado.condicion ?? "Regular",
+      };
 
       setAlumnos((anteriores) =>
         alumnoEditando
           ? anteriores.map((alumno) =>
-              alumno.id === alumnoEditando.id ? guardado : alumno
+              alumno.id === alumnoEditando.id ? alumnoConCursada : alumno
             )
-          : [...anteriores, guardado]
+          : [...anteriores, alumnoConCursada]
       );
 
       alert(
@@ -232,6 +353,12 @@ export function Alumnos() {
           Registrar alumno
         </button>
       </div>
+
+      {errorEliminar && (
+        <p className="mensaje-error" role="alert">
+          {errorEliminar}
+        </p>
+      )}
 
       <ListadoAlumnos
         alumnos={alumnos}
@@ -500,9 +627,11 @@ export function Alumnos() {
                       required
                     >
                       <option value="">Seleccione un curso</option>
-                      <option value="1">1° Año</option>
-                      <option value="2">2° Año</option>
-                      <option value="3">3° Año</option>
+                      {aniosCurso.map((anio) => (
+                        <option key={anio} value={anio}>
+                          {anio}° Año
+                        </option>
+                      ))}
                     </select>
 
                     {errores.curso && (
@@ -521,13 +650,14 @@ export function Alumnos() {
                         errores.division ? "input-error" : ""
                       }`}
                       required
+                      disabled={!valores.curso}
                     >
                       <option value="">Seleccione una división</option>
-                      <option value="A">A</option>
-                      <option value="B">B</option>
-                      <option value="C">C</option>
-                      <option value="D">D</option>
-                      <option value="E">E</option>
+                      {divisiones.map((division) => (
+                        <option key={division} value={division}>
+                          {division}
+                        </option>
+                      ))}
                     </select>
 
                     {errores.division && (
@@ -536,22 +666,30 @@ export function Alumnos() {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="moduloActual">Módulo actual</label>
+                    <label htmlFor="moduloId">Módulo actual *</label>
                     <select
-                      id="moduloActual"
-                      name="moduloActual"
-                      value={valores.moduloActual}
+                      id="moduloId"
+                      name="moduloId"
+                      value={valores.moduloId}
                       onChange={manejarCambio}
-                      className="input-gestion"
+                      className={`input-gestion ${
+                        errores.moduloId ? "input-error" : ""
+                      }`}
+                      required
+                      disabled={!cursoSeleccionado}
                     >
                       <option value="">Seleccione un módulo</option>
-                      <option value="Módulo I">Módulo I</option>
-                      <option value="Módulo II">Módulo II</option>
-                      <option value="Módulo III">Módulo III</option>
-                      <option value="Módulo IV">Módulo IV</option>
-                      <option value="Módulo V">Módulo V</option>
-                      <option value="Módulo VI">Módulo VI</option>
+                      {modulos.map((modulo) => (
+                        <option key={modulo.id} value={modulo.id}>
+                          {modulo.numeroLeyenda}
+                        </option>
+                      ))}
                     </select>
+                    {errores.moduloId && (
+                      <span className="mensaje-error">
+                        {errores.moduloId}
+                      </span>
+                    )}
                   </div>
                 </div>
               </fieldset>

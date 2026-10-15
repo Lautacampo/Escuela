@@ -2,7 +2,6 @@ import { useNavigate } from "react-router";
 import { useForm } from "../../../shared/hooks/useForm";
 import { formatearDNI } from "../../../shared/utils/formato";
 
-const CURSOS = ["1", "2", "3"];
 const LIMITE_FALTAS = 25;
 
 function normalizar(texto) {
@@ -25,13 +24,19 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
     const divisiones = [
         ...new Set(alumnos.map((alumno) => alumno.division).filter(Boolean)),
     ].sort();
+    const cursos = [
+        ...new Set(alumnos.map((alumno) => String(alumno.curso)).filter(Boolean)),
+    ].sort((a, b) => Number(a) - Number(b));
 
     const filtrosSelect = [
         {
             nombre: "curso",
             etiqueta: "Curso",
             todos: "Todos los cursos",
-            opciones: CURSOS.map((curso) => ({ valor: curso, texto: `${curso}° Año` })),
+            opciones: cursos.map((curso) => ({
+                valor: curso,
+                texto: `${curso}° Año`,
+            })),
         },
         {
             nombre: "division",
@@ -43,13 +48,13 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
             })),
         },
     ];
-    
+
     const alumnosFiltrados = alumnos
         .map((alumno) => {
             const faltas = asistencias
                 .filter((asistencia) => String(asistencia.alumnoId) === String(alumno.id))
                 .reduce((total, asistencia) => total + Number(asistencia.falta || 0), 0);
-        
+
             return {
                 ...alumno,
                 faltas,
@@ -58,14 +63,14 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
         })
         .filter((alumno) => {
             const texto = normalizar(`${alumno.apellido} ${alumno.nombre} ${alumno.dni}`);
-        
+
             const coincideBusqueda = normalizar(filtros.busqueda)
                 .split(/\s+/)
                 .every((palabra) => texto.includes(palabra));
-        
+
             return (
                 coincideBusqueda &&
-                (!filtros.curso || alumno.curso === filtros.curso) &&
+                (!filtros.curso || String(alumno.curso) === filtros.curso) &&
                 (!filtros.division || alumno.division === filtros.division)
             );
         });
@@ -88,7 +93,7 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
                         <label htmlFor={`alumno-filtro-${filtro.nombre}`}>
                             {filtro.etiqueta}
                         </label>
-    
+
                         <select
                             id={`alumno-filtro-${filtro.nombre}`}
                             name={filtro.nombre}
@@ -97,7 +102,7 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
                             className="input-gestion"
                         >
                             <option value="">{filtro.todos}</option>
-        
+
                             {filtro.opciones.map((opcion) => (
                                 <option key={opcion.valor} value={opcion.valor}>
                                     {opcion.texto}
@@ -106,7 +111,7 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
                         </select>
                     </div>
                 ))}
- 
+
         <div className="form-group form-group-buscador">
             <label htmlFor="alumno-busqueda">Buscar</label>
             <input
@@ -119,7 +124,7 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
                 className="input-gestion"
             />
         </div>
- 
+
         <button type="button" className="btn-secundario" onClick={limpiarFiltros}>
             Limpiar
         </button>
@@ -150,17 +155,17 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
                                 </td>
 
                                 <td>{formatearDNI(alumno.dni)}</td>
-                                
+
                                 <td>
                                     {alumno.curso ? `${alumno.curso}° Año` : "-"}
                                     {alumno.division && ` - ${alumno.division}`}
                                 </td>
 
-                                
+
                                 <td>{alumno.moduloActual || "-"}</td>
-                                
+
                                 <td>{alumno.faltas}</td>
-                                
+
                                 <td>
                                     <span className={`condicion-${alumno.condicion.toLowerCase()}`}>
                                         {alumno.condicion}
@@ -204,7 +209,7 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
                                         </button>
                                     </div>
                                 </td>
-                            </tr>   
+                            </tr>
                         ))}
 
                         {alumnosFiltrados.length === 0 && (

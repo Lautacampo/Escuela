@@ -946,6 +946,11 @@ body:has(.contenedor-dashboard) {
   color: #198754;
 }
 
+.estado-desaprobado {
+  background-color: #fde8e8;
+  color: #b42318;
+}
+
 .estado-pendiente {
   background-color: #fff3cd;
   color: #946200;
@@ -2199,5 +2204,121 @@ body:has(.contenedor-dashboard) {
   .instancia {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+}
+
+/* ---------- FICHA DE ALUMNO: ESTILO CLARO ---------- */
+
+.ficha-alumno .ficha-seccion {
+  padding: 25px;
+  border: 1px solid #dbe3ed;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgb(15 23 42 / 5%);
+}
+
+.ficha-alumno .ficha-seccion-titulo {
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom-color: #e5eaf1;
+}
+
+.ficha-alumno .ficha-seccion-titulo h2 {
+  margin: 0 0 4px;
+  color: #172b4d;
+  font-size: 1.2rem;
+}
+
+.ficha-alumno .ficha-seccion-titulo p {
+  margin: 0;
+  color: #64748b;
+}
+
+.ficha-alumno .ficha-academica-info strong,
+.ficha-alumno .modulo-detalles strong {
+  color: #1e293b;
+}
+
+.ficha-alumno .modulo-contenido {
+  background: #fff;
+}
+
+.ficha-alumno .modulo-cabecera h3 {
+  margin-bottom: 0;
+  color: #172b4d;
+}
+
+.ficha-alumno .instancias-acreditacion h4 {
+  color: #334155;
+}
+
+.ficha-alumno .instancia .resultado-instancia-aprobada {
+  color: #198754;
+}
+
+.ficha-alumno .instancia .resultado-instancia-desaprobada {
+  color: #b42318;
+}
+
+.ficha-alumno .tabla-asistencia tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+.ficha-alumno .tabla-asistencia td {
+  color: #334155;
+}
+
+@media (max-width: 700px) {
+  .ficha-alumno .ficha-seccion {
+    padding: 18px;
+  }
+}
+
+.ficha-evaluacion-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: end;
+}
+
+.ficha-evaluacion-form label {
+  display: grid;
+  gap: 6px;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ficha-evaluacion-form .input-gestion {
+  width: 100%;
+}
+
+.ficha-evaluacion-form button {
+  justify-self: start;
+}
+
+.ficha-evaluacion-mensaje {
+  margin-top: 16px;
+}
+
+.ficha-evaluacion-mensaje p {
+  margin: 0;
+}
+
+.ficha-evaluacion-guardada {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid #a7f3d0;
+  border-radius: var(--gestion-radio);
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+@media (max-width: 700px) {
+  .ficha-evaluacion-form {
+    grid-template-columns: 1fr;
   }
 }
