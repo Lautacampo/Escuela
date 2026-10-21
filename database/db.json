@@ -59,6 +59,33 @@
       ]
     }
   ],
+"usuarios": [
+  {
+    "id": 1,
+    "nombre": "Ana",
+    "apellido": "Directora",
+    "email": "director@escuela.com",
+    "password": "1234",
+    "rol": "directivo"
+  },
+  {
+    "id": 2,
+    "nombre": "Luis",
+    "apellido": "Docente",
+    "email": "docente@escuela.com",
+    "password": "1234",
+    "rol": "docente"
+  },
+  {
+    "id": 3,
+    "nombre": "Marta",
+    "apellido": "Preceptora",
+    "email": "preceptor@escuela.com",
+    "password": "1234",
+    "rol": "preceptor"
+  }
+],
+ 
   "materias": [
     {
       "id": "1",
