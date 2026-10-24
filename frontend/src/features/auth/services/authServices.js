@@ -4,17 +4,19 @@ const API = "http://localhost:3000";
 const CLAVE="sesion";
 
 
-export async function login(email, password){
-  const res = await fetch(
-    `${API}/usuarios?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`,
+export async function login(email, password) {
+  const res = await fetch(`${API}/usuarios`);
+  if (!res.ok) throw new Error("No se pudo conectar con el servidor");
+
+  const usuarios = await res.json();
+  const usuario = usuarios.find(
+    (u) =>
+      String(u.email).trim().toLowerCase() === email.trim().toLowerCase() &&
+      String(u.password) === String(password),
   );
+  if (!usuario) throw new Error("Correo o contraseña incorrectos");
 
-  if(!res.ok) throw new Error("No se pudo conectar con el servidor");
-  
-  const [usuario]=await res.json();
-  if(!usuario) throw new Error("Correo o Contrasena INCORRECTA");
-
-  const sesion={
+  const sesion = {
     id: usuario.id,
     nombre: usuario.nombre,
     apellido: usuario.apellido,

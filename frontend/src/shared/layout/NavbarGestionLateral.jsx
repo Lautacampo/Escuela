@@ -1,9 +1,25 @@
 import { useState } from "react";
 import { NavLink } from "react-router";
+import { ROLES } from "../../features/auth/roles";
+import { getSesion } from "../../features/auth/services/authServices";
+const {DIRECTIVO, DOCENTE, PRECEPTOR}=ROLES;
+
+const ITEMS = [
+  { to: "/gestion", label: "Inicio", icono: "fa-house", end: true, roles: [DIRECTIVO, DOCENTE, PRECEPTOR] },
+  { to: "/gestion/alumnos", label: "Gestión de Alumnos", icono: "fa-user-graduate", roles: [DIRECTIVO] },
+  { to: "/gestion/docentes", label: "Gestión de Docentes", icono: "fa-chalkboard-user", roles: [DIRECTIVO] },
+  { to: "/gestion/preceptores", label: "Gestión de Preceptores", icono: "fa-user-tie", roles: [DIRECTIVO] },
+  { to: "/gestion/asistencia", label: "Carga de Asistencia", icono: "fa-clipboard-check", roles: [DIRECTIVO, PRECEPTOR] },
+  { to: "/gestion/calificaciones", label: "Calificaciones", icono: "fa-graduation-cap", roles: [DIRECTIVO, DOCENTE] },
+  { to: "/gestion/plan-estudios", label: "Plan de Estudios", icono: "fa-book-open", roles: [DIRECTIVO] },
+  { to: "/gestion/reportes", label: "Reportes", icono: "fa-chart-column", roles: [DIRECTIVO] },
+];
+
 
 export default function NavBarGestionLateral() {
   const [menuAbierto, setMenuAbierto] = useState(false);
-
+  const usuario=getSesion();
+ 
   const cerrarMenu = () => {
     setMenuAbierto(false);
   };
@@ -41,94 +57,14 @@ export default function NavBarGestionLateral() {
         </div>
 
         <ul className="menu-sidebar">
-          <li>
-            <NavLink
-              to="/gestion"
-              end
-              className={({ isActive }) => (isActive ? "activo" : "")}
-              onClick={cerrarMenu}
-            >
-              <i className="fa-solid fa-house"></i>
-              Inicio
-            </NavLink>
-          </li>
-
-          <li>
-            <NavLink
-              to="/gestion/alumnos"
-              className={({ isActive }) => (isActive ? "activo" : "")}
-              onClick={cerrarMenu}
-            >
-              <i className="fa-solid fa-user-graduate"></i>
-              Gestión de Alumnos
-            </NavLink>
-          </li>
-
-          <li>
-            <NavLink
-              to="/gestion/docentes"
-              className={({ isActive }) => (isActive ? "activo" : "")}
-              onClick={cerrarMenu}
-            >
-              <i className="fa-solid fa-chalkboard-user"></i>
-              Gestión de Docentes
-            </NavLink>
-          </li>
-
-          <li>
-            <NavLink
-              to="/gestion/preceptores"
-              className={({ isActive }) => (isActive ? "activo" : "")}
-              onClick={cerrarMenu}
-            >
-              <i className="fa-solid fa-user-tie"></i>
-              Gestión de Preceptores
-            </NavLink>
-          </li>
-
-          <li>
-            <NavLink
-              to="/gestion/asistencia"
-              className={({ isActive }) => (isActive ? "activo" : "")}
-              onClick={cerrarMenu}
-            >
-              <i className="fa-solid fa-clipboard-check"></i>
-              Carga de Asistencia
-            </NavLink>
-          </li>
-
-          <li>
-            <NavLink
-              to="/gestion/calificaciones"
-              className={({ isActive }) => (isActive ? "activo" : "")}
-              onClick={cerrarMenu}
-            >
-              <i className="fa-solid fa-graduation-cap"></i>
-              Calificaciones
-            </NavLink>
-          </li>
-
-          <li>
-            <NavLink
-              to="/gestion/plan-estudios"
-              className={({ isActive }) => (isActive ? "activo" : "")}
-              onClick={cerrarMenu}
-            >
-              <i className="fa-solid fa-book-open"></i>
-              Plan de Estudios
-            </NavLink>
-          </li>
-
-          <li>
-            <NavLink
-              to="/gestion/reportes"
-              className={({ isActive }) => (isActive ? "activo" : "")}
-              onClick={cerrarMenu}
-            >
-              <i className="fa-solid fa-chart-column"></i>
-              Reportes
-            </NavLink>
-          </li>
+          {ITEMS.filter((item) => item.roles.includes(usuario?.rol)).map((item) => (
+            <li key={item.to}>
+              <NavLink to={item.to} end={item.end} className={({ isActive }) => (isActive ? "activo" : "")} onClick={cerrarMenu}>
+                <i className={`fa-solid ${item.icono}`}></i>
+                {item.label}
+              </NavLink>
+            </li>
+          ))}
         </ul>
       </nav>
     </>

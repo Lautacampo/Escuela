@@ -13,7 +13,11 @@ import { ForoPage } from "./features/foro/pages/ForoPage";
 
 // ==================== AUTENTICACIÓN ====================
 import { LoginPage } from "./features/auth/pages/LoginPage";
-//import {redirigirSiHaySesion,protegerRuta,} from
+import { SinpermisoPage } from "./features/auth/pages/Sinpermiso";
+import {yahaySesion, controlSesion,}from "./features/auth/services/authServices";
+import {ROLES}from"./features/auth/roles"
+const {DIRECTIVO, DOCENTE, PRECEPTOR}=ROLES;
+
 
 // ==================== VISTAS PRIVADAS (GESTIÓN) ====================
 import { DashboardPage } from "./features/gestion/pages/DashboardPage";
@@ -46,7 +50,7 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
-    // loader: redirigirSiHaySesion, // Si el admin ya se logueó, lo patea a /gestion
+    loader: yahaySesion,
     hydrateFallbackElement: <Spinner />,
   },
 
@@ -54,28 +58,34 @@ export const router = createBrowserRouter([
   {
     path: "/gestion",
     element: <LayoutPrivado />,
-    // loader: protegerRuta, // Bloquea la entrada si no hay sesión iniciada
+    loader: controlSesion(),
     hydrateFallbackElement: <Spinner />,
     errorElement: <NoEncontradaPage />,
     children: [
       { index: true, element: <DashboardPage /> }, // Panel de Inicio por defecto
-      // Rutas anidadas
-      { path: "alumnos", element: <AlumnosPage /> },
-      { path: "alumnos/:id", element: <FichaAlumnoPage /> },
-      { path: "docentes", element: <DocentesPages /> },
-      { path: "preceptores", element: <PreceptoresPage /> },
-      { path: "asistencia", element: <AsistenciaPage /> },
+      {path: "sin-permiso", element:<SinpermisoPage/>},
+      // rutas segun el rol
+      //solo directivo
+      { path: "alumnos", element: <AlumnosPage />, loader: controlSesion([DIRECTIVO]) },
+      { path: "alumnos/:id", element: <FichaAlumnoPage />, loader: controlSesion([DIRECTIVO]) },
+      { path: "docentes", element: <DocentesPages />, loader: controlSesion([DIRECTIVO]) },
+      { path: "preceptores", element: <PreceptoresPage />, loader: controlSesion([DIRECTIVO]) },
+      { path: "plan-estudios", element: <PlanEstudiosPage />, loader: controlSesion([DIRECTIVO]) },
+      { path: "reportes", element: <ReportesPage />, loader: controlSesion([DIRECTIVO]) },
+      //directio y preceptor
+      { path: "asistencia", element: <AsistenciaPage />, loader: controlSesion([DIRECTIVO, PRECEPTOR]) },
       {
         path: "asistencia/:moduloId/:division",
         element: <DivisionAsistenciaPage />,
+        loader: controlSesion([DIRECTIVO, PRECEPTOR]),
       },
-      { path: "calificaciones", element: <CalificacionesPage /> },
+      //directivo y docente
+      { path: "calificaciones", element: <CalificacionesPage />, loader: controlSesion([DIRECTIVO, DOCENTE]) },
       {
         path: "calificaciones/:moduloId/:division",
         element: <DivisionCalificacionesPage />,
+        loader: controlSesion([DIRECTIVO, DOCENTE]),
       },
-      { path: "plan-estudios", element: <PlanEstudiosPage /> },
-      { path: "reportes", element: <ReportesPage /> },
     ],
   },
 ]);
