@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import {login} from "../services/authServices";
 import "./login.css";
 
 export function Login() {
@@ -8,20 +9,22 @@ export function Login() {
     contrasena: "",
   });
   const navigate = useNavigate();
+  const[error,setError]=useState("");
 
   const handleChange = (e) => {
     setCredenciales({ ...credenciales, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault(); // Evita que la página se recargue sola
-    console.log("Iniciando sesión con:", credenciales);
-
-    // 1. CREAMOS LA SESIÓN SIMULADA
-    localStorage.setItem("sistemaGestionAuth", "true");
-
-    // 2. Redirigimos al panel de gestión
-    navigate("/gestion");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    try{
+      await login(credenciales.mail ,credenciales.contrasena);
+      navigate("/gestion");
+    }catch(err){
+      setError(err.message);
+    }
+   
   };
   return (
     <div className="login-body-wrapper">
@@ -70,7 +73,7 @@ export function Login() {
                   required
                 />
               </div>
-
+              {error && (<p role="alert" style={{ color: "#bf1b1b", marginBottom: 0 }}>{error}</p>)}
               <button className="login-boton" type="submit">
                 Ingresar al sistema
               </button>

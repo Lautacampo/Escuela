@@ -26,24 +26,32 @@ export async function login(email, password){
 }
 
 
+export function logout(){
+  localStorage.removeItem(CLAVE);
+}
 
-
-const tieneSesion = () => {
-  return localStorage.getItem("sistemaGestionAuth") === "true";
-};
-
-
-export const protegerRuta = () => {
-  if (!tieneSesion()) {
-    return redirect("/login");
+export function getSesion(){
+  try{
+    return JSON.parse(localStorage.getItem(CLAVE)); 
+  }catch{
+    return null;
   }
-  return null;
-};
+}
 
+//que exiga sesion y orl
 
-export const redirigirSiHaySesion = () => {
-  if (tieneSesion()) {
-    return redirect("/gestion");
+export const controlSesion =(roles) => ()=>{
+  const usuario = getSesion();
+  if(!usuario) return redirect("/login");
+  if(roles && !roles.includes(usuario.rol)){
+    return redirect ("/gestion/sin-permiso");
   }
+  
   return null;
-};
+}
+
+export const yahaySesion=()=>{
+  return getSesion()? redirect("/gestion") : null;
+}
+
+
