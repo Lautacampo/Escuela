@@ -1,19 +1,28 @@
 import { Link } from "react-router";
+import { getSesion, logout } from "../../features/auth/services/authServices";
+
+const ETIQUETAS_ROL = {
+  directivo: "Directivo",
+  docente: "Docente",
+  preceptor: "Preceptor",
+};
 
 export default function NavabarGestion() {
-  const cerrarSesion = () => {
-    localStorage.removeItem("sistemaGestionAuth");
-  };
+  const usuario= getSesion();
+  const cerrarSesion= () => {
+    logout();
+  }
 
   return (
     <header className="navhorizontal">
       <div className="navhorizontal-usuario">
         <p>
           <i className="fa-solid fa-circle-user"></i>
-          Usuario: <strong>Administrador</strong>
+          Usuario:{""}<strong> {usuario ? `${usuario.nombre} ${usuario.apellido}` : ""}</strong>
+          {usuario && ` (${ETIQUETAS_ROL[usuario.rol] ?? usuario.rol})`}
         </p>
         <Link
-          to="/"
+          to="/login"
           onClick={cerrarSesion}
           className="btn-cerrar-sesion"
           aria-label="Cerrar sesión"

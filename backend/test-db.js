@@ -1,11 +1,26 @@
-const pool = require('./db');
+import pkg from "pg";
+import { env } from "./src/config/env.js";
+const { Client } = pkg;
 
-pool.query('SELECT count(*) FROM information_schema.tables WHERE table_schema = $1', ['public'])
-  .then(({ rows }) => {
-    console.log('Conexión OK. Tablas en la base:', rows[0].count);
-    return pool.end();
-  })
-  .catch((err) => {
-    console.error('Error de conexión:', err.message);
-    pool.end();
-  });
+const client = new Client({
+  host: env.PGHOST,
+  port: env.PGPORT,
+  user: env.PGUSER,
+  password: env.PGPASSWORD,
+  database: env.PGDATABASE,
+});
+
+try {
+  await client.connect();
+  console.log("✅ Conectado a PostgreSQL");
+
+  const hora = await client.query("SELECT NOW() AS ahora");
+  console.log("Hora del servidor:", hora.rows[0].ahora);
+
+  const roles = await client.query("SELECT id, nombre FROM roles ORDER BY id");
+  console.log("Roles:", roles.rows);
+} catch (err) {
+  console.error("❌ Error:", err.message);
+} finally {
+  await client.end();
+}
