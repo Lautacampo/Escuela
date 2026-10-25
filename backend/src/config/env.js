@@ -9,4 +9,6 @@ export const env = {
   PGUSER: process.env.PGUSER ?? 'postgres',
   PGPASSWORD: process.env.PGPASSWORD ?? 'postgres',
   PGDATABASE: process.env.PGDATABASE ?? 'database',
+  JWT_SECRET: process.env.JWT_SECRET,
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN
 };
