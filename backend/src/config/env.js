@@ -2,7 +2,7 @@
 process.loadEnvFile();
 
 export const env = {
-  PORT: process.env.PORT ?? 3000,
+  PORT: process.env.PORT ?? 4000,
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   PGHOST: process.env.PGHOST ?? 'localhost',
   PGPORT: process.env.PGPORT ?? 5432,
