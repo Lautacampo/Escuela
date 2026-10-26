@@ -1,91 +1,85 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
-import { getAlumnos, getMaterias , getCalificaciones, setCalificacion } from "../services/CalificacionesServices";
+import { getGrilla, setCalificacion } from "../services/CalificacionesServices";
 import { CalificacionesAlumnos } from "../components/CalificacionesAlumnos";
 import "../components/calificacionesdivision.css";
 
 export function DivisionCalificacionesPage() {
   const { moduloId, division } = useParams();
-  const [alumnos, setAlumnos] = useState([]);
-  const [materias, setMaterias] = useState([]);
-  const[calificaciones,setCalificaciones]=useState([]);
+  const [grilla, setGrilla] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
-  const [errorGuardar,setErrorGuardar]=useState(null);
+  const [errorGuardar, setErrorGuardar] = useState(null);
 
   useEffect(() => {
-    async function cargar() {
-      try {
-        const [todosAlumnos, todasMaterias, todasCalificaciones] = await Promise.all([
-          getAlumnos(),
-          getMaterias(),
-          getCalificaciones(),
-        ]);
-        setAlumnos(todosAlumnos);
-        setMaterias(todasMaterias);
-        setCalificaciones(todasCalificaciones);
-      } catch (e) {
-        setError(e.message);
-      } finally {
-        setCargando(false);
-      }
-    }
-    cargar();
-  }, []);
+    let activo = true;
+    setCargando(true);
+    setError(null);
+    getGrilla(moduloId, division)
+      .then((datos) => activo && setGrilla(datos))
+      .catch((e) => activo && setError(e.message))
+      .finally(() => activo && setCargando(false));
+    return () => {
+      activo = false;
+    };
+  }, [moduloId, division]);
 
-  async function cambiarEstado(alumnoId,materiaId,estado){
-    const existente = calificaciones.find(
-      (c)=>c.alumnoId === alumnoId && c.materiaId === materiaId
-    );
+  async function cambiarEstado(cursadaId, materiaId, estado) {
+    const anterior = grilla;
+    setErrorGuardar(null);
 
-    try{
-      setErrorGuardar(null);
-      const guardada = await setCalificacion({
-        ...existente,
-        alumnoId,
-        materiaId,
-        estado,
-      });
+   
+    setGrilla({
+      ...grilla,
+      alumnos: grilla.alumnos.map((a) =>
+        a.id === cursadaId
+          ? { ...a, estados: { ...a.estados, [materiaId]: estado } }
+          : a,
+      ),
+    });
 
-      setCalificaciones((prev)=>
-        existente
-          ? prev.map((c)=>(c.id == guardada.id ? guardada : c ))
-          : [...prev, guardada]
-      );
-    }catch(e){
+    try {
+      await setCalificacion(cursadaId, materiaId, estado);
+    } catch (e) {
+      setGrilla(anterior); // se vuelve como se veia antes  si la API rechaza el cambio
       setErrorGuardar(e.message);
     }
   }
+
   if (cargando) return <p>Cargando...</p>;
-  if (error) return <p>{error}</p>;
 
+  const volver = (
+    <Link to="/gestion/calificaciones" className="btn-volver-calificaciones">
+      <span aria-hidden="true">←</span>Volver
+    </Link>
+  );
 
+  if (error) {
+    return (
+      <section className="pagina-calificaciones-division">
+        {volver}
+        <p className="error-calificacion" role="alert">{error}</p>
+      </section>
+    );
+  }
 
-  const alumnosDivision = alumnos.filter(
-    (alumno) =>
-      alumno.moduloId === Number(moduloId) && alumno.division === division,
-  ).sort((a, b) =>
-    a.apellido.localeCompare(b.apellido, "es", { sensitivity: "base" }) ||
-    a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }),
-  );
-  const materiasModulo = materias.filter(
-    (materia) => materia.moduloId === Number(moduloId),
-  );
-  
-  const notas = Object.fromEntries(
-    calificaciones.map((calificacion) => [
-      `${calificacion.alumnoId}-${calificacion.materiaId}`,
-      calificacion,
-    ]),
-  );
+  const notas = {};
+  for (const a of grilla.alumnos) {
+    for (const m of grilla.materias) {
+      notas[`${a.id}-${m.id}`] = { estado: a.estados[m.id] ?? "en_curso" };
+    }
+  }
 
   return (
     <section className="pagina-calificaciones-division">
-      <Link to="/gestion/calificaciones"className="btn-volver-calificaciones"><span aria-hidden="true">←</span>Volver</Link>
+      {volver}
       <h2>Módulo {moduloId} - División {division}</h2>
+      {errorGuardar && (
+        <p className="error-calificacion" role="alert">{errorGuardar}</p>
+      )}
       <CalificacionesAlumnos
-        alumnos={alumnosDivision}
-        materias={materiasModulo}
+        alumnos={grilla.alumnos}
+        materias={grilla.materias}
         notas={notas}
         moduloId={moduloId}
         division={division}

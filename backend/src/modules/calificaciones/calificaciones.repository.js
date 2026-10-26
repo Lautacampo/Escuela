@@ -1,48 +1,64 @@
-import { pool } from "../config/db.js";
+import { pool } from "../../config/db.js";
 
-export const buscarId = async (usuarioId)=>{
-    const{rows} = await pool.query(
-        "SELECT persona_id FROM usuarios WHERE id = $1 " 
-        [usuarioId],
-    );
-    return rows[0]?.persona_id??null;
-}
+export const buscarPersonaIdDeUsuario = async (usuarioId) => {
+  const { rows } = await pool.query(
+    "SELECT persona_id FROM usuarios WHERE id = $1",
+    [usuarioId],
+  );
+  return rows[0]?.persona_id ?? null;
+};
 
-export const listarCursosModulos = async(docenteId = null)=>{
-    const params ={};
-    let filtro ="";
-    if (docenteId != null){
-        params.push(docenteId);
-        filtro =
-           ` WHERE EXISTS (SELECT 1 FROM docente_curso dc
-            WHERE dc.docente_id = $1 AND dc.curso_id = c.id)
-            AND EXISTS (SELECT 1 FROM docente_materia dm
-            JOIN materia_modulo mm ON mm.materia_id = dm.materia_id
-            WHERE dm.docente_id = $1 AND mm.modulo_id = m.id`;
-    }
+export const listarCursosModulos = async (docenteId = null) => {
+  const params = [];
+  let filtro = "";
+  let filtroMaterias = "";
+  if (docenteId !== null) {
+    params.push(docenteId);
+    filtro = `
+      WHERE EXISTS (
+        SELECT 1 FROM docente_curso dc
+        WHERE dc.docente_id = $1 AND dc.curso_id = c.id
+      )
+      AND EXISTS (
+        SELECT 1 FROM docente_materia dm
+        JOIN materia_modulo mm ON mm.materia_id = dm.materia_id
+        WHERE dm.docente_id = $1 AND mm.modulo_id = m.id
+      )`;
+    filtroMaterias = `
+      AND ma.id IN (
+        SELECT materia_id FROM docente_materia WHERE docente_id = $1
+      )`;
+  }
 
-    const {row} = await pool.query(
-        `SELECT c.anio_curso, m.id AS modulo_id, m.numero_leyenda, c.division
+  const { rows } = await pool.query(
+    `SELECT c.anio_curso, m.id AS modulo_id, m.numero_leyenda, c.division,
+            ARRAY(
+              SELECT DISTINCT ma.nombre
+                FROM materia_modulo mm
+                JOIN materia ma ON ma.id = mm.materia_id
+               WHERE mm.modulo_id = m.id ${filtroMaterias}
+               ORDER BY ma.nombre
+            ) AS materias
        FROM curso_modulo cm
        JOIN curso c ON c.id = cm.curso_id
        JOIN modulo m ON m.id = cm.modulo_id
        ${filtro}
       ORDER BY c.anio_curso, m.id, c.division`,
-      params,
-    );
-    return rows;
+    params,
+  );
+  return rows;
 };
 
-export const buscarModulo = async (moduloId)=>{
-    const {row} = await pool.query(
-        "SELECT id, numero_leyenda FROM modulo WHERE id=$1",
-        [moduloId],
-    );
-    return rows[0]??null;
-}
+export const buscarModulo = async (moduloId) => {
+  const { rows } = await pool.query(
+    "SELECT id, numero_leyenda FROM modulo WHERE id = $1",
+    [moduloId],
+  );
+  return rows[0] ?? null;
+};
 
-export const listarDivisionesdeModulo = async (moduloId, docenteId = null)=>{
-    const params = [moduloId];
+export const listarDivisionesDeModulo = async (moduloId, docenteId = null) => {
+  const params = [moduloId];
   let filtro = "";
   if (docenteId !== null) {
     params.push(docenteId);

@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import { env } from "./config/env.js";
 import authRoutes from "./routes/auth.routes.js";
-import calificacionesRoutes from "./calificaciones/calificaciones.routes.js";
+import calificacionesRoutes from "./modules/calificaciones/calificaciones.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -17,9 +17,6 @@ app.use((req, res) => {
   res.status(404).json({ error: "Ruta no encontrada" });
 });
 
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: "Error interno del servidor" });
-});
+app.use(errorHandler);
 
 export default app;

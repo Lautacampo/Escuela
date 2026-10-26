@@ -1,4 +1,4 @@
-import { HttpError } from "../utils/httpError.js";
+import { HttpError } from "../../utils/httpError.js";
 import * as repo from "./calificaciones.repository.js";
 
 const ESTADOS = ["Aprobado", "Desaprobado", "En Curso"];
@@ -20,7 +20,12 @@ export const listarModulos = async (usuario) => {
     if (!anios.has(f.anio_curso)) anios.set(f.anio_curso, new Map());
     const mods = anios.get(f.anio_curso);
     if (!mods.has(f.modulo_id)) {
-      mods.set(f.modulo_id, { moduloId: f.modulo_id, nombre: f.numero_leyenda, divisiones: [] });
+      mods.set(f.modulo_id, {
+        moduloId: f.modulo_id,
+        nombre: f.numero_leyenda,
+        materias: f.materias,
+        divisiones: [],
+      });
     }
     mods.get(f.modulo_id).divisiones.push(f.division);
   }

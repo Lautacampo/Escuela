@@ -153,6 +153,76 @@
   outline-offset: 2px;
 }
 
+.pagina-calificaciones-modulos--docente .modulo {
+  position: relative;
+  overflow: hidden;
+  padding: 0 16px 14px;
+  border: 1px solid #c9dfed;
+  border-top: 4px solid #1683b8;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #ffffff 0%, #f0f8fc 100%);
+  box-shadow: 0 6px 18px rgba(27, 83, 117, 0.1);
+}
+
+.pagina-calificaciones-modulos--docente .modulo:hover {
+  border-color: #1683b8;
+  border-top-color: #1683b8;
+  box-shadow: 0 10px 24px rgba(27, 83, 117, 0.16);
+}
+
+.pagina-calificaciones-modulos--docente .modulo-header {
+  margin: 0 -16px 10px;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid #dceaf2;
+  background: rgba(221, 239, 249, 0.58);
+}
+
+.pagina-calificaciones-modulos--docente .modulo h3 {
+  color: #17658d;
+  font-size: 1.1rem;
+}
+
+.pagina-calificaciones-modulos--docente .modulo h5 {
+  color: #405b70;
+  font-size: 1rem;
+}
+
+.pagina-calificaciones-modulos--docente .modulo-materias {
+  margin: 0 0 8px;
+  color: #405b70;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.pagina-calificaciones-modulos--docente .modulo-materias span {
+  color: #17658d;
+  font-weight: 700;
+}
+
+.pagina-calificaciones-modulos--docente .divisiones {
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top-color: #dceaf2;
+}
+
+.pagina-calificaciones-modulos--docente .divisionbtn {
+  min-height: 32px;
+  padding: 4px 10px;
+  border-color: #c4deed;
+  border-radius: 9px;
+  background: #eaf5fb;
+  color: #175a7e;
+  font-size: 0.82rem;
+}
+
+.pagina-calificaciones-modulos--docente .divisionbtn:hover,
+.pagina-calificaciones-modulos--docente .divisionbtn:active {
+  border-color: #176f9e;
+  background: #176f9e;
+  color: #ffffff;
+}
+
 @media (max-width: 600px) {
   .dashboard-main > .pagina-calificaciones-modulos {
     padding: 18px;
@@ -165,5 +235,15 @@
 
   .modulo {
     padding: 16px 18px;
+  }
+
+  .pagina-calificaciones-modulos--docente .modulo {
+    padding: 0 16px 14px;
+  }
+
+  .pagina-calificaciones-modulos--docente .modulo-header {
+    margin-right: -16px;
+    margin-left: -16px;
+    padding: 12px 16px 10px;
   }
 }
