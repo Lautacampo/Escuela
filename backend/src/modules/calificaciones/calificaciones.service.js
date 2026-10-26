@@ -3,7 +3,7 @@ import * as repo from "./calificaciones.repository.js";
 
 const ESTADOS = ["Aprobado", "Desaprobado", "En Curso"];
 
-// Devuelve el id del docente si el usuario lo es; null si es directivo
+
 const resolverDocenteId = async (usuario) => {
   if (usuario.rol !== "docente") return null;
   const id = await repo.buscarPersonaIdDeUsuario(usuario.id);
