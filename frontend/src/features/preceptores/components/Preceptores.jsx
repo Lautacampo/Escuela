@@ -4,34 +4,49 @@ import { esDniValido, esEmailValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
 import {
   getPreceptores,
-  getModulos,
   setPreceptor,
   borrarPreceptor,
-} from "../services/PreceptoresServices";
+  getCursos,
+  asignarCursos,
+} from "../services/PreceptoresServices.jsx";
 
 const PRECEPTOR_INICIAL = {
   nombre: "",
   apellido: "",
   dni: "",
+  cuil: "",
   email: "",
   telefono: "",
-  asignaciones: [],
+  domicilio: "",
+  titulo: "",
+  antiguedad: "",
 };
 
 const CAMPOS = [
   { nombre: "nombre", etiqueta: "Nombre", tipo: "text", obligatorio: true },
   { nombre: "apellido", etiqueta: "Apellido", tipo: "text", obligatorio: true },
   { nombre: "dni", etiqueta: "DNI", tipo: "text", obligatorio: true },
-  {
-    nombre: "email",
-    etiqueta: "Correo electrónico",
-    tipo: "email",
-    obligatorio: true,
-  },
+  { nombre: "cuil", etiqueta: "CUIL (ej: 20-12345678-9)", tipo: "text", obligatorio: true },
+  { nombre: "email", etiqueta: "Correo electrónico", tipo: "email", obligatorio: true },
   { nombre: "telefono", etiqueta: "Teléfono", tipo: "tel" },
+  { nombre: "domicilio", etiqueta: "Domicilio", tipo: "text", obligatorio: true },
+  { nombre: "titulo", etiqueta: "Título", tipo: "text", obligatorio: true },
+  { nombre: "antiguedad", etiqueta: "Antigüedad (años)", tipo: "number", obligatorio: true },
 ];
 
-const FILAS_CAMPOS = [CAMPOS.slice(0, 2), CAMPOS.slice(2, 4), CAMPOS.slice(4)];
+const FILAS_CAMPOS = [
+  CAMPOS.slice(0, 2),
+  CAMPOS.slice(2, 4),
+  CAMPOS.slice(4, 6),
+  CAMPOS.slice(6, 8),
+  CAMPOS.slice(8),
+];
+
+const NOMBRES_ANIOS = {
+  1: "Primer Año",
+  2: "Segundo Año",
+  3: "Tercer Año",
+};
 
 function normalizar(texto) {
   return String(texto)
@@ -41,6 +56,22 @@ function normalizar(texto) {
     .toLowerCase();
 }
 
+function aValoresFormulario(preceptor) {
+  const valores = { ...PRECEPTOR_INICIAL };
+  for (const clave of Object.keys(PRECEPTOR_INICIAL)) {
+    valores[clave] = preceptor[clave] == null ? "" : String(preceptor[clave]);
+  }
+  return valores;
+}
+
+const nombreCurso = (c) => {
+  if (Array.isArray(c.modulos) && c.modulos.length > 0) {
+    const mods = c.modulos.map((m) => m.nombre).join(" y ");
+    return `${mods} · Div. ${c.division}`;
+  }
+  return `${NOMBRES_ANIOS[c.anio ?? c.anio_curso] ?? `${c.anio_curso}.º Año`} · Div. ${c.division}`;
+};
+
 export function Preceptores() {
   const [preceptores, setPreceptores] = useState([]);
   const [valores, setValores] = useState(PRECEPTOR_INICIAL);
@@ -49,103 +80,51 @@ export function Preceptores() {
   const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState("");
   const [hayCambios, setHayCambios] = useState(false);
-  const [modulos, setModulos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [errorGuardar, setErrorGuardar] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  // Asignación de cursos
+  const [cursos, setCursos] = useState([]);
+  const [asignando, setAsignando] = useState(null);
+  const [seleccion, setSeleccion] = useState([]);
+  const [errorAsignar, setErrorAsignar] = useState("");
+  const [guardandoAsig, setGuardandoAsig] = useState(false);
 
   useEffect(() => {
-    async function cargar() {
-      try {
-        const [datosPreceptores, datosModulos] = await Promise.all([
-          getPreceptores(),
-          getModulos(),
-        ]);
-        setPreceptores(datosPreceptores);
-        setModulos(datosModulos);
-      } catch (e) {
-        setError(e.message);
-      } finally {
-        setCargando(false);
-      }
-    }
-    cargar();
+    let activo = true;
+    Promise.all([getPreceptores(), getCursos()])
+      .then(([p, c]) => {
+        if (!activo) return;
+        setPreceptores(p);
+        setCursos(c);
+      })
+      .catch((e) => activo && setError(e.message))
+      .finally(() => activo && setCargando(false));
+    return () => {
+      activo = false;
+    };
   }, []);
 
   const {
     valores: filtros,
     manejarCambio: cambiarFiltro,
     resetearFormulario: limpiarFiltros,
-  } = useForm({
-    modulo: "",
-    division: "",
-    busqueda: "",
-  });
-
-  // Todas las divisiones que existen en algún módulo (A, B, C, D)
-  const divisionesTodas = [
-    ...new Set(modulos.flatMap((modulo) => modulo.divisiones)),
-  ].sort();
-
-  const filtrosSelect = [
-    {
-      nombre: "modulo",
-      etiqueta: "Módulo",
-      todos: "Todos los módulos",
-      opciones: modulos.map((m) => ({ valor: String(m.id), texto: m.nombre })),
-    },
-    {
-      nombre: "division",
-      etiqueta: "División",
-      todos: "Todas",
-      opciones: divisionesTodas.map((d) => ({ valor: d, texto: d })),
-    },
-  ];
-
-  function nombreModulo(id) {
-    return (
-      modulos.find((m) => Number(m.id) === Number(id))?.nombre ??
-      `Módulo ${id}`
-    );
-  }
+  } = useForm({ busqueda: "" });
 
   const preceptoresFiltrados = preceptores.filter((preceptor) => {
     const texto = normalizar(
       `${preceptor.apellido} ${preceptor.nombre} ${preceptor.dni}`,
     );
-
-    const coincideBusqueda = normalizar(filtros.busqueda)
+    return normalizar(filtros.busqueda)
       .split(/\s+/)
       .every((palabra) => texto.includes(palabra));
-
-    const hayFiltroAsignacion = filtros.modulo || filtros.division;
-
-    const coincideAsignacion =
-      !hayFiltroAsignacion ||
-      preceptor.asignaciones.some(
-        (asignacion) =>
-          (!filtros.modulo || asignacion.moduloId === Number(filtros.modulo)) &&
-          (!filtros.division || asignacion.division === filtros.division),
-      );
-
-    return coincideBusqueda && coincideAsignacion;
   });
 
   function abrirFormulario(preceptor = null) {
     setEditando(preceptor?.id ?? null);
-
-    setValores(
-      preceptor
-        ? {
-            ...PRECEPTOR_INICIAL,
-            ...preceptor,
-            asignaciones: preceptor.asignaciones.map((asignacion) => ({
-              ...asignacion,
-            })),
-          }
-        : { ...PRECEPTOR_INICIAL, asignaciones: [] },
-    );
-
+    setValores(preceptor ? aValoresFormulario(preceptor) : { ...PRECEPTOR_INICIAL });
     setErrores({});
     setMensaje("");
     setErrorGuardar("");
@@ -168,70 +147,22 @@ export function Preceptores() {
     ) {
       return;
     }
-
     cerrarSinConfirmar();
   }
 
-  // Cierra el modal con la tecla Escape (lo que antes hacía <dialog>).
   useEffect(() => {
     if (!mostrarFormulario) return undefined;
-
     function alPresionarTecla(evento) {
       if (evento.key === "Escape") cerrarFormulario();
     }
-
     document.addEventListener("keydown", alPresionarTecla);
     return () => document.removeEventListener("keydown", alPresionarTecla);
   });
 
   function manejarCambio(evento) {
     const { name, value } = evento.target;
-
-    setValores((anteriores) => ({
-      ...anteriores,
-      [name]: value,
-    }));
-
+    setValores((anteriores) => ({ ...anteriores, [name]: value }));
     setErrores((anteriores) => ({ ...anteriores, [name]: "" }));
-    setHayCambios(true);
-  }
-
-  function agregarAsignacion() {
-    setValores((anteriores) => ({
-      ...anteriores,
-      asignaciones: [...anteriores.asignaciones, { moduloId: "", division: "" }],
-    }));
-
-    setErrores((anteriores) => ({ ...anteriores, asignaciones: "" }));
-    setHayCambios(true);
-  }
-
-  function cambiarAsignacion(indice, campo, valor) {
-    setValores((anteriores) => ({
-      ...anteriores,
-      asignaciones: anteriores.asignaciones.map((asignacion, posicion) =>
-        posicion !== indice
-          ? asignacion
-          : campo === "moduloId"
-            ? // al cambiar de módulo se reinicia la división (cada módulo tiene las suyas)
-              { moduloId: valor === "" ? "" : Number(valor), division: "" }
-            : { ...asignacion, [campo]: valor },
-      ),
-    }));
-
-    setErrores((anteriores) => ({ ...anteriores, asignaciones: "" }));
-    setHayCambios(true);
-  }
-
-  function quitarAsignacion(indice) {
-    setValores((anteriores) => ({
-      ...anteriores,
-      asignaciones: anteriores.asignaciones.filter(
-        (_, posicion) => posicion !== indice,
-      ),
-    }));
-
-    setErrores((anteriores) => ({ ...anteriores, asignaciones: "" }));
     setHayCambios(true);
   }
 
@@ -240,106 +171,62 @@ export function Preceptores() {
 
     const nuevosErrores = {};
     const dni = valores.dni.trim();
+    const cuil = valores.cuil.trim();
 
-    if (!valores.nombre.trim()) {
-      nuevosErrores.nombre = "Debe ingresar el nombre.";
-    }
-
-    if (!valores.apellido.trim()) {
-      nuevosErrores.apellido = "Debe ingresar el apellido.";
-    }
+    if (!valores.nombre.trim()) nuevosErrores.nombre = "Debe ingresar el nombre.";
+    if (!valores.apellido.trim()) nuevosErrores.apellido = "Debe ingresar el apellido.";
 
     if (!/^\d{7,8}$/.test(dni) || !esDniValido(dni)) {
       nuevosErrores.dni = "Debe ingresar un DNI de 7 u 8 números, sin puntos.";
     } else if (
       preceptores.some(
-        (preceptor) => preceptor.dni === dni && preceptor.id !== editando,
+        (preceptor) => String(preceptor.dni) === dni && preceptor.id !== editando,
       )
     ) {
       nuevosErrores.dni = "Ya existe un preceptor con ese DNI.";
     }
 
-    if (!esEmailValido(valores.email)) {
-      nuevosErrores.email =
-        "El formato del correo electrónico ingresado no es válido.";
+    if (!/^\d{2}-\d{7,8}-\d$/.test(cuil)) {
+      nuevosErrores.cuil = "Formato de CUIL inválido (ej: 20-12345678-9).";
     }
 
-    const asignacionIncompleta = valores.asignaciones.some(
-      ({ moduloId, division }) => {
-        const modulo = modulos.find(
-          (m) => Number(m.id) === Number(moduloId),
-        );
-        return !modulo || !modulo.divisiones.includes(division);
-      },
-    );
+    if (!esEmailValido(valores.email)) {
+      nuevosErrores.email = "El formato del correo electrónico ingresado no es válido.";
+    }
 
-    const claves = valores.asignaciones.map(
-      ({ moduloId, division }) => `${moduloId}|${division}`,
-    );
-    const asignacionesPrevias =
-      preceptores.find((preceptor) => preceptor.id === editando)?.asignaciones ??
-      [];
+    if (!valores.domicilio.trim()) nuevosErrores.domicilio = "Debe ingresar el domicilio.";
+    if (!valores.titulo.trim()) nuevosErrores.titulo = "Debe ingresar el título.";
 
-    const conflictoAsignacion = valores.asignaciones
-      .map((asignacion) => ({
-        asignacion,
-        preceptor: asignacionesPrevias.some(
-          (asignacionPrevia) =>
-            Number(asignacionPrevia.moduloId) === Number(asignacion.moduloId) &&
-            asignacionPrevia.division === asignacion.division,
-        )
-          ? null
-          : preceptores.find(
-              (existente) =>
-                existente.id !== editando &&
-                existente.asignaciones.some(
-                  (asignacionExistente) =>
-                    Number(asignacionExistente.moduloId) ===
-                      Number(asignacion.moduloId) &&
-                    asignacionExistente.division === asignacion.division,
-                ),
-            ),
-      }))
-      .find(({ preceptor }) => preceptor);
-
-    if (asignacionIncompleta) {
-      nuevosErrores.asignaciones =
-        "Complete curso y división en cada fila, o quite la fila vacía.";
-    } else if (new Set(claves).size !== claves.length) {
-      nuevosErrores.asignaciones =
-        "No puede asignar dos veces el mismo módulo y división.";
-    } else if (conflictoAsignacion) {
-      const { asignacion, preceptor } = conflictoAsignacion;
-      nuevosErrores.asignaciones = `${nombreModulo(asignacion.moduloId)}, división ${asignacion.division} ya está asignado a ${preceptor.apellido}, ${preceptor.nombre}.`;
+    const antiguedad = Number(valores.antiguedad);
+    if (valores.antiguedad === "" || !Number.isInteger(antiguedad) || antiguedad < 0) {
+      nuevosErrores.antiguedad = "Ingrese la antigüedad en años (número entero, 0 o más).";
     }
 
     setErrores(nuevosErrores);
-
     if (Object.keys(nuevosErrores).length > 0) return;
 
     const preceptorPreparado = {
-      ...valores,
+      ...(editando !== null && { id: editando }),
       nombre: capitalizarNombre(valores.nombre.trim().replace(/\s+/g, " ")),
       apellido: capitalizarNombre(valores.apellido.trim().replace(/\s+/g, " ")),
       dni,
+      cuil,
       email: valores.email.trim(),
-      telefono: valores.telefono.trim(),
-      asignaciones: valores.asignaciones.map((asignacion) => ({
-        ...asignacion,
-      })),
+      telefono: valores.telefono.trim() || null,
+      domicilio: valores.domicilio.trim(),
+      titulo: valores.titulo.trim(),
+      antiguedad,
     };
 
     try {
       setErrorGuardar("");
+      setGuardando(true);
 
-      // Si preceptorPreparado trae id -> PUT (editar). Si no -> POST (crear).
       const guardado = await setPreceptor(preceptorPreparado);
 
       setPreceptores((anteriores) =>
         editando !== null
-          ? anteriores.map((preceptor) =>
-              preceptor.id === editando ? guardado : preceptor,
-            )
+          ? anteriores.map((p) => (p.id === editando ? guardado : p))
           : [...anteriores, guardado],
       );
 
@@ -353,6 +240,8 @@ export function Preceptores() {
       cerrarSinConfirmar();
     } catch (e) {
       setErrorGuardar(e.message);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -360,21 +249,58 @@ export function Preceptores() {
     const confirmar = window.confirm(
       `¿Está seguro de eliminar al preceptor ${preceptor.apellido}, ${preceptor.nombre}?`,
     );
-
     if (!confirmar) return;
 
     try {
       await borrarPreceptor(preceptor.id);
-
       setPreceptores((anteriores) =>
         anteriores.filter((registro) => registro.id !== preceptor.id),
       );
-
       setMensaje("Preceptor eliminado del listado.");
     } catch (e) {
       setMensaje(e.message);
     }
   }
+
+  // ---------- Asignar cursos ----------
+  function abrirAsignacion(preceptor) {
+    setAsignando(preceptor);
+    setSeleccion((preceptor.cursos ?? []).map((c) => c.id));
+    setErrorAsignar("");
+    setMensaje("");
+  }
+
+  function alternarCurso(id) {
+    setSeleccion((previos) =>
+      previos.includes(id) ? previos.filter((x) => x !== id) : [...previos, id],
+    );
+  }
+
+  async function guardarAsignacion() {
+    try {
+      setGuardandoAsig(true);
+      setErrorAsignar("");
+      await asignarCursos(asignando.id, seleccion);
+
+      const [p, c] = await Promise.all([getPreceptores(), getCursos()]);
+      setPreceptores(p);
+      setCursos(c);
+      setMensaje(`Cursos de ${asignando.apellido}, ${asignando.nombre} actualizados.`);
+      setAsignando(null);
+    } catch (e) {
+      setErrorAsignar(e.message);
+    } finally {
+      setGuardandoAsig(false);
+    }
+  }
+
+  // Agrupamiento de cursos por Año y Módulos
+  const cursosPorAnio = cursos.reduce((acumulador, curso) => {
+    const claveAnio = curso.anio_curso ?? curso.anio;
+    if (!acumulador[claveAnio]) acumulador[claveAnio] = [];
+    acumulador[claveAnio].push(curso);
+    return acumulador;
+  }, {});
 
   if (cargando) return <p>Cargando preceptores...</p>;
   if (error) return <p role="alert">{error}</p>;
@@ -384,7 +310,7 @@ export function Preceptores() {
       <div className="encabezado-gestion">
         <div>
           <h1>Gestión de Preceptores</h1>
-          <p>Administración de preceptores y grupos a cargo.</p>
+          <p>Administración de preceptores y módulos a cargo.</p>
         </div>
 
         <button
@@ -415,30 +341,6 @@ export function Preceptores() {
         </div>
 
         <div className="barra-filtros">
-          {filtrosSelect.map((filtro) => (
-            <div className="form-group" key={filtro.nombre}>
-              <label htmlFor={`preceptor-filtro-${filtro.nombre}`}>
-                {filtro.etiqueta}
-              </label>
-
-              <select
-                id={`preceptor-filtro-${filtro.nombre}`}
-                name={filtro.nombre}
-                value={filtros[filtro.nombre]}
-                onChange={cambiarFiltro}
-                className="input-gestion"
-              >
-                <option value="">{filtro.todos}</option>
-
-                {filtro.opciones.map((opcion) => (
-                  <option key={opcion.valor} value={opcion.valor}>
-                    {opcion.texto}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
-
           <div className="form-group form-group-buscador">
             <label htmlFor="preceptor-busqueda">Buscar</label>
             <input
@@ -452,11 +354,7 @@ export function Preceptores() {
             />
           </div>
 
-          <button
-            type="button"
-            className="btn-secundario"
-            onClick={limpiarFiltros}
-          >
+          <button type="button" className="btn-secundario" onClick={limpiarFiltros}>
             Limpiar
           </button>
         </div>
@@ -466,9 +364,10 @@ export function Preceptores() {
             <thead>
               <tr>
                 <th>Apellido y nombre</th>
-                <th>DNI</th>
+                <th>DNI / CUIL</th>
                 <th>Contacto</th>
-                <th>Módulos y divisiones</th>
+                <th>Título y antigüedad</th>
+                <th>Módulos y divisiones a cargo</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -482,27 +381,57 @@ export function Preceptores() {
                     </strong>
                   </td>
 
-                  <td>{formatearDNI(preceptor.dni)}</td>
+                  <td>
+                    <div className="personal-contacto">
+                      <span>
+                        <span className="personal-contacto-etiqueta">DNI:</span>{" "}
+                        {formatearDNI(preceptor.dni)}
+                      </span>
+                      <span>
+                        <span className="personal-contacto-etiqueta">CUIL:</span>{" "}
+                        {preceptor.cuil}
+                      </span>
+                    </div>
+                  </td>
 
                   <td>
                     <div className="personal-contacto">
-                      <span>{preceptor.email}</span>
-                      <div></div>
-                      <span>{preceptor.telefono || "Sin teléfono"}</span>
+                      <span>
+                        <span className="personal-contacto-etiqueta">Correo:</span>{" "}
+                        {preceptor.email || "Sin correo"}
+                      </span>
+                      <span>
+                        <span className="personal-contacto-etiqueta">Teléfono:</span>{" "}
+                        {preceptor.telefono || "Sin teléfono"}
+                      </span>
+                      <span>
+                        <span className="personal-contacto-etiqueta">Domicilio:</span>{" "}
+                        {preceptor.domicilio}
+                      </span>
+                    </div>
+                  </td>
+
+                  <td>
+                    <div className="personal-contacto">
+                      <span>
+                        <span className="personal-contacto-etiqueta">Título:</span>{" "}
+                        {preceptor.titulo}
+                      </span>
+                      <span>
+                        <span className="personal-contacto-etiqueta">Antigüedad:</span>{" "}
+                        {preceptor.antiguedad}{" "}
+                        {Number(preceptor.antiguedad) === 1 ? "año" : "años"}
+                      </span>
                     </div>
                   </td>
 
                   <td>
                     <div className="personal-asignaciones">
-                      {preceptor.asignaciones.length === 0
-                        ? "Sin asignaciones"
-                        : preceptor.asignaciones.map((asignacion) => (
-                            <div
-                              className="personal-asignacion"
-                              key={`${asignacion.moduloId}-${asignacion.division}`}
-                            >
-                              {nombreModulo(asignacion.moduloId)} · División{" "}
-                              {asignacion.division}
+                      {(preceptor.cursos ?? []).length === 0
+                        ? "Sin módulos asignados"
+                        : preceptor.cursos.map((c) => (
+                            <div className="personal-asignacion" key={c.id}>
+                              {nombreCurso(c)}
                             </div>
                           ))}
                     </div>
@@ -522,6 +451,16 @@ export function Preceptores() {
 
                       <button
                         type="button"
+                        className="btn-accion btn-editar"
+                        onClick={() => abrirAsignacion(preceptor)}
+                        aria-label={`Asignar cursos a ${preceptor.nombre} ${preceptor.apellido}`}
+                      >
+                        <i className="fa-solid fa-school" aria-hidden="true" />
+                        Asignar módulos
+                      </button>
+
+                      <button
+                        type="button"
                         className="btn-accion btn-eliminar"
                         onClick={() => eliminarPreceptor(preceptor)}
                         aria-label={`Eliminar a ${preceptor.nombre} ${preceptor.apellido}`}
@@ -536,7 +475,7 @@ export function Preceptores() {
 
               {preceptoresFiltrados.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="sin-resultados">
+                  <td colSpan={6} className="sin-resultados">
                     No se encontraron preceptores con esos filtros.
                   </td>
                 </tr>
@@ -546,13 +485,12 @@ export function Preceptores() {
         </div>
       </div>
 
+      {/* Modal: alta y edición */}
       {mostrarFormulario && (
         <div
           className="modal-alumno-overlay"
           onMouseDown={(evento) => {
-            if (evento.target === evento.currentTarget) {
-              cerrarFormulario();
-            }
+            if (evento.target === evento.currentTarget) cerrarFormulario();
           }}
         >
           <div
@@ -564,11 +502,9 @@ export function Preceptores() {
             <div className="modal-alumno-header">
               <div>
                 <h2 id="titulo-formulario-preceptor">
-                  {editando !== null
-                    ? "Editar preceptor"
-                    : "Registrar preceptor"}
+                  {editando !== null ? "Editar preceptor" : "Registrar preceptor"}
                 </h2>
-                <p>Complete los datos personales y los grupos a cargo.</p>
+                <p>Complete los datos personales y laborales.</p>
               </div>
 
               <button
@@ -581,11 +517,7 @@ export function Preceptores() {
               </button>
             </div>
 
-            <form
-              className="form-gestion"
-              onSubmit={guardarPreceptor}
-              noValidate
-            >
+            <form className="form-gestion" onSubmit={guardarPreceptor} noValidate>
               <fieldset>
                 <legend>Datos del preceptor</legend>
 
@@ -605,10 +537,15 @@ export function Preceptores() {
                           value={valores[campo.nombre]}
                           onChange={manejarCambio}
                           required={campo.obligatorio}
-                          inputMode={
-                            campo.nombre === "dni" ? "numeric" : undefined
+                          inputMode={campo.nombre === "dni" ? "numeric" : undefined}
+                          maxLength={
+                            campo.nombre === "dni"
+                              ? 8
+                              : campo.nombre === "cuil"
+                                ? 15
+                                : undefined
                           }
-                          maxLength={campo.nombre === "dni" ? 8 : undefined}
+                          min={campo.nombre === "antiguedad" ? 0 : undefined}
                           className={`input-gestion ${
                             errores[campo.nombre] ? "input-error" : ""
                           }`}
@@ -635,88 +572,6 @@ export function Preceptores() {
                 ))}
               </fieldset>
 
-              <fieldset>
-                <legend>Cursos y divisiones a cargo</legend>
-
-            {valores.asignaciones.map((asignacion, indice) => {
-              const moduloElegido = modulos.find(
-                (m) => Number(m.id) === Number(asignacion.moduloId),
-              );
-
-              return (
-                <div className="personal-fila-asignacion" key={indice}>
-                  <div className="form-group">
-                    <label htmlFor={`preceptor-asignacion-${indice}-moduloId`}>
-                      Módulo
-                    </label>
-                    <select
-                      id={`preceptor-asignacion-${indice}-moduloId`}
-                      value={asignacion.moduloId}
-                      onChange={(evento) =>
-                        cambiarAsignacion(indice, "moduloId", evento.target.value)
-                      }
-                      className="input-gestion"
-                    >
-                      <option value="">Seleccionar</option>
-                      {modulos.map((modulo) => (
-                        <option key={modulo.id} value={modulo.id}>
-                          {modulo.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor={`preceptor-asignacion-${indice}-division`}>
-                      División
-                    </label>
-                    <select
-                      id={`preceptor-asignacion-${indice}-division`}
-                      value={asignacion.division}
-                      onChange={(evento) =>
-                        cambiarAsignacion(indice, "division", evento.target.value)
-                      }
-                      disabled={!moduloElegido}
-                      className="input-gestion"
-                    >
-                      <option value="">Seleccionar</option>
-                      {(moduloElegido?.divisiones ?? []).map((division) => (
-                        <option key={division} value={division}>
-                          {division}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="btn-accion btn-eliminar"
-                    onClick={() => quitarAsignacion(indice)}
-                    aria-label={`Quitar asignación ${indice + 1}`}
-                  >
-                    <i className="fa-solid fa-trash" aria-hidden="true" />
-                    Quitar
-                  </button>
-                </div>
-              );
-            })}
-
-                {errores.asignaciones && (
-                  <p className="mensaje-error" role="alert">
-                    {errores.asignaciones}
-                  </p>
-                )}
-
-                <button
-                  type="button"
-                  className="btn-secundario"
-                  onClick={agregarAsignacion}
-                >
-                  <i className="fa-solid fa-plus" aria-hidden="true" />
-                  Agregar grupo
-                </button>
-              </fieldset>
-
               {errorGuardar && (
                 <p className="mensaje-error" role="alert">
                   {errorGuardar}
@@ -728,23 +583,152 @@ export function Preceptores() {
                   type="button"
                   className="btn-secundario"
                   onClick={cerrarFormulario}
+                  disabled={guardando}
                 >
                   Cancelar
                 </button>
 
-                <button type="submit" className="btn-primario-gestion">
+                <button
+                  type="submit"
+                  className="btn-primario-gestion"
+                  disabled={guardando}
+                >
                   <i
                     className={`fa-solid ${
                       editando !== null ? "fa-floppy-disk" : "fa-user-plus"
                     }`}
                     aria-hidden="true"
                   />
-                  {editando !== null
-                    ? "Guardar cambios"
-                    : "Registrar preceptor"}
+                  {guardando
+                    ? "Guardando..."
+                    : editando !== null
+                      ? "Guardar cambios"
+                      : "Registrar preceptor"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: asignar cursos agrupados por Año y Módulo */}
+      {asignando && (
+        <div
+          className="modal-alumno-overlay"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setAsignando(null);
+          }}
+        >
+          <div
+            className="modal-alumno personal-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-asignar-cursos"
+            style={{ maxWidth: "680px" }}
+          >
+            <div className="modal-alumno-header">
+              <div>
+                <h2 id="titulo-asignar-cursos">Asignar Módulos y Divisiones</h2>
+              </div>
+              <button
+                type="button"
+                className="btn-cerrar-modal"
+                onClick={() => setAsignando(null)}
+                aria-label="Cerrar"
+              >
+                <i className="fa-solid fa-xmark" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="form-gestion">
+              {Object.entries(cursosPorAnio).map(([anio, cursosDelAnio]) => {
+                const modulosAnio = Array.from(
+                  new Set(
+                    cursosDelAnio.flatMap((c) => (c.modulos ?? []).map((m) => m.nombre))
+                  )
+                ).join(" y ");
+
+                return (
+                  <fieldset key={anio} style={{ marginBottom: "20px" }}>
+                    <legend style={{ fontSize: "1.1rem", fontWeight: "bold", color: "#0369a1" }}>
+                      {NOMBRES_ANIOS[anio] ?? `${anio}.º Año`} {modulosAnio ? `(${modulosAnio})` : ""}
+                    </legend>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
+                      {cursosDelAnio.map((c) => {
+                        const tildado = seleccion.includes(c.id);
+                        const esDeOtro = c.preceptor_id && c.preceptor_id !== asignando.id;
+                        const textoModulos = (c.modulos ?? []).map((m) => m.nombre).join(" y ");
+
+                        return (
+                          <label
+                            key={c.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "10px",
+                              padding: "10px",
+                              border: tildado ? "2px solid #0284c7" : "1px solid #cbd5e1",
+                              borderRadius: "8px",
+                              backgroundColor: tildado ? "#f0f9ff" : "#ffffff",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={tildado}
+                              onChange={() => alternarCurso(c.id)}
+                              style={{ marginTop: "3px", width: "16px", height: "16px" }}
+                            />
+                            <div>
+                              <strong style={{ fontSize: "0.95rem" }}>
+                                División {c.division}
+                              </strong>
+                              {textoModulos && (
+                                <span style={{ display: "block", fontSize: "0.82rem", color: "#475569" }}>
+                                  {textoModulos}
+                                </span>
+                              )}
+                              {esDeOtro && (
+                                <small style={{ color: "#d97706", display: "block", marginTop: "4px" }}>
+                                  A cargo de: {c.preceptor_apellido}, {c.preceptor_nombre}
+                                  {tildado ? " → reasignar" : ""}
+                                </small>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                );
+              })}
+
+              {errorAsignar && (
+                <p className="mensaje-error" role="alert">
+                  {errorAsignar}
+                </p>
+              )}
+
+              <div className="acciones-formulario personal-acciones">
+                <button
+                  type="button"
+                  className="btn-secundario"
+                  onClick={() => setAsignando(null)}
+                  disabled={guardandoAsig}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn-primario-gestion"
+                  onClick={guardarAsignacion}
+                  disabled={guardandoAsig}
+                >
+                  {guardandoAsig ? "Guardando..." : "Guardar asignación"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
