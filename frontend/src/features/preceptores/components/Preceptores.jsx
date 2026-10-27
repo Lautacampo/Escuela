@@ -42,6 +42,12 @@ const FILAS_CAMPOS = [
   CAMPOS.slice(8),
 ];
 
+const NOMBRES_ANIOS = {
+  1: "Primer Año",
+  2: "Segundo Año",
+  3: "Tercer Año",
+};
+
 function normalizar(texto) {
   return String(texto)
     .normalize("NFD")
@@ -58,7 +64,13 @@ function aValoresFormulario(preceptor) {
   return valores;
 }
 
-const nombreCurso = (c) => `${c.anio ?? c.anio_curso}.º ${c.division}`;
+const nombreCurso = (c) => {
+  if (Array.isArray(c.modulos) && c.modulos.length > 0) {
+    const mods = c.modulos.map((m) => m.nombre).join(" y ");
+    return `${mods} · Div. ${c.division}`;
+  }
+  return `${NOMBRES_ANIOS[c.anio ?? c.anio_curso] ?? `${c.anio_curso}.º Año`} · Div. ${c.division}`;
+};
 
 export function Preceptores() {
   const [preceptores, setPreceptores] = useState([]);
@@ -138,7 +150,6 @@ export function Preceptores() {
     cerrarSinConfirmar();
   }
 
-  // Cierra el modal con la tecla Escape
   useEffect(() => {
     if (!mostrarFormulario) return undefined;
     function alPresionarTecla(evento) {
@@ -228,7 +239,6 @@ export function Preceptores() {
       limpiarFiltros();
       cerrarSinConfirmar();
     } catch (e) {
-      // Acá aparecen los 400 y 409 que devuelve la API
       setErrorGuardar(e.message);
     } finally {
       setGuardando(false);
@@ -248,7 +258,6 @@ export function Preceptores() {
       );
       setMensaje("Preceptor eliminado del listado.");
     } catch (e) {
-      // Ej: 409 si tiene cursos a cargo
       setMensaje(e.message);
     }
   }
@@ -273,7 +282,6 @@ export function Preceptores() {
       setErrorAsignar("");
       await asignarCursos(asignando.id, seleccion);
 
-      // Se recargan ambas listas: al mover un curso cambia también el otro preceptor
       const [p, c] = await Promise.all([getPreceptores(), getCursos()]);
       setPreceptores(p);
       setCursos(c);
@@ -286,6 +294,14 @@ export function Preceptores() {
     }
   }
 
+  // Agrupamiento de cursos por Año y Módulos
+  const cursosPorAnio = cursos.reduce((acumulador, curso) => {
+    const claveAnio = curso.anio_curso ?? curso.anio;
+    if (!acumulador[claveAnio]) acumulador[claveAnio] = [];
+    acumulador[claveAnio].push(curso);
+    return acumulador;
+  }, {});
+
   if (cargando) return <p>Cargando preceptores...</p>;
   if (error) return <p role="alert">{error}</p>;
 
@@ -294,7 +310,7 @@ export function Preceptores() {
       <div className="encabezado-gestion">
         <div>
           <h1>Gestión de Preceptores</h1>
-          <p>Administración de preceptores y cursos a cargo.</p>
+          <p>Administración de preceptores y módulos a cargo.</p>
         </div>
 
         <button
@@ -351,7 +367,7 @@ export function Preceptores() {
                 <th>DNI / CUIL</th>
                 <th>Contacto</th>
                 <th>Título y antigüedad</th>
-                <th>Cursos a cargo</th>
+                <th>Módulos y divisiones a cargo</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -412,7 +428,7 @@ export function Preceptores() {
                   <td>
                     <div className="personal-asignaciones">
                       {(preceptor.cursos ?? []).length === 0
-                        ? "Sin cursos"
+                        ? "Sin módulos asignados"
                         : preceptor.cursos.map((c) => (
                             <div className="personal-asignacion" key={c.id}>
                               {nombreCurso(c)}
@@ -440,7 +456,7 @@ export function Preceptores() {
                         aria-label={`Asignar cursos a ${preceptor.nombre} ${preceptor.apellido}`}
                       >
                         <i className="fa-solid fa-school" aria-hidden="true" />
-                        Asignar cursos
+                        Asignar módulos
                       </button>
 
                       <button
@@ -595,7 +611,7 @@ export function Preceptores() {
         </div>
       )}
 
-      {/* Modal: asignar cursos */}
+      {/* Modal: asignar cursos agrupados por Año y Módulo */}
       {asignando && (
         <div
           className="modal-alumno-overlay"
@@ -608,15 +624,11 @@ export function Preceptores() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="titulo-asignar-cursos"
+            style={{ maxWidth: "680px" }}
           >
             <div className="modal-alumno-header">
               <div>
-                <h2 id="titulo-asignar-cursos">Asignar cursos</h2>
-                <p>
-                  {asignando.apellido}, {asignando.nombre}. Cada curso tiene un
-                  solo preceptor: si tildás uno que ya tiene otro, se le quita a
-                  ese.
-                </p>
+                <h2 id="titulo-asignar-cursos">Asignar Módulos y Divisiones</h2>
               </div>
               <button
                 type="button"
@@ -629,31 +641,68 @@ export function Preceptores() {
             </div>
 
             <div className="form-gestion">
-              <fieldset>
-                <legend>Cursos</legend>
-                {cursos.map((c) => {
-                  const tildado = seleccion.includes(c.id);
-                  const esDeOtro = c.preceptor_id && c.preceptor_id !== asignando.id;
-                  return (
-                    <label key={c.id} style={{ display: "block", marginBottom: 8 }}>
-                      <input
-                        type="checkbox"
-                        checked={tildado}
-                        onChange={() => alternarCurso(c.id)}
-                      />{" "}
-                      {nombreCurso(c)}
-                      {esDeOtro && (
-                        <small>
-                          {" "}
-                          (hoy a cargo de {c.preceptor_apellido},{" "}
-                          {c.preceptor_nombre}
-                          {tildado ? " → se le quitará" : ""})
-                        </small>
-                      )}
-                    </label>
-                  );
-                })}
-              </fieldset>
+              {Object.entries(cursosPorAnio).map(([anio, cursosDelAnio]) => {
+                const modulosAnio = Array.from(
+                  new Set(
+                    cursosDelAnio.flatMap((c) => (c.modulos ?? []).map((m) => m.nombre))
+                  )
+                ).join(" y ");
+
+                return (
+                  <fieldset key={anio} style={{ marginBottom: "20px" }}>
+                    <legend style={{ fontSize: "1.1rem", fontWeight: "bold", color: "#0369a1" }}>
+                      {NOMBRES_ANIOS[anio] ?? `${anio}.º Año`} {modulosAnio ? `(${modulosAnio})` : ""}
+                    </legend>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
+                      {cursosDelAnio.map((c) => {
+                        const tildado = seleccion.includes(c.id);
+                        const esDeOtro = c.preceptor_id && c.preceptor_id !== asignando.id;
+                        const textoModulos = (c.modulos ?? []).map((m) => m.nombre).join(" y ");
+
+                        return (
+                          <label
+                            key={c.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: "10px",
+                              padding: "10px",
+                              border: tildado ? "2px solid #0284c7" : "1px solid #cbd5e1",
+                              borderRadius: "8px",
+                              backgroundColor: tildado ? "#f0f9ff" : "#ffffff",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={tildado}
+                              onChange={() => alternarCurso(c.id)}
+                              style={{ marginTop: "3px", width: "16px", height: "16px" }}
+                            />
+                            <div>
+                              <strong style={{ fontSize: "0.95rem" }}>
+                                División {c.division}
+                              </strong>
+                              {textoModulos && (
+                                <span style={{ display: "block", fontSize: "0.82rem", color: "#475569" }}>
+                                  {textoModulos}
+                                </span>
+                              )}
+                              {esDeOtro && (
+                                <small style={{ color: "#d97706", display: "block", marginTop: "4px" }}>
+                                  A cargo de: {c.preceptor_apellido}, {c.preceptor_nombre}
+                                  {tildado ? " → reasignar" : ""}
+                                </small>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                );
+              })}
 
               {errorAsignar && (
                 <p className="mensaje-error" role="alert">
@@ -676,7 +725,7 @@ export function Preceptores() {
                   onClick={guardarAsignacion}
                   disabled={guardandoAsig}
                 >
-                  {guardandoAsig ? "Guardando..." : "Guardar cursos"}
+                  {guardandoAsig ? "Guardando..." : "Guardar asignación"}
                 </button>
               </div>
             </div>

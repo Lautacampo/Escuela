@@ -1,13 +1,26 @@
 import {pool} from "../../config/db.js"
 
-const SELECTgeneral=
-` SELECT prece.id, perso.nombre, perso.apellido, perso.dni, perso.cuil, perso.domicilio, perso.telefono, perso.email, pl.titulo, pl.antiguedad,
-  COALESCE((SELECT json_agg(json_build_object('id', c.id, 'anio', c.anio_curso, 'division', c.division) ORDER BY c.anio_curso, c.division)
-    FROM curso c WHERE c.preceptor_id = prece.id),'[]'::json) AS cursos
-    FROM preceptor prece
-    JOIN personal pl ON pl.id = prece.id
-    JOIN persona perso ON perso.id = pl.id`;
+const SELECTgeneral = `
+  SELECT  prece.id,  perso.nombre, perso.apellido,  perso.dni,  perso.cuil,  perso.domicilio,  perso.telefono,  perso.email,  pl.titulo,  pl.antiguedad,
+    COALESCE((
+      SELECT json_agg(json_build_object(
+        'id', c.id, 
+        'anio', c.anio_curso, 
+        'division', c.division,
+        'modulos', (
+          SELECT json_agg(json_build_object('id', m.id, 'nombre', m.numero_leyenda) ORDER BY m.id)
+          FROM curso_modulo cm
+          JOIN modulo m ON m.id = cm.modulo_id
+          WHERE cm.curso_id = c.id
+        )
+      ) ORDER BY c.anio_curso, c.division)
+      FROM curso c WHERE c.preceptor_id = prece.id
+    ), '[]'::json) AS cursos
+  FROM preceptor prece
+  JOIN personal pl ON pl.id = prece.id
+  JOIN persona perso ON perso.id = pl.id
 
+`;
 
 
 export const listarTodos = async() =>{
@@ -91,7 +104,15 @@ export const eliminarPreceptor = async (id) =>{
     const cliente = await pool.connect();
     try{
         await cliente.query("BEGIN");
+        //primero lo desvinculamos de la asignacion que tiene 
+        await cliente.query("UPDATE curso SET preceptor_id = NULL WHERE preceptor_id = $1",[id]);
+        await cliente.query("UPDATE usuarios SET persona_id = NULL WHERE persona_id = $1", [id]);
+
+        
         //borrar va desde prece a persona por las claves foraneas
+
+
+
         await cliente.query("DELETE FROM preceptor WHERE id=$1", [id]);
         await cliente.query("DELETE FROM personal WHERE id=$1", [id]);
         await cliente.query("DELETE FROM persona WHERE id=$1", [id]);
@@ -110,11 +131,19 @@ export const eliminarPreceptor = async (id) =>{
 
 export const listarCursos = async()=>{
     const {rows} = await pool.query(
-        `SELECT c.id,c.anio_curso,c.division,c.preceptor_id,p.apellido AS preceptor_apellido, p.nombre AS preceptor_nombre
-        FROM curso c 
-        LEFT JOIN persona p ON p.id = c.preceptor_id
-        ORDER BY c.anio_curso, c.division 
-        `,
+        `SELECT c.id, c.anio_curso, c.division, c.preceptor_id, p.apellido AS preceptor_apellido, p.nombre AS preceptor_nombre,
+        COALESCE(
+          (
+            SELECT json_agg(json_build_object('id', m.id, 'nombre', m.numero_leyenda) ORDER BY m.id)
+            FROM curso_modulo cm
+            JOIN modulo m ON m.id = cm.modulo_id
+            WHERE cm.curso_id = c.id
+          ),
+          '[]'::json
+        ) AS modulos
+     FROM curso c 
+     LEFT JOIN persona p ON p.id = c.preceptor_id
+     ORDER BY c.anio_curso, c.division`,
     );
     return rows;
 }

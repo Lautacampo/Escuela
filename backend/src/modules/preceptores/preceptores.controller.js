@@ -39,7 +39,7 @@ export const eliminar = async (req,res,next) =>{
     try{
         const id = Number(req.params.id);
         await service.eliminar(id);
-        res.status(204).send();
+        res.status(200).json({mensaje:"Preceptor eliminado correctamente"});
     }catch(err){
         next(err);
     }
