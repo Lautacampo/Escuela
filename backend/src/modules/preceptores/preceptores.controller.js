@@ -43,5 +43,21 @@ export const eliminar = async (req,res,next) =>{
     }catch(err){
         next(err);
     }
+};
 
-}
+export const listarCursos = async (req,res,next) => {
+    try{
+        res.json(await service.listaCursos());
+    }catch(err){
+        next(err);
+    }
+};
+
+export const asignarCursos = async (req,res,next) =>{
+    try{
+       const id = Number(req.params.id)
+       res.json (await service.asignarCurso(id,req.body?.cursoIds));
+    }catch(err){
+        next(err);
+    }
+};

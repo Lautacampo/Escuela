@@ -20,7 +20,8 @@ export const crear = async (datos) =>{
       throw new HttpError(400,"Faltan datos Obligatorios (nombre,apellido,dni,cuil,domicilio,titulo,antiguedad)");
     }
 
-    return await repo.crearPreceptor({nombre,apellido,dni,cuil,domicilio,telefono,email,titulo,antiguedad});
+    const nuevo = await repo.crearPreceptor({nombre,apellido,dni,cuil,domicilio,telefono,email,titulo,antiguedad});
+    return repo.buscarPorId(nuevo.id);
 
 };
 
@@ -36,7 +37,8 @@ export const actualizar = async (id, datos) => {
     throw new HttpError(400, "Faltan datos obligatorios para actualizar");
   }
 
-  return await repo.modificarPreceptor(id, { nombre, apellido, dni, cuil, domicilio, telefono, email, titulo, antiguedad });
+   await repo.modificarPreceptor(id, { nombre, apellido, dni, cuil, domicilio, telefono, email, titulo, antiguedad });
+   return repo.buscarPorId(id);
 };
 
 
@@ -49,6 +51,22 @@ export const eliminar = async (id) =>{
     return await repo.eliminarPreceptor(id);
 }
 
+//cursos del preceptor
+export const listaCursos = async () => repo.listarCursos();
 
+export const asignarCurso = async (id, cursoIdS) => {
+  if(!Number.isInteger(id)) throw new HttpError(400, "ID invalido");
+  if(!Array.isArray(cursoIdS) || !cursoIdS.every(Number.isInteger)){
+    throw new HttpError (400, "Id de los cursos debe ser una lista");
+  }
 
+  const ids = [...new Set(cursoIdS)];
+  if(!(await repo.buscarPorId(id))) throw new HttpError (404, "Preceptor no encontrado");
+  if((await repo.contadorCursos(ids)) !== ids.length){
+    throw new HttpError(404,"Alguno de los cursos no existe");
+  }
 
+  await repo.asignarCurso(id,ids);
+  return repo.buscarPorId(id);
+
+};

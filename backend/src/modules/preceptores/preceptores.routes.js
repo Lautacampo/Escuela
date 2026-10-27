@@ -8,9 +8,11 @@ const router = Router();
 router.use(verificarToken, permitirRoles("directivo"));
 
 router.get("/", controlador.listar);
+router.get("/cursos", controlador.listarCursos);
 router.get("/:id", controlador.obtenerPorId);
 router.post("/", controlador.crear);
 router.put("/:id", controlador.actualizar);
+router.put("/:id/cursos",controlador.asignarCursos);
 router.delete("/:id", controlador.eliminar);
 
 export default router;

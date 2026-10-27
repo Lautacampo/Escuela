@@ -1,30 +1,27 @@
 import {pool} from "../../config/db.js"
 
+const SELECTgeneral=
+` SELECT prece.id, perso.nombre, perso.apellido, perso.dni, perso.cuil, perso.domicilio, perso.telefono, perso.email, pl.titulo, pl.antiguedad,
+  COALESCE((SELECT json_agg(json_build_object('id', c.id, 'anio', c.anio_curso, 'division', c.division) ORDER BY c.anio_curso, c.division)
+    FROM curso c WHERE c.preceptor_id = prece.id),'[]'::json) AS cursos
+    FROM preceptor prece
+    JOIN personal pl ON pl.id = prece.id
+    JOIN persona perso ON perso.id = pl.id`;
+
+
+
 export const listarTodos = async() =>{
     const{rows} = await pool.query(
-        `SELECT prece.id, perso.nombre, perso.apellido, perso.dni, perso.cuil, perso.domicilio, perso.telefono, perso.email, pl.titulo, pl.antiguedad 
-         FROM preceptor prece   
-         JOIN personal pl ON prece.id=pl.id
-         JOIN persona perso ON pl.id=perso.id
-         ORDER BY perso.apellido, perso.nombre
-        `);
+        `${SELECTgeneral} ORDER BY perso.apellido, perso.nombre`);
         return rows;
 };
 
 
 export const buscarPorId = async (id) =>{
-    const{rows} =await pool.query(
-        `SELECT prece.id, perso.nombre, perso.apellido, perso.dni, perso.cuil, perso.domicilio, perso.telefono, perso.email, pl.titulo, pl.antiguedad
-         FROM preceptor prece
-         JOIN personal pl ON prece.id=pl.id
-         JOIN persona perso ON pl.id=perso.id
-         WHERE prece.id =$1        
-        `,[id]);
-
-        return rows [0] ?? null;
+    const{rows} =await pool.query(`${SELECTgeneral} WHERE prece.id=$1`,[id]);
+    return rows [0] ?? null;
 
 }
-
 
 export const crearPreceptor = async (datos) =>{
     const cliente = await pool.connect();
@@ -47,10 +44,7 @@ export const crearPreceptor = async (datos) =>{
         
         //ahora preceptor con el mismo id
 
-        await cliente.query(
-            `INSERT INTO preceptor(id)
-             VALUES($1)
-             `,[nuevoId]);
+        await cliente.query(`INSERT INTO preceptor(id) VALUES($1)`,[nuevoId]);
 
         await cliente.query("COMMIT");
         return{id: nuevoId, ...datos};
@@ -112,3 +106,45 @@ export const eliminarPreceptor = async (id) =>{
 };
 
 
+// parte de cursos
+
+export const listarCursos = async()=>{
+    const {rows} = await pool.query(
+        `SELECT c.id,c.anio_curso,c.division,c.preceptor_id,p.apellido AS preceptor_apellido, p.nombre AS preceptor_nombre
+        FROM curso c 
+        LEFT JOIN persona p ON p.id = c.preceptor_id
+        ORDER BY c.anio_curso, c.division 
+        `,
+    );
+    return rows;
+}
+
+export const contadorCursos = async (cursosId) =>{
+    const {rows} = await pool.query(
+        "SELECT COUNT(*) ::int AS total FROM curso WHERE id = ANY($1::int[])",
+        [cursosId],
+    );
+    return rows[0].total;
+}
+
+export const asignarCurso = async (preceptorId, cursoIds) => {
+    const cliente = await pool.connect();
+    try {
+    await cliente.query("BEGIN");
+    await cliente.query(
+      `UPDATE curso SET preceptor_id = NULL
+        WHERE preceptor_id = $1 AND NOT (id = ANY($2::int[]))`,
+      [preceptorId, cursoIds],
+    );
+    await cliente.query(
+      "UPDATE curso SET preceptor_id = $1 WHERE id = ANY($2::int[])",
+      [preceptorId, cursoIds],
+    );
+    await cliente.query("COMMIT");
+  } catch (error) {
+    await cliente.query("ROLLBACK");
+    throw error;
+  } finally {
+    cliente.release();
+  }
+}
