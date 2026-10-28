@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env.js";
 import * as authRepository from "./auth.repository.js";
-import { HttpError } from "../../middlewares/httpError.js";
+import { HttpError } from "../../utils/httpError.js";
 
 const SALT_ROUNDS = 10;
 const ROLES_VALIDOS = ["directivo", "docente", "preceptor"];

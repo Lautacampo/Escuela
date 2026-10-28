@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { corsOptions } from "./config/cors.js";
-import authRoutes from "./routes/auth.routes.js";
+import authRoutes from "./modules/auth/auth.routes.js";
 import calificacionesRoutes from "./modules/calificaciones/calificaciones.routes.js";
 import asistenciasRoutes from "./modules/asistencias/asistencias.routes.js";
 import docentesRoutes from "./modules/docentes/docentes.routes.js";
