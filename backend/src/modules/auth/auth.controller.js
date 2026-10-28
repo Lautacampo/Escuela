@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { pool } from "../config/db.js";
-import { env } from "../config/env.js";
+import { pool } from "../../config/db.js";
+import { env } from "../../config/env.js";
 
 const SALT_ROUNDS = 10;
 const ROLES_VALIDOS = ["directivo", "docente", "preceptor"];
