@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env.js";
 import * as authRepository from "./auth.repository.js";
+import { HttpError } from "../../middlewares/httpError.js";
 
 const SALT_ROUNDS = 10;
 const ROLES_VALIDOS = ["directivo", "docente", "preceptor"];
@@ -10,7 +11,7 @@ export const autenticar = async (email, password) => {
   const usuario = await authRepository.buscarPorEmail(email);
   const coincide = usuario && usuario.activo && (await bcrypt.compare(password, usuario.contrahash));
 
-  if (!coincide) throw new Error("Credenciales inválidas");
+  if (!coincide) throw new HttpError(401,"Credenciales inválidas");
 
   const datos = {
     id: usuario.id,
@@ -26,10 +27,10 @@ export const autenticar = async (email, password) => {
 
 export const registrar = async ({ nombre, apellido, email, password, rol }) => {
   if (!ROLES_VALIDOS.includes(rol)) {
-    throw new Error("Rol inválido");
+    throw new HttpError(400,"Rol inválido");
   }
   if (password.length < 4) {
-    throw new Error("La contraseña es muy corta");
+    throw new HttpError(400,"La contraseña es muy corta");
   }
 
   const hash = await bcrypt.hash(password, SALT_ROUNDS);
