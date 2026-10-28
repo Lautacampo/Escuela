@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { env } from "./config/env.js";
-import authRoutes from "./routes/auth.routes.js";
+import authRoutes from "./modules/auth/auth.routes.js";
 import calificacionesRoutes from "./modules/calificaciones/calificaciones.routes.js";
 import preceptoresRoutes from "./modules/preceptores/preceptores.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
