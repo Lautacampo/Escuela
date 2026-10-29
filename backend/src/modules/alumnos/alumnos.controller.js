@@ -41,7 +41,7 @@ export const eliminar = async (req, res, next) => {
     }
 };
 
-export const matricular = async (req, res, next) => {
+export const crearCursada = async (req, res, next) => {
     try {
         res.status(201).json(await service.matricular(Number(req.params.id), req.body?? {}));
     } catch (err) {

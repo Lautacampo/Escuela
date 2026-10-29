@@ -10,8 +10,8 @@ router.use(verificarToken, permitirRoles("directivo"));
 router.get("/alumnos", controller.listar);
 router.get("/alumnos/:id", controller.obtener);
 router.post("/alumnos", controller.crear);
-router.delete("/alumnos/:id", controller.crear);
+router.delete("/alumnos/:id", controller.eliminar);
 router.put("/alumnos/:id", controller.actualizar);
-router.post("/:id/matricular", controller.matricular);
+router.post("/:id/cursadas", controller.crearCursada);
 
 export default router;
