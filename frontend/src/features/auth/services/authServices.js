@@ -1,23 +1,14 @@
 import { redirect } from "react-router";
+import { apiFetch } from "../../../shared/services/api.js";
 
-const API_AUTH = "http://localhost:4000/api/auth";
 const CLAVE = "sesion";
 const CLAVE_TOKEN = "token";
 
 export async function login(email, password) {
-  let res;
-  try {
-    res = await fetch(`${API_AUTH}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-  } catch {
-    throw new Error("No se pudo conectar con el servidor");
-  }
-
-  const datos = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(datos.error ?? "Error al iniciar sesión");
+  const datos = await apiFetch("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
 
   localStorage.setItem(CLAVE_TOKEN, datos.token);
   localStorage.setItem(CLAVE, JSON.stringify(datos.usuario));
@@ -40,7 +31,6 @@ export function getSesion() {
     return null;
   }
 }
-
 
 export const controlSesion = (roles) => () => {
   const usuario = getSesion();
