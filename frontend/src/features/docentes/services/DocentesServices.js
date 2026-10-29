@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000";
+const API_URL = "http://localhost:4000";
 
 export async function getModulos() {
   const res = await fetch(`${API_URL}/modulos`);
