@@ -1,5 +1,6 @@
 import * as authService from "./auth.service.js";
 
+// POST /api/auth/login
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body ?? {};
@@ -10,23 +11,25 @@ export const login = async (req, res, next) => {
     const resultado = await authService.autenticar(email, password);
     res.json(resultado);
   } catch (err) {
-    next(err); 
+    next(err);
   }
 };
 
+// POST /api/auth/registro
 export const registro = async (req, res, next) => {
   try {
     const { nombre, apellido, email, password, rol } = req.body ?? {};
 
     if (!nombre || !apellido || !email || !password || !rol) {
-      return res.status(400).json({ error: "Nombre, apellido, email, password y rol son obligatorios" });
+      return res.status(400).json({
+        error: "Nombre, apellido, email, password y rol son obligatorios",
+      });
     }
 
     const nuevoUsuario = await authService.registrar({ nombre, apellido, email, password, rol });
     res.status(201).json({ ...nuevoUsuario, rol });
-
   } catch (err) {
-    if (err.code === "23505") { 
+    if (err.code === "23505") {
       err.status = 409;
       err.message = "Ya existe un usuario con ese email";
     }
@@ -34,6 +37,7 @@ export const registro = async (req, res, next) => {
   }
 };
 
+// GET /api/auth/perfil (protegida)
 export const perfil = (req, res) => {
-  res.json(req.usuario); 
+  res.json(req.usuario);
 };

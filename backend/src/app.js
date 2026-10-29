@@ -6,6 +6,8 @@ import calificacionesRoutes from "./modules/calificaciones/calificaciones.routes
 import asistenciasRoutes from "./modules/asistencias/asistencias.routes.js";
 import docentesRoutes from "./modules/docentes/docentes.routes.js";
 import preceptoresRoutes from "./modules/preceptores/preceptores.routes.js";
+import cursosRoutes from "./modules/cursos/cursos.routes.js";
+import alumnosRoutes from "./modules/alumnos/alumnos.routes.js"
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -26,6 +28,8 @@ app.use("/api/calificaciones", calificacionesRoutes);
 app.use("/api/asistencias", asistenciasRoutes);
 app.use("/api/docentes", docentesRoutes);
 app.use("/api/preceptores", preceptoresRoutes);
+app.use("/api/cursos", cursosRoutes);
+app.use("/api/alumnos", alumnosRoutes);
 
 // 4. Respuesta 404 para rutas inexistentes
 app.use((req, res) => {

@@ -29,8 +29,9 @@ export const registrar = async ({ nombre, apellido, email, password, rol }) => {
   if (!ROLES_VALIDOS.includes(rol)) {
     throw new HttpError(400,"Rol inválido");
   }
-  if (password.length < 4) {
-    throw new HttpError(400,"La contraseña es muy corta");
+
+  if (typeof password !== "string" || password.length < 4) {
+    throw new HttpError(400,"La contraseña debe tener al menos 4 caracteres");
   }
 
   const hash = await bcrypt.hash(password, SALT_ROUNDS);
