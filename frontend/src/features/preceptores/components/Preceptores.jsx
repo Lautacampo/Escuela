@@ -5,6 +5,7 @@ import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
 import {
   getPreceptores,
   setPreceptor,
+  registrarUsuarioPreceptor,
   borrarPreceptor,
   getCursos,
   asignarCursos,
@@ -20,18 +21,46 @@ const PRECEPTOR_INICIAL = {
   domicilio: "",
   titulo: "",
   antiguedad: "",
+  password: "",
 };
 
 const CAMPOS = [
   { nombre: "nombre", etiqueta: "Nombre", tipo: "text", obligatorio: true },
   { nombre: "apellido", etiqueta: "Apellido", tipo: "text", obligatorio: true },
   { nombre: "dni", etiqueta: "DNI", tipo: "text", obligatorio: true },
-  { nombre: "cuil", etiqueta: "CUIL (ej: 20-12345678-9)", tipo: "text", obligatorio: true },
-  { nombre: "email", etiqueta: "Correo electrónico", tipo: "email", obligatorio: true },
+  {
+    nombre: "cuil",
+    etiqueta: "CUIL (ej: 20-12345678-9)",
+    tipo: "text",
+    obligatorio: true,
+  },
+  {
+    nombre: "email",
+    etiqueta: "Correo electrónico",
+    tipo: "email",
+    obligatorio: true,
+  },
   { nombre: "telefono", etiqueta: "Teléfono", tipo: "tel" },
-  { nombre: "domicilio", etiqueta: "Domicilio", tipo: "text", obligatorio: true },
+  {
+    nombre: "domicilio",
+    etiqueta: "Domicilio",
+    tipo: "text",
+    obligatorio: true,
+  },
   { nombre: "titulo", etiqueta: "Título", tipo: "text", obligatorio: true },
-  { nombre: "antiguedad", etiqueta: "Antigüedad (años)", tipo: "number", obligatorio: true },
+  {
+    nombre: "antiguedad",
+    etiqueta: "Antigüedad (años)",
+    tipo: "number",
+    obligatorio: true,
+  },
+  {
+    nombre: "password",
+    etiqueta: "Contraseña de acceso (mín. 4 caracteres)",
+    tipo: "password",
+    obligatorio: true,
+    soloAlta: true,
+  },
 ];
 
 const FILAS_CAMPOS = [
@@ -39,7 +68,7 @@ const FILAS_CAMPOS = [
   CAMPOS.slice(2, 4),
   CAMPOS.slice(4, 6),
   CAMPOS.slice(6, 8),
-  CAMPOS.slice(8),
+  CAMPOS.slice(8, 10),
 ];
 
 const NOMBRES_ANIOS = {
@@ -124,7 +153,9 @@ export function Preceptores() {
 
   function abrirFormulario(preceptor = null) {
     setEditando(preceptor?.id ?? null);
-    setValores(preceptor ? aValoresFormulario(preceptor) : { ...PRECEPTOR_INICIAL });
+    setValores(
+      preceptor ? aValoresFormulario(preceptor) : { ...PRECEPTOR_INICIAL },
+    );
     setErrores({});
     setMensaje("");
     setErrorGuardar("");
@@ -173,14 +204,17 @@ export function Preceptores() {
     const dni = valores.dni.trim();
     const cuil = valores.cuil.trim();
 
-    if (!valores.nombre.trim()) nuevosErrores.nombre = "Debe ingresar el nombre.";
-    if (!valores.apellido.trim()) nuevosErrores.apellido = "Debe ingresar el apellido.";
+    if (!valores.nombre.trim())
+      nuevosErrores.nombre = "Debe ingresar el nombre.";
+    if (!valores.apellido.trim())
+      nuevosErrores.apellido = "Debe ingresar el apellido.";
 
     if (!/^\d{7,8}$/.test(dni) || !esDniValido(dni)) {
       nuevosErrores.dni = "Debe ingresar un DNI de 7 u 8 números, sin puntos.";
     } else if (
       preceptores.some(
-        (preceptor) => String(preceptor.dni) === dni && preceptor.id !== editando,
+        (preceptor) =>
+          String(preceptor.dni) === dni && preceptor.id !== editando,
       )
     ) {
       nuevosErrores.dni = "Ya existe un preceptor con ese DNI.";
@@ -191,15 +225,31 @@ export function Preceptores() {
     }
 
     if (!esEmailValido(valores.email)) {
-      nuevosErrores.email = "El formato del correo electrónico ingresado no es válido.";
+      nuevosErrores.email =
+        "El formato del correo electrónico ingresado no es válido.";
     }
 
-    if (!valores.domicilio.trim()) nuevosErrores.domicilio = "Debe ingresar el domicilio.";
-    if (!valores.titulo.trim()) nuevosErrores.titulo = "Debe ingresar el título.";
+    if (!valores.domicilio.trim())
+      nuevosErrores.domicilio = "Debe ingresar el domicilio.";
+    if (!valores.titulo.trim())
+      nuevosErrores.titulo = "Debe ingresar el título.";
 
     const antiguedad = Number(valores.antiguedad);
-    if (valores.antiguedad === "" || !Number.isInteger(antiguedad) || antiguedad < 0) {
-      nuevosErrores.antiguedad = "Ingrese la antigüedad en años (número entero, 0 o más).";
+    if (
+      valores.antiguedad === "" ||
+      !Number.isInteger(antiguedad) ||
+      antiguedad < 0
+    ) {
+      nuevosErrores.antiguedad =
+        "Ingrese la antigüedad en años (número entero, 0 o más).";
+    }
+
+    if (
+      editando === null &&
+      (!valores.password || valores.password.length < 4)
+    ) {
+      nuevosErrores.password =
+        "Debe ingresar una contraseña de al menos 4 caracteres.";
     }
 
     setErrores(nuevosErrores);
@@ -222,6 +272,16 @@ export function Preceptores() {
       setErrorGuardar("");
       setGuardando(true);
 
+      // Si es un alta nueva, registramos primero su usuario con rol "preceptor" en /api/auth/registro
+      if (editando === null) {
+        await registrarUsuarioPreceptor({
+          nombre: preceptorPreparado.nombre,
+          apellido: preceptorPreparado.apellido,
+          email: preceptorPreparado.email,
+          password: valores.password,
+        });
+      }
+
       const guardado = await setPreceptor(preceptorPreparado);
 
       setPreceptores((anteriores) =>
@@ -233,7 +293,7 @@ export function Preceptores() {
       setMensaje(
         editando !== null
           ? "Datos del preceptor actualizados."
-          : "Preceptor registrado correctamente.",
+          : "Preceptor y usuario de acceso registrados correctamente.",
       );
 
       limpiarFiltros();
@@ -285,7 +345,9 @@ export function Preceptores() {
       const [p, c] = await Promise.all([getPreceptores(), getCursos()]);
       setPreceptores(p);
       setCursos(c);
-      setMensaje(`Cursos de ${asignando.apellido}, ${asignando.nombre} actualizados.`);
+      setMensaje(
+        `Cursos de ${asignando.apellido}, ${asignando.nombre} actualizados.`,
+      );
       setAsignando(null);
     } catch (e) {
       setErrorAsignar(e.message);
@@ -354,7 +416,11 @@ export function Preceptores() {
             />
           </div>
 
-          <button type="button" className="btn-secundario" onClick={limpiarFiltros}>
+          <button
+            type="button"
+            className="btn-secundario"
+            onClick={limpiarFiltros}
+          >
             Limpiar
           </button>
         </div>
@@ -388,7 +454,9 @@ export function Preceptores() {
                         {formatearDNI(preceptor.dni)}
                       </span>
                       <span>
-                        <span className="personal-contacto-etiqueta">CUIL:</span>{" "}
+                        <span className="personal-contacto-etiqueta">
+                          CUIL:
+                        </span>{" "}
                         {preceptor.cuil}
                       </span>
                     </div>
@@ -397,15 +465,21 @@ export function Preceptores() {
                   <td>
                     <div className="personal-contacto">
                       <span>
-                        <span className="personal-contacto-etiqueta">Correo:</span>{" "}
+                        <span className="personal-contacto-etiqueta">
+                          Correo:
+                        </span>{" "}
                         {preceptor.email || "Sin correo"}
                       </span>
                       <span>
-                        <span className="personal-contacto-etiqueta">Teléfono:</span>{" "}
+                        <span className="personal-contacto-etiqueta">
+                          Teléfono:
+                        </span>{" "}
                         {preceptor.telefono || "Sin teléfono"}
                       </span>
                       <span>
-                        <span className="personal-contacto-etiqueta">Domicilio:</span>{" "}
+                        <span className="personal-contacto-etiqueta">
+                          Domicilio:
+                        </span>{" "}
                         {preceptor.domicilio}
                       </span>
                     </div>
@@ -414,11 +488,15 @@ export function Preceptores() {
                   <td>
                     <div className="personal-contacto">
                       <span>
-                        <span className="personal-contacto-etiqueta">Título:</span>{" "}
+                        <span className="personal-contacto-etiqueta">
+                          Título:
+                        </span>{" "}
                         {preceptor.titulo}
                       </span>
                       <span>
-                        <span className="personal-contacto-etiqueta">Antigüedad:</span>{" "}
+                        <span className="personal-contacto-etiqueta">
+                          Antigüedad:
+                        </span>{" "}
                         {preceptor.antiguedad}{" "}
                         {Number(preceptor.antiguedad) === 1 ? "año" : "años"}
                       </span>
@@ -502,9 +580,11 @@ export function Preceptores() {
             <div className="modal-alumno-header">
               <div>
                 <h2 id="titulo-formulario-preceptor">
-                  {editando !== null ? "Editar preceptor" : "Registrar preceptor"}
+                  {editando !== null
+                    ? "Editar preceptor"
+                    : "Registrar preceptor"}
                 </h2>
-                <p>Complete los datos personales y laborales.</p>
+                <p>Complete los datos personales, laborales y de acceso.</p>
               </div>
 
               <button
@@ -517,57 +597,65 @@ export function Preceptores() {
               </button>
             </div>
 
-            <form className="form-gestion" onSubmit={guardarPreceptor} noValidate>
+            <form
+              className="form-gestion"
+              onSubmit={guardarPreceptor}
+              noValidate
+            >
               <fieldset>
                 <legend>Datos del preceptor</legend>
 
                 {FILAS_CAMPOS.map((fila) => (
                   <div className="form-row" key={fila[0].nombre}>
-                    {fila.map((campo) => (
-                      <div className="form-group" key={campo.nombre}>
-                        <label htmlFor={`preceptor-${campo.nombre}`}>
-                          {campo.etiqueta}
-                          {campo.obligatorio && " *"}
-                        </label>
+                    {fila
+                      .filter((campo) => !campo.soloAlta || editando === null)
+                      .map((campo) => (
+                        <div className="form-group" key={campo.nombre}>
+                          <label htmlFor={`preceptor-${campo.nombre}`}>
+                            {campo.etiqueta}
+                            {campo.obligatorio && " *"}
+                          </label>
 
-                        <input
-                          id={`preceptor-${campo.nombre}`}
-                          name={campo.nombre}
-                          type={campo.tipo}
-                          value={valores[campo.nombre]}
-                          onChange={manejarCambio}
-                          required={campo.obligatorio}
-                          inputMode={campo.nombre === "dni" ? "numeric" : undefined}
-                          maxLength={
-                            campo.nombre === "dni"
-                              ? 8
-                              : campo.nombre === "cuil"
-                                ? 15
+                          <input
+                            id={`preceptor-${campo.nombre}`}
+                            name={campo.nombre}
+                            type={campo.tipo}
+                            value={valores[campo.nombre]}
+                            onChange={manejarCambio}
+                            required={campo.obligatorio}
+                            inputMode={
+                              campo.nombre === "dni" ? "numeric" : undefined
+                            }
+                            maxLength={
+                              campo.nombre === "dni"
+                                ? 8
+                                : campo.nombre === "cuil"
+                                  ? 15
+                                  : undefined
+                            }
+                            min={campo.nombre === "antiguedad" ? 0 : undefined}
+                            className={`input-gestion ${
+                              errores[campo.nombre] ? "input-error" : ""
+                            }`}
+                            aria-invalid={Boolean(errores[campo.nombre])}
+                            aria-describedby={
+                              errores[campo.nombre]
+                                ? `preceptor-error-${campo.nombre}`
                                 : undefined
-                          }
-                          min={campo.nombre === "antiguedad" ? 0 : undefined}
-                          className={`input-gestion ${
-                            errores[campo.nombre] ? "input-error" : ""
-                          }`}
-                          aria-invalid={Boolean(errores[campo.nombre])}
-                          aria-describedby={
-                            errores[campo.nombre]
-                              ? `preceptor-error-${campo.nombre}`
-                              : undefined
-                          }
-                        />
+                            }
+                          />
 
-                        {errores[campo.nombre] && (
-                          <span
-                            id={`preceptor-error-${campo.nombre}`}
-                            className="mensaje-error"
-                            role="alert"
-                          >
-                            {errores[campo.nombre]}
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                          {errores[campo.nombre] && (
+                            <span
+                              id={`preceptor-error-${campo.nombre}`}
+                              className="mensaje-error"
+                              role="alert"
+                            >
+                              {errores[campo.nombre]}
+                            </span>
+                          )}
+                        </div>
+                      ))}
                   </div>
                 ))}
               </fieldset>
@@ -644,21 +732,39 @@ export function Preceptores() {
               {Object.entries(cursosPorAnio).map(([anio, cursosDelAnio]) => {
                 const modulosAnio = Array.from(
                   new Set(
-                    cursosDelAnio.flatMap((c) => (c.modulos ?? []).map((m) => m.nombre))
-                  )
+                    cursosDelAnio.flatMap((c) =>
+                      (c.modulos ?? []).map((m) => m.nombre),
+                    ),
+                  ),
                 ).join(" y ");
 
                 return (
                   <fieldset key={anio} style={{ marginBottom: "20px" }}>
-                    <legend style={{ fontSize: "1.1rem", fontWeight: "bold", color: "#0369a1" }}>
-                      {NOMBRES_ANIOS[anio] ?? `${anio}.º Año`} {modulosAnio ? `(${modulosAnio})` : ""}
+                    <legend
+                      style={{
+                        fontSize: "1.1rem",
+                        fontWeight: "bold",
+                        color: "#0369a1",
+                      }}
+                    >
+                      {NOMBRES_ANIOS[anio] ?? `${anio}.º Año`}{" "}
+                      {modulosAnio ? `(${modulosAnio})` : ""}
                     </legend>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, 1fr)",
+                        gap: "12px",
+                      }}
+                    >
                       {cursosDelAnio.map((c) => {
                         const tildado = seleccion.includes(c.id);
-                        const esDeOtro = c.preceptor_id && c.preceptor_id !== asignando.id;
-                        const textoModulos = (c.modulos ?? []).map((m) => m.nombre).join(" y ");
+                        const esDeOtro =
+                          c.preceptor_id && c.preceptor_id !== asignando.id;
+                        const textoModulos = (c.modulos ?? [])
+                          .map((m) => m.nombre)
+                          .join(" y ");
 
                         return (
                           <label
@@ -668,7 +774,9 @@ export function Preceptores() {
                               alignItems: "flex-start",
                               gap: "10px",
                               padding: "10px",
-                              border: tildado ? "2px solid #0284c7" : "1px solid #cbd5e1",
+                              border: tildado
+                                ? "2px solid #0284c7"
+                                : "1px solid #cbd5e1",
                               borderRadius: "8px",
                               backgroundColor: tildado ? "#f0f9ff" : "#ffffff",
                               cursor: "pointer",
@@ -678,20 +786,37 @@ export function Preceptores() {
                               type="checkbox"
                               checked={tildado}
                               onChange={() => alternarCurso(c.id)}
-                              style={{ marginTop: "3px", width: "16px", height: "16px" }}
+                              style={{
+                                marginTop: "3px",
+                                width: "16px",
+                                height: "16px",
+                              }}
                             />
                             <div>
                               <strong style={{ fontSize: "0.95rem" }}>
                                 División {c.division}
                               </strong>
                               {textoModulos && (
-                                <span style={{ display: "block", fontSize: "0.82rem", color: "#475569" }}>
+                                <span
+                                  style={{
+                                    display: "block",
+                                    fontSize: "0.82rem",
+                                    color: "#475569",
+                                  }}
+                                >
                                   {textoModulos}
                                 </span>
                               )}
                               {esDeOtro && (
-                                <small style={{ color: "#d97706", display: "block", marginTop: "4px" }}>
-                                  A cargo de: {c.preceptor_apellido}, {c.preceptor_nombre}
+                                <small
+                                  style={{
+                                    color: "#d97706",
+                                    display: "block",
+                                    marginTop: "4px",
+                                  }}
+                                >
+                                  A cargo de: {c.preceptor_apellido},{" "}
+                                  {c.preceptor_nombre}
                                   {tildado ? " → reasignar" : ""}
                                 </small>
                               )}
