@@ -1,4 +1,4 @@
-import { HttpError } from "../../utils/httpError";
+import { HttpError } from "../../utils/httpError.js";
 import * as repo from "./alumnos.repository.js";
 
 export const REQUERIDOS = ["nombre", "apellido", "cuil", "domicilio", "lugarNacimiento", "telefonoEmergencia"];
@@ -95,6 +95,7 @@ const armar = async (filas) => {
             trabaja: f.trabaja,
             telefonoEmergencia: f.telefono_emergencia,
             cantidadHijos: f.cantidad_hijos,
+            cursadaModuloId: actual?.idCursada ?? null,
             cursoId: actual?.cursoId ?? null,
             curso: actual?.anioCurso ?? null,
             division: actual?.division ?? null,
@@ -116,7 +117,7 @@ const buscarOFallar = async (id) => {
 
 export const listar = async () => armar(await repo.listarAlumnos());
 
-export const obtener = async () => (await armar([await buscarOFallar(id)]))[0];
+export const obtener = async (id) => (await armar([await buscarOFallar(id)]))[0];
 
 export const crear = async (body) => {
     const datos = validar(body);

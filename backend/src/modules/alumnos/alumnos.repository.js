@@ -3,7 +3,7 @@ import { pool } from "../../config/db.js";
 const SELECT_ALUMNO = `
     SELECT p.id, p.nombre, p.apellido, p.dni, p.cuil, p.domicilio,
         p.telefono, p.email, to_char(a.fecha_nacimiento, 'YYYY-MM-DD') AS fecha_nacimiento,
-        a.lugar_nacimiento, a.trabaja, a.telefono_emergencia, a.cant_hijos
+        a.lugar_nacimiento, a.trabaja, a.telefono_emergencia, a.cantidad_hijos
     FROM alumno a
     JOIN persona p ON p.id = a.id
 `;
@@ -42,6 +42,7 @@ export const listarCursadas = async (alumnoIds) => {
                c.anio_curso, c.division, cl.anio AS ciclo_anio
         FROM cursada_modulo cm
         JOIN modulo m ON m.id = cm.modulo_id
+        JOIN curso c ON c.id = cm.curso_id
         JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
         WHERE cm.alumno_id = ANY($1::int[])
         ORDER BY cl.anio, m.id, cm.id

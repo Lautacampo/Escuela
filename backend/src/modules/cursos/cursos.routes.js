@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as controller from "./cursos.controller.js";
 import { verificarToken } from "../../middlewares/verificarToken.js";
-import { permitirRoles } from "../../middlewares/permitirRoles";
+import { permitirRoles } from "../../middlewares/permitirRoles.js";
 
 const router = Router();
 
