@@ -1,6 +1,6 @@
 import { getToken, logout } from "../../features/auth/services/authServices";
 
-const API = "http://localhost:4000/api";
+const API = "http://localhost:8080/api";
 
 export async function apiFetch(path, options = {}) {
   const token = getToken();
@@ -25,7 +25,25 @@ export async function apiFetch(path, options = {}) {
     throw new Error("Sesión vencida");
   }
 
-  const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error ?? "Error en la solicitud");
+  const responseText = await res.text();
+  let data = null;
+  if (responseText) {
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      // Successful non-JSON responses keep returning null.
+    }
+  }
+
+  if (!res.ok) {
+    const message =
+      data?.detail ??
+      data?.message ??
+      data?.error ??
+      data?.title ??
+      responseText;
+    throw new Error(message || "Error en la solicitud");
+  }
+
   return data;
 }
