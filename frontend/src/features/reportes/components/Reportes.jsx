@@ -1,161 +1,55 @@
-import { useState } from "react";
-
-const ALERTAS_EJEMPLO = [
-  {
-    id: 1,
-    nombre: "Juan Pérez",
-    curso: "1",
-    division: "A",
-    faltas: 28,
-  },
-  {
-    id: 2,
-    nombre: "Lucía Gómez",
-    curso: "1",
-    division: "A",
-    faltas: 25,
-  },
-  {
-    id: 3,
-    nombre: "Martín López",
-    curso: "1",
-    division: "B",
-    faltas: 26,
-  },
-  {
-    id: 4,
-    nombre: "Camila Torres",
-    curso: "2",
-    division: "B",
-    faltas: 30,
-  },
-  {
-    id: 5,
-    nombre: "Sofía Fernández",
-    curso: "2",
-    division: "B",
-    faltas: 25,
-  },
-  {
-    id: 6,
-    nombre: "Nicolás Díaz",
-    curso: "3",
-    division: "C",
-    faltas: 27,
-  },
-];
-
-const MATERIAS_EJEMPLO = [
-  {
-    id: 1,
-    materia: "Matemática",
-    curso: "1",
-    division: "A",
-    evaluados: 30,
-    desaprobados: 18,
-    porcentaje: 60,
-  },
-  {
-    id: 2,
-    materia: "Lengua",
-    curso: "1",
-    division: "A",
-    evaluados: 30,
-    desaprobados: 15,
-    porcentaje: 50,
-  },
-  {
-    id: 3,
-    materia: "Matemática",
-    curso: "2",
-    division: "B",
-    evaluados: 28,
-    desaprobados: 14,
-    porcentaje: 50,
-  },
-  {
-    id: 4,
-    materia: "Lengua Extranjera: Inglés",
-    curso: "1",
-    division: "A",
-    evaluados: 30,
-    desaprobados: 12,
-    porcentaje: 40,
-  },
-  {
-    id: 5,
-    materia: "Lengua Extranjera: Inglés",
-    curso: "3",
-    division: "C",
-    evaluados: 20,
-    desaprobados: 8,
-    porcentaje: 40,
-  },
-  {
-    id: 6,
-    materia: "Informática",
-    curso: "1",
-    division: "A",
-    evaluados: 30,
-    desaprobados: 9,
-    porcentaje: 30,
-  },
-  {
-    id: 7,
-    materia: "Física",
-    curso: "3",
-    division: "C",
-    evaluados: 20,
-    desaprobados: 6,
-    porcentaje: 30,
-  },
-  {
-    id: 8,
-    materia: "Lengua y Literatura",
-    curso: "2",
-    division: "B",
-    evaluados: 28,
-    desaprobados: 7,
-    porcentaje: 25,
-  },
-  {
-    id: 9,
-    materia: "Química",
-    curso: "2",
-    division: "B",
-    evaluados: 28,
-    desaprobados: 7,
-    porcentaje: 25,
-  },
-  {
-    id: 10,
-    materia: "Biología",
-    curso: "1",
-    division: "A",
-    evaluados: 30,
-    desaprobados: 6,
-    porcentaje: 20,
-  },
-];
+import { useEffect, useState } from "react";
+import {
+  getReporteInasistencias,
+  getReporteDesaprobaciones,
+} from "../services/reportesService.js";
 
 export function Reportes() {
   const [curso, setCurso] = useState("");
   const [division, setDivision] = useState("");
+  const [alertas, setAlertas] = useState([]);
+  const [materias, setMaterias] = useState([]);
+  const [umbral, setUmbral] = useState(25);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let activo = true;
+    Promise.all([getReporteInasistencias(), getReporteDesaprobaciones()])
+      .then(([resInasistencias, resDesaprobaciones]) => {
+        if (!activo) return;
+        setAlertas(resInasistencias?.alertas ?? []);
+        setUmbral(resInasistencias?.umbralFaltas ?? 25);
+        setMaterias(resDesaprobaciones?.resultados ?? []);
+      })
+      .catch((err) => {
+        if (activo) setError(err.message);
+      })
+      .finally(() => {
+        if (activo) setCargando(false);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const divisiones = curso === "3" ? ["A", "B", "C"] : ["A", "B", "C", "D"];
 
-  // Solo filtra lo que se muestra en pantalla.
   const coincideConFiltros = (registro) =>
-    (!curso || registro.curso === curso) &&
-    (!division || registro.division === division);
+    (!curso || String(registro.curso) === String(curso)) &&
+    (!division || String(registro.division).trim() === String(division));
 
-  const alertasVisibles = ALERTAS_EJEMPLO.filter(coincideConFiltros);
-  const materiasVisibles = MATERIAS_EJEMPLO.filter(coincideConFiltros);
+  const alertasVisibles = alertas.filter(coincideConFiltros);
+  const materiasVisibles = materias.filter(coincideConFiltros);
 
   function limpiarFiltros() {
     setCurso("");
     setDivision("");
   }
+
+  if (cargando) return <p>Cargando reportes estadísticos...</p>;
+  if (error) return <p role="alert">{error}</p>;
 
   return (
     <div className="reportes-panel">
@@ -171,11 +65,6 @@ export function Reportes() {
 
         <span className="rep-ciclo">Ciclo lectivo 2026</span>
       </header>
-
-      <p className="rep-demo">
-        <i className="fa-solid fa-circle-info" aria-hidden="true" />
-        Vista de ejemplo: los nombres y las cifras son ficticios.
-      </p>
 
       {/* FILTROS COMPARTIDOS */}
       <div
@@ -235,12 +124,12 @@ export function Reportes() {
 
             <div>
               <h2>Alertas de inasistencias</h2>
-              <p>Alumnos que alcanzaron o superaron las 25 faltas.</p>
+              <p>Alumnos que alcanzaron o superaron las {umbral} faltas.</p>
             </div>
           </div>
 
           <span className="rep-etiqueta rep-etiqueta-alerta">
-            Umbral: 25 faltas
+            Umbral: {umbral} faltas
           </span>
         </div>
 
@@ -282,7 +171,7 @@ export function Reportes() {
                         className="fa-solid fa-circle-exclamation"
                         aria-hidden="true"
                       />
-                      Umbral alcanzado
+                      Umbral alcanzado ({alumno.condicion})
                     </span>
                   </td>
                 </tr>
@@ -291,7 +180,8 @@ export function Reportes() {
               {alertasVisibles.length === 0 && (
                 <tr>
                   <td colSpan={5} className="rep-vacio">
-                    No hay alertas en los datos de ejemplo para estos filtros.
+                    No hay alumnos que superen el límite de inasistencias para
+                    estos filtros.
                   </td>
                 </tr>
               )}
@@ -320,7 +210,8 @@ export function Reportes() {
         </div>
 
         <p className="rep-periodo">
-          Primer cuatrimestre de 2026 · Módulos I, III y V.
+          Estadísticas calculadas sobre las calificaciones registradas en la
+          base de datos.
         </p>
 
         <div
@@ -367,7 +258,7 @@ export function Reportes() {
               {materiasVisibles.length === 0 && (
                 <tr>
                   <td colSpan={6} className="rep-vacio">
-                    No hay resultados de ejemplo para estos filtros.
+                    No hay calificaciones registradas para estos filtros.
                   </td>
                 </tr>
               )}
@@ -385,3 +276,4 @@ export function Reportes() {
     </div>
   );
 }
+
