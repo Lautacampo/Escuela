@@ -12,6 +12,7 @@ const ITEMS = [
   { to: "/gestion/asistencia", label: "Carga de Asistencia", icono: "fa-clipboard-check", roles: [DIRECTIVO, PRECEPTOR] },
   { to: "/gestion/calificaciones", label: "Calificaciones", icono: "fa-graduation-cap", roles: [DIRECTIVO, DOCENTE] },
   { to: "/gestion/plan-estudios", label: "Plan de Estudios", icono: "fa-book-open", roles: [DIRECTIVO] },
+  {to: "/gestion/materia",label: "Consultar Materia",icono: "fa-book",roles: [DIRECTIVO]},
   { to: "/gestion/reportes", label: "Reportes", icono: "fa-chart-column", roles: [DIRECTIVO] },
 ];
 
