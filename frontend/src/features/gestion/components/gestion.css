@@ -1127,6 +1127,19 @@ body:has(.contenedor-dashboard) {
   font-size: 0.85rem;
 }
 
+.ficha-materias-pendientes li {
+  margin-top: 5px;
+  color: #664400;
+}
+
+.ficha-materias-pendientes li::marker {
+  color: #b77900;
+}
+
+.ficha-materias-pendientes li strong {
+  color: #523700;
+}
+
 /* ---------- SIN ALUMNO ---------- */
 
 .ficha-no-encontrada {
@@ -2362,13 +2375,27 @@ body:has(.contenedor-dashboard) {
 .ficha-evaluacion-guardada {
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-start;
   margin-top: 16px;
   padding: 12px 14px;
-  border: 1px solid #a7f3d0;
+  border: 1px solid #86c7ff;
   border-radius: var(--gestion-radio);
-  background: #ecfdf5;
-  color: #065f46;
+  background: #eff6ff;
+  color: #173b70;
+}
+
+.ficha-evaluacion-guardada > i {
+  margin-top: 3px;
+  color: #1769aa;
+}
+
+.ficha-evaluacion-guardada p {
+  margin: 4px 0 0;
+  color: #294b75;
+}
+
+.ficha-evaluacion-guardada strong {
+  color: #12345e;
 }
 
 @media (max-width: 700px) {
