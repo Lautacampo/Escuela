@@ -13,7 +13,8 @@ export function CalificacionesTarjetas({ modulo, esDocente }) {
       )}
       <h5>Divisiones :</h5>
       <div className="divisiones">
-        {modulo.divisiones.map((division) => (
+        {/* Agregamos el ? después de divisiones */}
+        {modulo.divisiones?.map((division) => (
           <Link
             key={division}
             className="divisionbtn"

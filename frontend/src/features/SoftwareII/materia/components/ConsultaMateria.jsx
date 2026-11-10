@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getFichaMateria,
   getMateriasPorAnio,
 } from "../services/MateriaServices";
 import "./consultaMateria.css";
+
+function nombreAnio(anio) {
+  return `${anio}.º año`;
+}
 
 function nombreDocentes(docentes) {
   return docentes
@@ -13,116 +17,187 @@ function nombreDocentes(docentes) {
 
 export function ConsultaMateria() {
   const [anios, setAnios] = useState([]);
-  const [anioSeleccionado, setAnioSeleccionado] = useState("");
+  const [anioSeleccionadoId, setAnioSeleccionadoId] = useState("");
   const [materiaSeleccionadaId, setMateriaSeleccionadaId] = useState("");
-  const [ficha, setFicha] = useState(null);
+
+  const [materia, setMateria] = useState(null);
+
   const [cargandoAnios, setCargandoAnios] = useState(true);
-  const [cargandoFicha, setCargandoFicha] = useState(false);
-  const [error, setError] = useState(null);
+  const [cargandoMateria, setCargandoMateria] = useState(false);
 
-  // Numero de consulta vigente: descarta respuestas de pedidos viejos.
-  const consultaVigente = useRef(0);
+  const [errorAnios, setErrorAnios] = useState("");
+  const [errorMateria, setErrorMateria] = useState("");
 
-  const anio = anios.find((item) => String(item.anio) === anioSeleccionado);
-  const materiasDelAnio = anio?.materias ?? [];
+  // CARGAR AÑOS Y MATERIAS
 
   useEffect(() => {
     let activo = true;
-    getMateriasPorAnio()
-      .then((datos) => activo && setAnios(datos))
-      .catch((e) => activo && setError(e.message))
-      .finally(() => activo && setCargandoAnios(false));
+
+    async function cargarAnios() {
+      try {
+        const resultado = await getMateriasPorAnio();
+
+        if (activo) {
+          setAnios(Array.isArray(resultado) ? resultado : []);
+          setErrorAnios("");
+        }
+      } catch (error) {
+        if (activo) {
+          setErrorAnios(error.message);
+        }
+      } finally {
+        if (activo) {
+          setCargandoAnios(false);
+        }
+      }
+    }
+
+    cargarAnios();
+
     return () => {
       activo = false;
     };
   }, []);
 
+  // OBTENER MATERIAS DEL AÑO SELECCIONADO
+
+  const anio = anios.find((item) => String(item.anio) === anioSeleccionadoId);
+
+  const materiasDelAnio = anio?.materias ?? [];
+
+  // SELECCIONAR AÑO
+
   function seleccionarAnio(evento) {
-    consultaVigente.current += 1;
-    setAnioSeleccionado(evento.target.value);
+    setAnioSeleccionadoId(evento.target.value);
     setMateriaSeleccionadaId("");
-    setFicha(null);
-    setCargandoFicha(false);
-    setError(null);
+    setMateria(null);
+    setErrorMateria("");
   }
+
+  // SELECCIONAR MATERIA
 
   function seleccionarMateria(evento) {
-    const idMateria = evento.target.value;
-    const consulta = ++consultaVigente.current;
+    setMateriaSeleccionadaId(evento.target.value);
+    setMateria(null);
+    setErrorMateria("");
+  }
 
-    setMateriaSeleccionadaId(idMateria);
-    setFicha(null);
-    setError(null);
+  // CONSULTAR MATERIA INDIVIDUAL
 
-    if (!idMateria) {
-      setCargandoFicha(false);
-      return;
+  useEffect(() => {
+    let activo = true;
+
+    if (!anioSeleccionadoId || !materiaSeleccionadaId) {
+      setMateria(null);
+      setCargandoMateria(false);
+      setErrorMateria("");
+
+      return () => {
+        activo = false;
+      };
     }
 
-    setCargandoFicha(true);
-    getFichaMateria(idMateria, anioSeleccionado)
-      .then((datos) => consulta === consultaVigente.current && setFicha(datos))
-      .catch((e) => consulta === consultaVigente.current && setError(e.message))
-      .finally(
-        () => consulta === consultaVigente.current && setCargandoFicha(false),
-      );
-  }
+    setCargandoMateria(true);
+    setMateria(null);
+    setErrorMateria("");
 
-  const totalDivisiones = ficha
-    ? ficha.modulos.reduce((total, modulo) => total + modulo.divisiones.length, 0)
-    : 0;
+    async function cargarDetalle() {
+      try {
+        const resultado = await getFichaMateria(
+          materiaSeleccionadaId,
+          anioSeleccionadoId,
+        );
 
-  function mensajeVacio() {
-    if (cargandoAnios) return "Cargando materias...";
-    if (anios.length === 0) return "Todavía no hay materias cargadas.";
-    if (!anio) return "Seleccioná un año para ver las materias disponibles.";
-    return "Seleccioná una materia para ver sus contenidos.";
-  }
+        if (activo) {
+          setMateria(resultado);
+        }
+      } catch (error) {
+        if (activo) {
+          setErrorMateria(error.message);
+        }
+      } finally {
+        if (activo) {
+          setCargandoMateria(false);
+        }
+      }
+    }
+
+    cargarDetalle();
+
+    return () => {
+      activo = false;
+    };
+  }, [anioSeleccionadoId, materiaSeleccionadaId]);
+
+  // INFORMACIÓN DE LA MATERIA
+
+  const modulos = materia?.modulos ?? [];
+  const contenidos = materia?.contenidos ?? [];
+
+  const cantidadDivisiones = modulos.reduce(
+    (total, modulo) => total + (modulo.divisiones?.length ?? 0),
+    0,
+  );
 
   return (
     <section className="consulta-materia">
+      {/* ENCABEZADO */}
+
       <header className="cm-encabezado">
         <div className="cm-titulo">
           <span className="cm-icono" aria-hidden="true">
             <i className="fa-solid fa-book-open" />
           </span>
+
           <div>
             <p className="cm-sobretitulo">GESTIÓN ACADÉMICA</p>
+
             <h1>Consultar materia</h1>
+
             <p>Elegí un año y una materia para consultar su información.</p>
           </div>
         </div>
       </header>
 
+      {/* SELECTORES */}
+
       <div className="cm-selectores">
+        {/* SELECCIONAR AÑO */}
+
         <div className="cm-selector">
           <label htmlFor="cm-anio">1. Elegí el año</label>
+
           <select
             id="cm-anio"
-            value={anioSeleccionado}
+            value={anioSeleccionadoId}
             onChange={seleccionarAnio}
-            disabled={cargandoAnios || anios.length === 0}
+            disabled={cargandoAnios || !!errorAnios}
           >
             <option value="">Seleccioná un año</option>
+
             {anios.map((item) => (
-              <option key={item.anio} value={item.anio}>
-                {item.anio}.º año
+              <option key={item.anio} value={String(item.anio)}>
+                {nombreAnio(item.anio)}
               </option>
             ))}
           </select>
         </div>
 
+        {/* SELECCIONAR MATERIA */}
+
         {anio && (
           <div className="cm-selector">
             <label htmlFor="cm-materia">2. Elegí la materia</label>
+
             <select
               id="cm-materia"
               value={materiaSeleccionadaId}
               onChange={seleccionarMateria}
             >
               <option value="">Seleccioná una materia</option>
+
               {materiasDelAnio.map((item) => (
-                <option key={item.id} value={item.id}>
+                <option key={item.id} value={String(item.id)}>
                   {item.nombre}
                 </option>
               ))}
@@ -131,45 +206,79 @@ export function ConsultaMateria() {
         )}
       </div>
 
-      {error && (
-        <div className="cm-vacio" role="alert">
-          No se pudo cargar la información: {error}
-        </div>
+      {/* MENSAJES DE CARGA Y ERRORES */}
+
+      {cargandoAnios && (
+        <p className="cm-vacio" role="status">
+          Cargando materias...
+        </p>
       )}
 
-      {!error && cargandoFicha && (
-        <div className="cm-vacio" role="status">
-          Cargando materia...
-        </div>
+      {errorAnios && (
+        <p className="cm-vacio" role="alert">
+          {errorAnios}
+        </p>
       )}
 
-      {!error && !cargandoFicha && ficha && anio && (
+      {!cargandoAnios && !errorAnios && anios.length === 0 && (
+        <p className="cm-vacio">Todavía no hay materias cargadas.</p>
+      )}
+
+      {anio && materiasDelAnio.length === 0 && (
+        <p className="cm-vacio">No hay materias registradas para este año.</p>
+      )}
+
+      {cargandoMateria && (
+        <p className="cm-vacio" role="status">
+          Cargando información de la materia...
+        </p>
+      )}
+
+      {errorMateria && (
+        <p className="cm-vacio" role="alert">
+          No se pudo cargar la información: {errorMateria}
+        </p>
+      )}
+
+      {/* FICHA DE LA MATERIA */}
+
+      {materia && anio ? (
         <div className="cm-detalle">
+          {/* CONTENIDOS */}
+
           <article className="cm-contenidos">
             <header className="cm-seccion-cabecera">
               <div>
-                <span className="cm-etiqueta">{anio.anio}.º año</span>
-                <h2>{ficha.nombre}</h2>
+                <span className="cm-etiqueta">{nombreAnio(anio.anio)}</span>
+
+                <h2>{materia.nombre}</h2>
+
                 <p>
-                  {anio.anio}.º año · {ficha.contenidos.length} contenidos
+                  {nombreAnio(anio.anio)}
+                  {" · "}
+                  {contenidos.length} contenidos
                 </p>
               </div>
+
               <span className="cm-resumen-icono" aria-hidden="true">
                 <i className="fa-solid fa-book" />
               </span>
             </header>
 
             <h3 className="cm-subtitulo">Contenidos</h3>
-            {ficha.contenidos.length > 0 ? (
+
+            {contenidos.length > 0 ? (
               <ul className="cm-lista-contenidos">
-                {ficha.contenidos.map((contenido) => (
-                  <li key={contenido}>{contenido}</li>
+                {contenidos.map((contenido, indice) => (
+                  <li key={`${indice}-${contenido}`}>{contenido}</li>
                 ))}
               </ul>
             ) : (
               <p>Esta materia todavía no tiene contenidos cargados.</p>
             )}
           </article>
+
+          {/* DOCENTES POR MÓDULO Y DIVISIÓN */}
 
           <section
             className="cm-asignaciones"
@@ -180,65 +289,98 @@ export function ConsultaMateria() {
                 <h2 id="cm-asignaciones-titulo">
                   Docentes por módulo y división
                 </h2>
-                <p>Docentes a cargo de {ficha.nombre}.</p>
+
+                <p>Docentes a cargo de {materia.nombre}.</p>
               </div>
+
               <span className="cm-cantidad-asignaciones">
-                {totalDivisiones} divisiones
+                {cantidadDivisiones} divisiones
               </span>
             </header>
 
-            <div className="cm-modulos">
-              {ficha.modulos.map((modulo) => (
-                <article className="cm-modulo" key={modulo.idModulo}>
-                  <h3>{modulo.nombre}</h3>
-                  <div className="cm-divisiones">
-                    {modulo.divisiones.map((division) => (
-                      <article
-                        className="cm-division"
-                        key={`${modulo.idModulo}-${division.anioCurso}-${division.division}-${division.cicloLectivo}`}
-                      >
-                        <div className="cm-division-cabecera">
-                          <span
-                            className="cm-division-icono"
-                            aria-hidden="true"
+            {modulos.length > 0 ? (
+              <div className="cm-modulos">
+                {modulos.map((modulo) => (
+                  <article className="cm-modulo" key={modulo.idModulo}>
+                    <h3>{modulo.nombre}</h3>
+
+                    <div className="cm-divisiones">
+                      {(modulo.divisiones ?? []).map((division, indice) => {
+                        const docentes = division.docentes ?? [];
+
+                        return (
+                          <article
+                            className="cm-division"
+                            key={
+                              `${modulo.idModulo}-` +
+                              `${division.anioCurso}-` +
+                              `${division.division}-` +
+                              `${division.cicloLectivo}-` +
+                              `${indice}`
+                            }
                           >
-                            <i className="fa-solid fa-users" />
-                          </span>
-                          <h4>
-                            {division.anioCurso}.º {division.division} ·{" "}
-                            {division.cicloLectivo}
-                          </h4>
-                        </div>
-                        <div className="cm-docente">
-                          <i
-                            className="fa-solid fa-chalkboard-user"
-                            aria-hidden="true"
-                          />
-                          <div>
-                            <span>
-                              {division.docentes.length > 1
-                                ? "Docentes a cargo"
-                                : "Docente a cargo"}
-                            </span>
-                            <strong>
-                              {division.docentes.length > 0
-                                ? nombreDocentes(division.docentes)
-                                : "Sin docente asignado"}
-                            </strong>
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </div>
+                            <div className="cm-division-cabecera">
+                              <span
+                                className="cm-division-icono"
+                                aria-hidden="true"
+                              >
+                                <i className="fa-solid fa-users" />
+                              </span>
+
+                              <h4>
+                                {division.anioCurso}.º {division.division} ·{" "}
+                                {division.cicloLectivo}
+                              </h4>
+                            </div>
+
+                            <div className="cm-docente">
+                              <i
+                                className="fa-solid fa-chalkboard-user"
+                                aria-hidden="true"
+                              />
+
+                              <div>
+                                <span>
+                                  {docentes.length > 1
+                                    ? "Docentes a cargo"
+                                    : "Docente a cargo"}
+                                </span>
+
+                                <strong>
+                                  {docentes.length > 0
+                                    ? nombreDocentes(docentes)
+                                    : "Sin docente asignado"}
+                                </strong>
+                              </div>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="cm-vacio">
+                No hay módulos asociados a esta materia para el año elegido.
+              </p>
+            )}
           </section>
         </div>
-      )}
-
-      {!error && !cargandoFicha && !ficha && (
-        <div className="cm-vacio">{mensajeVacio()}</div>
+      ) : (
+        !cargandoMateria &&
+        !errorMateria &&
+        !cargandoAnios &&
+        !errorAnios &&
+        anios.length > 0 && (
+          <div className="cm-vacio">
+            {anio
+              ? materiasDelAnio.length > 0
+                ? "Seleccioná una materia para ver sus contenidos."
+                : ""
+              : "Seleccioná un año para ver las materias disponibles."}
+          </div>
+        )
       )}
     </section>
   );

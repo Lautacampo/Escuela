@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { getAlumnos } from "../../SoftwareII/AlumnoService-is";
 import { crearEvaluacionModulo } from "../../SoftwareII/EvaluacionesModuloService-is";
+import {
+    getGrilla,
+    getModulos,
+} from "../../calificaciones/services/CalificacionesServices";
 
 const NOMBRE_CURSO = {
     "1": "1° Año",
@@ -80,6 +84,40 @@ function obtenerResultadoEvaluacion(nota) {
     return Number(nota) >= 7 ? "Aprobado" : "Desaprobado";
 }
 
+function normalizarClave(valor) {
+    return String(valor ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+}
+
+function obtenerCursadaParaCalificar(alumno) {
+    const trayectoria = Array.isArray(alumno?.trayectoria)
+        ? alumno.trayectoria
+        : [];
+    const cursadaPorId = trayectoria.find(
+        (cursada) =>
+            alumno.cursadaModuloId != null &&
+            String(cursada.idCursada ?? cursada.cursadaModuloId) ===
+                String(alumno.cursadaModuloId)
+    );
+    const cursadaPendiente = [...trayectoria]
+        .reverse()
+        .find(
+            (cursada) =>
+                String(cursada.estadoAcademico ?? "").toUpperCase() !==
+                "APROBADO"
+        );
+    return cursadaPorId ?? cursadaPendiente ?? trayectoria.at(-1);
+}
+
+function formatearEstadoMateria(estado) {
+    const normalizado = normalizarClave(estado).replace(/_/g, " ");
+    if (!normalizado || normalizado === "en curso") return "Sin calificar";
+    return normalizado.charAt(0).toUpperCase() + normalizado.slice(1);
+}
 
 export function FichaAlumno() {
     const { id } = useParams();
@@ -88,6 +126,11 @@ export function FichaAlumno() {
     const [alumno, setAlumno] = useState(location.state?.alumno ?? null);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState("");
+    const [verificacionMaterias, setVerificacionMaterias] = useState({
+        estado: "cargando",
+        pendientes: [],
+        error: "",
+    });
     const [evaluacion, setEvaluacion] = useState({
         fecha: fechaActual(),
         nota: "",
@@ -146,10 +189,108 @@ export function FichaAlumno() {
         };
     }, [id]);
 
+    useEffect(() => {
+        if (!alumno) return undefined;
+
+        let activa = true;
+
+        async function verificarMaterias() {
+            const cursada = obtenerCursadaParaCalificar(alumno);
+            const cursadaId =
+                alumno.cursadaModuloId ??
+                cursada?.idCursada ??
+                cursada?.cursadaModuloId;
+            try {
+                const moduloNombre = normalizarClave(
+                    cursada?.modulo ?? alumno.moduloActual ?? alumno.modulo
+                );
+                const anio = cursada?.anioCurso ?? alumno.curso ?? alumno.anioCurso;
+                const division = cursada?.division ?? alumno.division;
+
+                if (cursadaId == null || !moduloNombre || anio == null || !division) {
+                    throw new Error(
+                        "Faltan datos de la cursada para consultar las materias."
+                    );
+                }
+
+                const grupos = await getModulos();
+                const modulosDelAnio = grupos
+                    .filter((grupo) => String(grupo.anio) === String(anio))
+                    .flatMap((grupo) => grupo.modulos ?? []);
+                const modulo = modulosDelAnio.find(
+                    (item) => normalizarClave(item.nombre) === moduloNombre
+                );
+
+                if (!modulo) {
+                    throw new Error(
+                        `No se encontró ${cursada?.modulo ?? alumno.moduloActual} en ${anio}° año.`
+                    );
+                }
+
+                const grilla = await getGrilla(modulo.id, division);
+                const alumnoGrilla = grilla.alumnos.find(
+                    (item) => String(item.id) === String(cursadaId)
+                );
+
+                if (!alumnoGrilla) {
+                    throw new Error(
+                        "No se encontró la cursada del alumno en la grilla de calificaciones."
+                    );
+                }
+
+                const pendientes = grilla.materias
+                    .filter(
+                        (materia) =>
+                            normalizarClave(alumnoGrilla.estados[materia.id]) !==
+                            "aprobado"
+                    )
+                    .map((materia) => ({
+                        id: materia.id,
+                        nombre: materia.nombre,
+                        estado: formatearEstadoMateria(
+                            alumnoGrilla.estados[materia.id]
+                        ),
+                    }));
+
+                if (activa) {
+                    setVerificacionMaterias({
+                        cursadaId: String(cursadaId),
+                        estado: pendientes.length > 0 ? "bloqueado" : "aprobado",
+                        pendientes,
+                        error: "",
+                    });
+                }
+            } catch (e) {
+                if (activa) {
+                    setVerificacionMaterias({
+                        cursadaId: String(cursadaId ?? ""),
+                        estado: "error",
+                        pendientes: [],
+                        error: e.message,
+                    });
+                }
+            }
+        }
+
+        verificarMaterias();
+        return () => {
+            activa = false;
+        };
+    }, [alumno]);
+
     async function guardarEvaluacion(e) {
         e.preventDefault();
         setErrorEvaluacion("");
         setEvaluacionGuardada(null);
+
+        if (verificacionActual.estado !== "aprobado") {
+            setErrorEvaluacion(
+                verificacionActual.estado === "bloqueado"
+                    ? "No se puede calificar el módulo hasta aprobar todas las materias."
+                    : "No se pudo verificar que todas las materias estén aprobadas."
+            );
+            return;
+        }
 
         if (idCursadaModulo === undefined || idCursadaModulo === null) {
             setErrorEvaluacion(
@@ -188,7 +329,14 @@ export function FichaAlumno() {
         try {
             setGuardandoEvaluacion(true);
             const respuesta = await crearEvaluacionModulo(payload);
-            setEvaluacionGuardada(respuesta ?? payload);
+            setEvaluacionGuardada({
+                ...payload,
+                ...respuesta,
+                nota: respuesta?.nota ?? payload.nota,
+                fecha: respuesta?.fecha ?? payload.fecha,
+                nroInstancia: respuesta?.nroInstancia ?? payload.nroInstancia,
+                tipoInstancia: respuesta?.tipoInstancia ?? payload.tipoInstancia,
+            });
 
             try {
                 const alumnos = await getAlumnos();
@@ -259,21 +407,7 @@ export function FichaAlumno() {
     const trayectoria = Array.isArray(alumno.trayectoria)
         ? alumno.trayectoria
         : [];
-    const cursadaPorId = trayectoria.find(
-        (cursada) =>
-            alumno.cursadaModuloId != null &&
-            String(cursada.idCursada ?? cursada.cursadaModuloId) ===
-                String(alumno.cursadaModuloId)
-    );
-    const cursadaPendiente = [...trayectoria]
-        .reverse()
-        .find(
-            (cursada) =>
-                String(cursada.estadoAcademico ?? "").toUpperCase() !==
-                "APROBADO"
-        );
-    const cursadaParaCalificar =
-        cursadaPorId ?? cursadaPendiente ?? trayectoria.at(-1);
+    const cursadaParaCalificar = obtenerCursadaParaCalificar(alumno);
     const idCursadaModulo =
         alumno.cursadaModuloId ??
         cursadaParaCalificar?.idCursada ??
@@ -301,6 +435,10 @@ export function FichaAlumno() {
         alumno.moduloActual ??
         alumno.modulo ??
         cursadaParaCalificar?.modulo;
+    const verificacionActual =
+        verificacionMaterias.cursadaId === String(idCursadaModulo ?? "")
+            ? verificacionMaterias
+            : { estado: "cargando", pendientes: [], error: "" };
     const faltasActuales = alumno.faltas ?? alumno.faltasAcumuladas;
     const condicionActual = formatearCondicion(alumno.condicion);
     const datosAcademicos = trayectoria.length > 0
@@ -555,6 +693,39 @@ export function FichaAlumno() {
                         <i className="fa-solid fa-circle-check"></i>
                         Este módulo ya está aprobado.
                     </div>
+                ) : verificacionActual.estado === "cargando" ? (
+                    <div className="ficha-advertencia" role="status">
+                        <i className="fa-solid fa-circle-info"></i>
+                        <p>Verificando las calificaciones de las materias...</p>
+                    </div>
+                ) : verificacionActual.estado === "error" ? (
+                    <div className="ficha-advertencia" role="alert">
+                        <i className="fa-solid fa-circle-exclamation"></i>
+                        <div>
+                            <strong>No se pudieron verificar las materias</strong>
+                            <p>{verificacionActual.error}</p>
+                            <p>
+                                La calificación del módulo está bloqueada hasta poder verificar sus materias.
+                            </p>
+                        </div>
+                    </div>
+                ) : verificacionActual.estado === "bloqueado" ? (
+                    <div className="ficha-advertencia ficha-materias-pendientes" role="status">
+                        <i className="fa-solid fa-circle-exclamation"></i>
+                        <div>
+                            <strong>Materias pendientes de aprobación</strong>
+                            <p>
+                                Para calificar este módulo, primero se deben aprobar:
+                            </p>
+                            <ul>
+                                {verificacionActual.pendientes.map((materia) => (
+                                    <li key={materia.id}>
+                                        <strong>{materia.nombre}</strong>: {materia.estado}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
                 ) : proximaInstancia > 4 ? (
                     <div className="ficha-advertencia" role="status">
                         <i className="fa-solid fa-circle-exclamation"></i>
@@ -642,11 +813,17 @@ export function FichaAlumno() {
 
                 {evaluacionGuardada && (
                     <div className="ficha-evaluacion-guardada" role="status">
-                        <i className="fa-solid fa-circle-check"></i>
-                        Calificación guardada: {evaluacionGuardada.nota} —{" "}
-                        {formatearFecha(evaluacionGuardada.fecha)} —{" "}
-                        {evaluacionGuardada.tipoInstancia}, instancia{" "}
-                        {evaluacionGuardada.nroInstancia}.
+                        <i className="fa-solid fa-circle-check" aria-hidden="true"></i>
+                        <div>
+                            <strong>Evaluación registrada correctamente</strong>
+                            <p>
+                                Se guardó la nota{" "}
+                                <strong>{evaluacionGuardada.nota}</strong> para la
+                                instancia {evaluacionGuardada.nroInstancia} (
+                                {evaluacionGuardada.tipoInstancia}), con fecha{" "}
+                                {formatearFecha(evaluacionGuardada.fecha)}.
+                            </p>
+                        </div>
                     </div>
                 )}
             </section>
