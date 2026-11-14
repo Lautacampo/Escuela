@@ -1,28 +1,44 @@
-import pkg from 'pg';
-import { env } from './env.js';
+import pg from "pg";
+import { env } from "./env.js";
 
-const { Pool } = pkg;
+const { Pool } = pg;
 
-// Pool de conexiones
+// Configuración de la conexión:
+// Si existe DATABASE_URL, utilizamos Neon.
+// Si no existe, utilizamos PostgreSQL local.
+
+const conexion = env.DATABASE_URL
+  ? {connectionString: env.DATABASE_URL,}
+  : {
+      host: env.PGHOST,
+      port: env.PGPORT,
+      user: env.PGUSER,
+      password: env.PGPASSWORD,
+      database: env.PGDATABASE,
+    };
+
+// Creamos el pool de conexiones a PostgreSQL.
 export const pool = new Pool({
-  host: env.PGHOST,
-  port: env.PGPORT,
-  user: env.PGUSER,
-  password: env.PGPASSWORD,
-  database: env.PGDATABASE,
+  ...conexion,
 
-  max: 20, // cantidad máxima de clientes (conexiones) simultáneas en el pool
-  min: 0, // cantidad mínima de clientes que se mantienen abiertos en el pool
+  max: 5,
+  min: 0,
 
-  idleTimeoutMillis: 30000, // ms que una conexión inactiva puede quedar abierta antes de cerrarse
-  connectionTimeoutMillis: 5000, // ms de espera para establecer una conexión antes de fallar
-  query_timeout: 10000, // ms máximo de espera por la respuesta de una query (lado cliente)
-  statement_timeout: 10000, // ms máximo que el servidor Postgres deja correr una sentencia SQL
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 
-  allowExitOnIdle: false, // si está en true, permite que el proceso de Node termine cuando el pool queda vacío e inactivo
+  query_timeout: 10000,
+  statement_timeout: 10000,
+
+  allowExitOnIdle: false,
 });
 
-// Log de errores de conexiones inactivas que el servidor puede cerrar inesperadamente
-pool.on('error', (err) => {
-  console.error('Error inesperado en el pool de conexiones', err);
+// Controlamos los errores de conexiones inactivas.
+pool.on("error", (err) => {
+  console.error(
+    "Error inesperado en PostgreSQL:",
+    err.message
+  );
 });
+
+
