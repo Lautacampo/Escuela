@@ -1,7 +1,7 @@
 import { apiFetch } from "../../../shared/services/api.js";
 
 export async function getModulos() {
-  return apiFetch("/modulos");
+  return apiFetch("/asistencias/modulos");
 }
 
 export async function getAlumnos() {
