@@ -31,6 +31,7 @@ app.use("/api/preceptores", preceptoresRoutes);
 app.use("/api/cursos", cursosRoutes);
 app.use("/api/alumnos", alumnosRoutes);
 
+
 // 4. Respuesta 404 para rutas inexistentes
 app.use((req, res) => {
   res.status(404).json({ error: "Ruta no encontrada" });
