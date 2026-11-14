@@ -51,7 +51,7 @@ export function DivisionAsistenciaPage(){
     const asistenciaDia={};
     const totales={};
     asistencias.forEach((r)=>{
-        totales[r.alumnoId] = (totales[r.alumnoId] ?? 0)+r.falta;
+        totales[r.alumnoId] = (totales[r.alumnoId] ?? 0) + Number(r.valorFalta);
         if (r.fecha == fecha) asistenciaDia[r.alumnoId]=r;
     });
 
@@ -60,10 +60,9 @@ export function DivisionAsistenciaPage(){
     try {
       setErrorGuardar(null);
       const guardado = await setAsistencia({
-        ...existente,
-        alumnoId,
+        cursadaModuloId: existente?.cursadaModuloId,
         fecha,
-        falta: Number(valor),
+        valorFalta: Number(valor)
       });
       setAsistencias((prev) =>
         existente
