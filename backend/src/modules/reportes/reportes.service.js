@@ -27,12 +27,21 @@ export const obtenerReporteInasistencias = async (query = {}) => {
     : null;
 
   const anio = anioFiltro(query);
+  const moduloId =
+    query.moduloId === undefined || query.moduloId === ""
+      ? null
+      : Number(query.moduloId);
+
+  if (moduloId !== null && (!Number.isSafeInteger(moduloId) || moduloId <= 0)) {
+    throw new HttpError(400, "Módulo inválido");
+  }
 
   const alertas = await repo.listarInasistenciasCriticas({
     minFaltas: Number.isFinite(minFaltas) ? minFaltas : 25,
     curso: Number.isInteger(curso) ? curso : null,
     division,
     anio,
+    moduloId,
   });
 
   return {
