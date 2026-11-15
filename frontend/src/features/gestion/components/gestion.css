@@ -1973,7 +1973,6 @@ body:has(.contenedor-dashboard) {
   }
 }
 
-
 /* ---------- Celular ---------- */
 
 .btn-menu-hamburguesa,
@@ -1982,7 +1981,6 @@ body:has(.contenedor-dashboard) {
 }
 
 @media (max-width: 768px) {
-
   /* Sidebar */
 
   .navlateral {
@@ -2046,7 +2044,6 @@ body:has(.contenedor-dashboard) {
     border-bottom-color: transparent;
   }
 
-
   /* Botón hamburguesa */
 
   .btn-menu-hamburguesa {
@@ -2081,7 +2078,6 @@ body:has(.contenedor-dashboard) {
     background-color: var(--gestion-sidebar);
   }
 
-
   /* Fondo detrás del menú */
 
   .overlay-menu {
@@ -2095,7 +2091,6 @@ body:has(.contenedor-dashboard) {
     background-color: rgba(15, 25, 41, 0.65);
   }
 
-
   /* Contenido */
 
   .contenido-principal {
@@ -2103,7 +2098,6 @@ body:has(.contenedor-dashboard) {
     min-width: 0;
     width: 100%;
   }
-
 
   /* Navbar superior */
 
@@ -2118,7 +2112,6 @@ body:has(.contenedor-dashboard) {
     margin-left: auto;
   }
 
-
   /* Main */
 
   .dashboard-main {
@@ -2129,7 +2122,6 @@ body:has(.contenedor-dashboard) {
     font-size: 1.6rem;
     margin-bottom: 20px;
   }
-
 
   /* Encabezados */
 
@@ -2142,7 +2134,6 @@ body:has(.contenedor-dashboard) {
     width: 100%;
     justify-content: center;
   }
-
 
   /* Tablas */
 
@@ -2157,11 +2148,9 @@ body:has(.contenedor-dashboard) {
   }
 }
 
-
 /* ---------- Celulares pequeños ---------- */
 
 @media (max-width: 480px) {
-
   .navhorizontal {
     padding-left: 68px;
   }
@@ -2192,51 +2181,51 @@ body:has(.contenedor-dashboard) {
     height: 42px;
   }
 }
- 
+
 @media (max-width: 700px) {
   .barra-filtros {
     gap: 14px;
   }
- 
+
   .barra-filtros .form-group {
     flex: 1 1 100%;
   }
- 
+
   .tabla-gestion th,
   .tabla-gestion td {
     padding: 12px;
   }
- 
+
   .modal-alumno-overlay {
     padding: 10px;
   }
- 
+
   .modal-alumno {
     max-height: 96vh;
   }
- 
+
   .modal-alumno-header {
     padding: 18px 20px;
   }
- 
+
   .modal-alumno .form-gestion {
     padding: 20px;
   }
- 
+
   .modal-alumno fieldset {
     padding: 14px;
   }
- 
+
   .modal-alumno .form-row {
     flex-direction: column;
     gap: 15px;
   }
- 
+
   .modal-alumno .acciones-formulario {
     flex-direction: column-reverse;
   }
 }
- 
+
 @media (max-width: 1000px) {
   .ficha-resumen,
   .ficha-datos-grid,
@@ -2245,29 +2234,29 @@ body:has(.contenedor-dashboard) {
     grid-template-columns: repeat(2, 1fr);
   }
 }
- 
+
 @media (max-width: 700px) {
   .ficha-cabecera {
     grid-template-columns: 1fr;
     gap: 15px;
   }
- 
+
   .ficha-resumen,
   .ficha-datos-grid,
   .ficha-academica-info,
   .modulo-detalles {
     grid-template-columns: 1fr;
   }
- 
+
   .ficha-seccion {
     padding: 16px;
   }
- 
+
   .modulo-cabecera {
     flex-direction: column;
     gap: 10px;
   }
- 
+
   .instancia {
     grid-template-columns: 1fr;
     gap: 4px;
@@ -2418,4 +2407,52 @@ body:has(.contenedor-dashboard) {
 .cabecera-tabla > button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Selector de ciclo lectivo en Reportes */
+
+.reportes-panel .rep-selector-ciclo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.reportes-panel .rep-selector-ciclo label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gestion-primario);
+}
+
+.reportes-panel .rep-selector-ciclo select {
+  cursor: pointer;
+  min-width: 135px;
+}
+
+.reportes-panel .rep-selector-ciclo button {
+  font-size: 0.82rem;
+}
+
+/* Formulario para agregar ciclos */
+
+.reportes-panel .rep-alta-ciclo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 15px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.reportes-panel .rep-alta-ciclo input {
+  width: 110px;
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.reportes-panel .rep-alta-ciclo .mensaje-error {
+  flex-basis: 100%;
 }
