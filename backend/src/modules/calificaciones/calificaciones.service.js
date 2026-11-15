@@ -3,17 +3,32 @@ import * as repo from "./calificaciones.repository.js";
 
 const ESTADOS = ["Aprobado", "Desaprobado", "En Curso"];
 
+// Todos los accesos a calificaciones deben identificar un ciclo concreto.
+const validarAnio = (valor) => {
+  const anio = Number(valor);
+  if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
+    throw new HttpError(400, "Debe indicar un ciclo lectivo válido");
+  }
+  return anio;
+};
+
+export const listarCiclos = async () => {
+  const ciclos = await repo.listarCiclos();
+  return { ciclos, cicloActivo: ciclos[0] ?? null };
+};
 
 const resolverDocenteId = async (usuario) => {
   if (usuario.rol !== "docente") return null;
   const id = await repo.buscarPersonaIdDeUsuario(usuario.id);
-  if (!id) throw new HttpError(403, "Tu usuario no está vinculado a un docente");
+  if (!id)
+    throw new HttpError(403, "Tu usuario no está vinculado a un docente");
   return id;
 };
 
-export const listarModulos = async (usuario) => {
+export const listarModulos = async (usuario, anioParametro) => {
+  const anio = validarAnio(anioParametro);
   const docenteId = await resolverDocenteId(usuario);
-  const filas = await repo.listarCursosModulos(docenteId);
+  const filas = await repo.listarCursosModulos(docenteId, anio);
 
   const anios = new Map();
   for (const f of filas) {
@@ -29,29 +44,46 @@ export const listarModulos = async (usuario) => {
     }
     mods.get(f.modulo_id).divisiones.push(f.division);
   }
-  return [...anios].map(([anio, mods]) => ({ anio, modulos: [...mods.values()] }));
+  return [...anios].map(([anio, mods]) => ({
+    anio,
+    modulos: [...mods.values()],
+  }));
 };
 
-export const listarDivisiones = async (usuario, moduloId) => {
+export const listarDivisiones = async (usuario, moduloId, anioParametro) => {
+  const anio = validarAnio(anioParametro);
   if (!Number.isInteger(moduloId)) throw new HttpError(400, "Módulo inválido");
 
   const modulo = await repo.buscarModulo(moduloId);
   if (!modulo) throw new HttpError(404, "Módulo no encontrado");
 
   const docenteId = await resolverDocenteId(usuario);
-  const divisiones = await repo.listarDivisionesDeModulo(moduloId, docenteId);
+  const divisiones = await repo.listarDivisionesDeModulo(
+    moduloId,
+    docenteId,
+    anio,
+  );
 
   return { moduloId: modulo.id, nombre: modulo.numero_leyenda, divisiones };
 };
 
-export const obtenerGrilla = async (usuario, moduloId, division) => {
+export const obtenerGrilla = async (
+  usuario,
+  moduloId,
+  division,
+  anioParametro,
+) => {
+  const anio = validarAnio(anioParametro);
   if (!Number.isInteger(moduloId)) throw new HttpError(400, "Módulo inválido");
 
-  const curso = await repo.buscarCurso(moduloId, division);
+  const curso = await repo.buscarCurso(moduloId, division, anio);
   if (!curso) throw new HttpError(404, "División no encontrada");
 
   const docenteId = await resolverDocenteId(usuario);
-  if (docenteId !== null && !(await repo.docenteTieneCurso(docenteId, curso.id))) {
+  if (
+    docenteId !== null &&
+    !(await repo.docenteTieneCurso(docenteId, curso.id))
+  ) {
     throw new HttpError(403, "No tienes asignada esta división");
   }
 
@@ -65,24 +97,34 @@ export const obtenerGrilla = async (usuario, moduloId, division) => {
     alumnos.map((a) => a.cursada_id),
     materias.map((m) => m.id),
   );
-  const mapa = new Map(estados.map((e) => [`${e.cursada_modulo_id}-${e.materia_id}`, e.estado]));
+  const mapa = new Map(
+    estados.map((e) => [`${e.cursada_modulo_id}-${e.materia_id}`, e.estado]),
+  );
 
   return {
     moduloId,
     division,
+    anio,
     materias,
     alumnos: alumnos.map((a) => ({
       cursadaId: a.cursada_id,
       apellido: a.apellido,
       nombre: a.nombre,
       calificaciones: Object.fromEntries(
-        materias.map((m) => [m.id, mapa.get(`${a.cursada_id}-${m.id}`) ?? "En Curso"]),
+        materias.map((m) => [
+          m.id,
+          mapa.get(`${a.cursada_id}-${m.id}`) ?? "En Curso",
+        ]),
       ),
     })),
   };
 };
 
-export const actualizar = async (usuario, { cursadaModuloId, materiaId, estado }) => {
+export const actualizar = async (
+  usuario,
+  { cursadaModuloId, materiaId, estado, anio: anioParametro },
+) => {
+  const anio = validarAnio(anioParametro);
   if (
     !Number.isInteger(cursadaModuloId) ||
     !Number.isInteger(materiaId) ||
@@ -91,13 +133,26 @@ export const actualizar = async (usuario, { cursadaModuloId, materiaId, estado }
     throw new HttpError(400, "Datos inválidos");
   }
 
-  const cursada = await repo.buscarCursadaConMateria(cursadaModuloId, materiaId);
+  const cursada = await repo.buscarCursadaConMateria(
+    cursadaModuloId,
+    materiaId,
+  );
   if (!cursada) throw new HttpError(404, "La cursada o la materia no existe");
+  if (Number(cursada.anio) !== anio) {
+    throw new HttpError(
+      409,
+      "La cursada no corresponde al ciclo lectivo seleccionado",
+    );
+  }
 
   const docenteId = await resolverDocenteId(usuario);
   if (
     docenteId !== null &&
-    !(await repo.docenteDaMateriaEnCurso(docenteId, materiaId, cursada.curso_id))
+    !(await repo.docenteDaMateriaEnCurso(
+      docenteId,
+      materiaId,
+      cursada.curso_id,
+    ))
   ) {
     throw new HttpError(403, "No puedes calificar esta materia");
   }
