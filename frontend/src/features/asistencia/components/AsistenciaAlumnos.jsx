@@ -1,5 +1,14 @@
-export function AsistenciaAlumnos ({alumnos,fecha,onCambiarFecha,registrosDia,totales,limite,onCambiar}){
-    return (
+export function AsistenciaAlumnos({
+  alumnos,
+  fecha,
+  onCambiarFecha,
+  registrosDia,
+  totales,
+  limite,
+  guardando = false,
+  onCambiar,
+}) {
+  return (
     <>
       <div className="contenedor-tabla">
         <div className="cabecera-tabla">
@@ -8,6 +17,7 @@ export function AsistenciaAlumnos ({alumnos,fecha,onCambiarFecha,registrosDia,to
               <span>Fecha de asistencia</span>
               <input
                 type="date"
+                disabled={guardando}
                 value={fecha}
                 onChange={(e) => onCambiarFecha(e.target.value)}
               />
@@ -36,16 +46,19 @@ export function AsistenciaAlumnos ({alumnos,fecha,onCambiarFecha,registrosDia,to
                 alumnos.map((a, i) => {
                   const registro = registrosDia[a.id];
                   const total = totales[a.id] ?? 0;
-                  const libre = total >= limite;
+                  const libre = a.condicion === "Libre";
 
                   return (
                     <tr key={a.id} className={libre ? "fila-libre" : ""}>
                       <td>{i + 1}</td>
-                      <td>{a.apellido}, {a.nombre}</td>
+                      <td>
+                        {a.apellido}, {a.nombre}
+                      </td>
                       <td>{a.dni}</td>
                       <td>
                         <select
                           value={registro ? String(registro.valorFalta) : ""}
+                          disabled={guardando}
                           onChange={(e) => onCambiar(a.id, e.target.value)}
                         >
                           {!registro && (
@@ -58,7 +71,9 @@ export function AsistenciaAlumnos ({alumnos,fecha,onCambiarFecha,registrosDia,to
                           <option value="1">Falta</option>
                         </select>
                       </td>
-                      <td>{total} / {limite}</td>
+                      <td>
+                        {total} / {limite}
+                      </td>
                       <td>
                         <span className={libre ? "estado-dp" : "estado-ap"}>
                           {libre ? "Libre" : "Regular"}
@@ -74,6 +89,4 @@ export function AsistenciaAlumnos ({alumnos,fecha,onCambiarFecha,registrosDia,to
       </div>
     </>
   );
-
-
 }
