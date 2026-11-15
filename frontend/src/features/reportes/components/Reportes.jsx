@@ -335,7 +335,10 @@ export function Reportes() {
 
             <div>
               <h2>Alertas de inasistencias</h2>
-              <p>Alumnos que alcanzaron o superaron las {umbral} faltas.</p>
+              <p>
+                Alumnos que superaron las {umbral} faltas en el módulo que
+                cursan actualmente.
+              </p>
             </div>
           </div>
 
@@ -345,7 +348,8 @@ export function Reportes() {
         </div>
 
         <p className="rep-periodo">
-          Inasistencias acumuladas del ciclo lectivo {anioSeleccionado}.
+          Inasistencias correspondientes al módulo más reciente de cada alumno
+          en el ciclo lectivo {anioSeleccionado}.
         </p>
 
         <div
