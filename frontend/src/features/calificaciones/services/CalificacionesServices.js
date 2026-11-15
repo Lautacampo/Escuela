@@ -11,10 +11,12 @@ const A_API = {
   en_curso: "En Curso",
 };
 
+const anioQuery = (anio) => `?anio=${encodeURIComponent(anio)}`;
 
+export const getCiclosCalificaciones = () => apiFetch("/calificaciones/ciclos");
 
-export async function getModulos() {
-  const anios = await apiFetch("/calificaciones/modulos");
+export async function getModulos(anio) {
+  const anios = await apiFetch(`/calificaciones/modulos${anioQuery(anio)}`);
   return anios.map((a) => ({
     anio: a.anio,
     modulos: a.modulos.map((m) => ({
@@ -26,10 +28,9 @@ export async function getModulos() {
   }));
 }
 
-
-export async function getGrilla(moduloId, division) {
+export async function getGrilla(moduloId, division, anio) {
   const g = await apiFetch(
-    `/calificaciones/modulos/${encodeURIComponent(moduloId)}/divisiones/${encodeURIComponent(division)}`,
+    `/calificaciones/modulos/${encodeURIComponent(moduloId)}/divisiones/${encodeURIComponent(division)}${anioQuery(anio)}`,
   );
   return {
     materias: g.materias,
@@ -47,14 +48,14 @@ export async function getGrilla(moduloId, division) {
   };
 }
 
-
-export function setCalificacion(cursadaModuloId, materiaId, estado) {
+export function setCalificacion(cursadaModuloId, materiaId, estado, anio) {
   return apiFetch("/calificaciones", {
     method: "PUT",
     body: JSON.stringify({
       cursadaModuloId,
       materiaId,
       estado: A_API[estado],
+      anio: Number(anio),
     }),
   });
 }
