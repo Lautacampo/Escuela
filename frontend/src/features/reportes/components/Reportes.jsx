@@ -7,11 +7,14 @@ import {
   getCicloLectivo,
   crearCicloLectivo,
 } from "../../planestudios/services/planEstudiosService.js";
+import { getModulos as getModulosCalificaciones } from "../../calificaciones/services/CalificacionesServices.js";
 
 export function Reportes() {
   const [curso, setCurso] = useState("");
   const [division, setDivision] = useState("");
   const [materiaId, setMateriaId] = useState("");
+  const [moduloId, setModuloId] = useState("");
+  const [modulosDisponibles, setModulosDisponibles] = useState([]);
   const [ciclos, setCiclos] = useState([]);
   const [anioSeleccionado, setAnioSeleccionado] = useState("");
   const [cargandoCiclos, setCargandoCiclos] = useState(true);
@@ -61,15 +64,29 @@ export function Reportes() {
     setError("");
 
     Promise.all([
-      getReporteInasistencias(anioSeleccionado),
+      getReporteInasistencias(anioSeleccionado, moduloId),
       getReporteDesaprobaciones(anioSeleccionado),
+      getModulosCalificaciones(anioSeleccionado),
     ])
-      .then(([resInasistencias, resDesaprobaciones]) => {
+      .then(([resInasistencias, resDesaprobaciones, grupos]) => {
         if (!activo) return;
 
         setAlertas(resInasistencias?.alertas ?? []);
         setUmbral(resInasistencias?.umbralFaltas ?? 25);
         setMaterias(resDesaprobaciones?.resultados ?? []);
+
+        const mapaModulos = new Map();
+        for (const grupo of grupos ?? []) {
+          for (const modulo of grupo.modulos ?? []) {
+            mapaModulos.set(String(modulo.id), {
+              ...modulo,
+              anioCurso: grupo.anio,
+            });
+          }
+        }
+        setModulosDisponibles(
+          [...mapaModulos.values()].sort((a, b) => Number(a.id) - Number(b.id)),
+        );
       })
       .catch((err) => {
         if (activo) setError(err.message);
@@ -81,9 +98,12 @@ export function Reportes() {
     return () => {
       activo = false;
     };
-  }, [anioSeleccionado]);
+  }, [anioSeleccionado, moduloId]);
 
   const divisiones = curso === "3" ? ["A", "B", "C"] : ["A", "B", "C", "D"];
+  const modulosVisibles = modulosDisponibles.filter(
+    (modulo) => !curso || String(modulo.anioCurso) === String(curso),
+  );
 
   // Opciones derivadas de las materias que tienen calificaciones en el ciclo elegido.
   const opcionesMaterias = [
@@ -137,6 +157,7 @@ export function Reportes() {
       setCurso("");
       setDivision("");
       setMateriaId("");
+      setModuloId("");
       setMostrarAltaCiclo(false);
     } catch (err) {
       setErrorCiclo(err.message);
@@ -149,6 +170,7 @@ export function Reportes() {
     setCurso("");
     setDivision("");
     setMateriaId("");
+    setModuloId("");
   }
 
   if (cargandoCiclos) {
@@ -187,6 +209,7 @@ export function Reportes() {
               setCurso("");
               setDivision("");
               setMateriaId("");
+              setModuloId("");
             }}
           >
             {ciclos.map((ciclo) => (
@@ -272,6 +295,7 @@ export function Reportes() {
               setCurso(e.target.value);
               setDivision("");
               setMateriaId("");
+              setModuloId("");
             }}
           >
             <option value="">Todos los cursos</option>
@@ -295,6 +319,22 @@ export function Reportes() {
             {divisiones.map((letra) => (
               <option key={letra} value={letra}>
                 División {letra}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="rep-campo">
+          <label htmlFor="reporte-modulo">Módulo (inasistencias)</label>
+          <select
+            id="reporte-modulo"
+            value={moduloId}
+            onChange={(e) => setModuloId(e.target.value)}
+          >
+            <option value="">Todos: módulo más reciente</option>
+            {modulosVisibles.map((modulo) => (
+              <option key={modulo.id} value={modulo.id}>
+                {modulo.nombre}
               </option>
             ))}
           </select>
@@ -336,8 +376,9 @@ export function Reportes() {
             <div>
               <h2>Alertas de inasistencias</h2>
               <p>
-                Alumnos que superaron las {umbral} faltas en el módulo que
-                cursan actualmente.
+                {moduloId
+                  ? `Alumnos que superaron las ${umbral} faltas en el módulo seleccionado.`
+                  : `Alumnos que superaron las ${umbral} faltas en su módulo más reciente.`}
               </p>
             </div>
           </div>
@@ -348,8 +389,9 @@ export function Reportes() {
         </div>
 
         <p className="rep-periodo">
-          Inasistencias correspondientes al módulo más reciente de cada alumno
-          en el ciclo lectivo {anioSeleccionado}.
+          {moduloId
+            ? `Historial de inasistencias del módulo seleccionado en el ciclo lectivo ${anioSeleccionado}.`
+            : `Alertas de la cursada más reciente de cada alumno en el ciclo lectivo ${anioSeleccionado}.`}
         </p>
 
         <div
@@ -364,6 +406,7 @@ export function Reportes() {
                 <th scope="col">Alumno</th>
                 <th scope="col">Curso</th>
                 <th scope="col">División</th>
+                <th scope="col">Módulo</th>
                 <th scope="col">Faltas acumuladas</th>
                 <th scope="col">Alerta</th>
               </tr>
@@ -377,6 +420,7 @@ export function Reportes() {
                   </td>
                   <td>{alumno.curso}º año</td>
                   <td>{alumno.division}</td>
+                  <td>{alumno.modulo}</td>
                   <td>
                     <span className="rep-faltas">{alumno.faltas}</span>
                   </td>
@@ -394,7 +438,7 @@ export function Reportes() {
 
               {alertasVisibles.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="rep-vacio">
+                  <td colSpan={6} className="rep-vacio">
                     No hay alumnos que superen el límite de inasistencias para
                     estos filtros.
                   </td>
