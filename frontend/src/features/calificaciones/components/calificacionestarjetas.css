@@ -323,3 +323,12 @@
   font-weight: 500;
   cursor: pointer;
 }
+.dashboard-main > .pagina-calificaciones-modulos > p {
+  color: #334155;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.6;
+  margin: 16px 0;
+}
+
