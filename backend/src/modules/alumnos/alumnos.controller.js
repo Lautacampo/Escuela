@@ -2,7 +2,9 @@ import * as service from "./alumnos.service.js";
 
 export const listar = async (req, res, next) => {
     try {
-        res.json(await service.listar());
+        const incluirInactivos =
+            String(req.query.incluirInactivos ?? "").toLowerCase() === "true";
+        res.json(await service.listar({ incluirInactivos }));
     } catch (err) {
         next(err);
     }
@@ -41,9 +43,33 @@ export const eliminar = async (req, res, next) => {
     }
 };
 
+export const reactivar = async (req, res, next) => {
+    try {
+        res.json(await service.reactivar(Number(req.params.id)));
+    } catch (err) {
+        next(err);
+    }
+};
+
 export const crearCursada = async (req, res, next) => {
     try {
         res.status(201).json(await service.matricular(Number(req.params.id), req.body?? {}));
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const actualizarCursada = async (req, res, next) => {
+    try {
+        res.json(await service.actualizarCursada(Number(req.params.id), req.body ?? {}));
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const evaluarModulo = async (req, res, next) => {
+    try {
+        res.status(201).json(await service.evaluarModulo(req.body ?? {}));
     } catch (err) {
         next(err);
     }

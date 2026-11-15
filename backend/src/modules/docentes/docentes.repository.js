@@ -55,13 +55,13 @@ const obtenerMapaAsignaciones = async (docenteId = null) => {
     TRIM(c.division) AS division,
     ma.nombre AS materia
        FROM docente d
-       JOIN docente_curso dc ON dc.docente_id = d.id
-       JOIN curso c ON c.id = dc.curso_id
+       JOIN docente_curso_materia dcm ON dcm.docente_id = d.id
+       JOIN curso c ON c.id = dcm.curso_id
        JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
        JOIN curso_modulo cm ON cm.curso_id = c.id
-       JOIN docente_materia dm ON dm.docente_id = d.id
-       JOIN materia_modulo mm ON mm.materia_id = dm.materia_id AND mm.modulo_id = cm.modulo_id
-       JOIN materia ma ON ma.id = dm.materia_id
+       JOIN materia_modulo mm
+         ON mm.modulo_id = cm.modulo_id AND mm.materia_id = dcm.materia_id
+       JOIN materia ma ON ma.id = dcm.materia_id
        ${filtro}
       ORDER BY cm.modulo_id, TRIM(c.division), ma.nombre`,
     params,
@@ -135,12 +135,11 @@ export const buscarDocentePorId = async (id) => {
   };
 };
 
-// Sincroniza las tablas intermedias docente_curso y docente_materia dentro de la transacción
+// Sincroniza la tabla docente_curso_materia dentro de la transacción.
+// Cada asignación del formulario (módulo + división + materia) se guarda como
+// el par (curso, materia), que es lo que acota los permisos del docente.
 const guardarAsignacionesDocente = async (client, docenteId, asignaciones) => {
-  await client.query("DELETE FROM docente_curso WHERE docente_id = $1", [
-    docenteId,
-  ]);
-  await client.query("DELETE FROM docente_materia WHERE docente_id = $1", [
+  await client.query("DELETE FROM docente_curso_materia WHERE docente_id = $1", [
     docenteId,
   ]);
 
@@ -155,14 +154,10 @@ const guardarAsignacionesDocente = async (client, docenteId, asignaciones) => {
       [asig.moduloId, asig.division],
     );
 
-    if (resCurso.rowCount > 0) {
-      await client.query(
-        `INSERT INTO docente_curso (docente_id, curso_id)
-         VALUES ($1, $2)
-         ON CONFLICT (docente_id, curso_id) DO NOTHING`,
-        [docenteId, resCurso.rows[0].id],
-      );
-    }
+    // Sin curso no se puede registrar una asignación acotada por curso
+    if (resCurso.rowCount === 0) continue;
+
+    const cursoId = resCurso.rows[0].id;
 
     // 2. Buscar la materia por nombre (o crearla y vincularla al módulo si no existía)
     let resMateria = await client.query(
@@ -200,12 +195,12 @@ const guardarAsignacionesDocente = async (client, docenteId, asignaciones) => {
       [materiaId, asig.moduloId],
     );
 
-    // Vincular al docente con la materia en docente_materia
+    // Vincular al docente con la materia en ese curso
     await client.query(
-      `INSERT INTO docente_materia (docente_id, materia_id)
-       VALUES ($1, $2)
-       ON CONFLICT (docente_id, materia_id) DO NOTHING`,
-      [docenteId, materiaId],
+      `INSERT INTO docente_curso_materia (docente_id, curso_id, materia_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (docente_id, curso_id, materia_id) DO NOTHING`,
+      [docenteId, cursoId, materiaId],
     );
   }
 };
@@ -242,7 +237,7 @@ export const crearDocente = async (datos) => {
     // 3. Insertar en docente (mismo id por herencia)
     await client.query(`INSERT INTO docente (id) VALUES ($1)`, [nuevoId]);
 
-    // 4. Guardar asignaciones en docente_curso y docente_materia
+    // 4. Guardar asignaciones en docente_curso_materia
     await guardarAsignacionesDocente(client, nuevoId, datos.asignaciones);
 
     await client.query("COMMIT");
@@ -314,6 +309,9 @@ export const eliminarDocente = async (id) => {
     );
 
     // 2. Eliminar relaciones del docente y de su registro de personal
+    await client.query("DELETE FROM docente_curso_materia WHERE docente_id = $1", [
+      id,
+    ]);
     await client.query("DELETE FROM docente_curso WHERE docente_id = $1", [id]);
     await client.query("DELETE FROM docente_materia WHERE docente_id = $1", [
       id,

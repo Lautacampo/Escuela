@@ -45,7 +45,7 @@ export function AsistenciaAlumnos ({alumnos,fecha,onCambiarFecha,registrosDia,to
                       <td>{a.dni}</td>
                       <td>
                         <select
-                          value={registro ? String(registro.falta) : ""}
+                          value={registro ? String(registro.valorFalta) : ""}
                           onChange={(e) => onCambiar(a.id, e.target.value)}
                         >
                           {!registro && (

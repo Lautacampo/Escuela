@@ -395,7 +395,7 @@ export function FichaAlumno() {
                 <button
                 type="button"
                 className="btn-primario-gestion"
-                onClick={() => navigate("/gestion/alymnos")}
+                onClick={() => navigate("/gestion/alumnos")}
                 >
                     <i className="fa-solid fa-arrow-left"></i>
                     Volver al listado

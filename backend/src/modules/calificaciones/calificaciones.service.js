@@ -87,7 +87,7 @@ export const obtenerGrilla = async (
     throw new HttpError(403, "No tienes asignada esta división");
   }
 
-  const materias = await repo.listarMaterias(moduloId, docenteId);
+  const materias = await repo.listarMaterias(moduloId, docenteId, curso.id);
   if (docenteId !== null && materias.length === 0) {
     throw new HttpError(403, "No tienes materias en este módulo");
   }

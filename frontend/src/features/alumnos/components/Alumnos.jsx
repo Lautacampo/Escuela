@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { esEmailValido, esDniValido } from "../../../shared/utils/validaciones";
+import { useLocation, useNavigate } from "react-router";
+import { esEmailValido, esDniValido, esCuilValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre } from "../../../shared/utils/formato";
 import { ListadoAlumnos } from "./ListadoAlumnos";
 import {
   getAlumnos,
+  getAlumno,
   getCursos,
   setAlumno,
   matricularAlumno,
+  actualizarMatricula,
   borrarAlumno,
 } from "../../SoftwareII/AlumnoService-is";
 import { getAsistencias } from "../services/AlumnosServices";
@@ -27,6 +30,114 @@ const ALUMNO_INICIAL = {
   division: "",
   moduloId: "",
 };
+
+const MATRICULA_INICIAL = {
+  curso: "",
+  division: "",
+  moduloId: "",
+};
+
+function valoresDesdeAlumno(alumno) {
+  return {
+    ...ALUMNO_INICIAL,
+    ...alumno,
+    curso: String(alumno?.curso ?? ""),
+    division: alumno?.division ?? "",
+    moduloId: alumno?.moduloId == null ? "" : String(alumno.moduloId),
+  };
+}
+
+function matriculaDesdeAlumno(alumno) {
+  return {
+    curso: String(alumno?.curso ?? ""),
+    division: alumno?.division ?? "",
+    moduloId: alumno?.moduloId == null ? "" : String(alumno.moduloId),
+  };
+}
+
+function tieneCursadaActiva(alumno) {
+  if (Array.isArray(alumno?.trayectoria)) {
+    return alumno.trayectoria.some((cursada) => cursada.activa);
+  }
+  return alumno?.cursadaModuloId != null;
+}
+
+// Al crear una nueva matrícula no se precarga el módulo: el alumno ya terminó
+// el módulo actual y debe elegir el siguiente.
+function matriculaInicial(alumno) {
+  const inicial = matriculaDesdeAlumno(alumno);
+  return tieneCursadaActiva(alumno) ? inicial : { ...inicial, moduloId: "" };
+}
+
+function aniosDe(cursos) {
+  return [...new Set(cursos.map((curso) => String(curso.anioCurso)))].sort(
+    (a, b) => Number(a) - Number(b)
+  );
+}
+
+function divisionesDe(cursos, anio) {
+  return [
+    ...new Set(
+      cursos
+        .filter((curso) => String(curso.anioCurso) === String(anio))
+        .map((curso) => curso.division)
+    ),
+  ].sort();
+}
+
+function cursoDe(cursos, anio, division) {
+  return cursos.find(
+    (curso) =>
+      String(curso.anioCurso) === String(anio) &&
+      curso.division === division
+  );
+}
+
+function modulosDe(curso) {
+  return curso?.modulos ?? [];
+}
+
+// Normaliza la respuesta del backend para el listado de alumnos.
+function prepararAlumnoLista(alumno, cursos) {
+  const trayectoria = Array.isArray(alumno.trayectoria)
+    ? alumno.trayectoria
+    : [];
+  const cursadaActual =
+    trayectoria.find(
+      (cursada) =>
+        alumno.cursadaModuloId != null &&
+        String(cursada.idCursada ?? cursada.cursadaModuloId) ===
+          String(alumno.cursadaModuloId)
+    ) ?? trayectoria[trayectoria.length - 1];
+  const anioCurso = alumno.curso ?? alumno.anioCurso ?? cursadaActual?.anioCurso;
+  const division = alumno.division ?? cursadaActual?.division;
+  const curso = cursoDe(cursos, anioCurso, division);
+  const nombreModulo =
+    alumno.moduloActual ?? alumno.modulo ?? cursadaActual?.modulo;
+  const modulo = modulosDe(curso).find(
+    (opcion) =>
+      String(opcion.numeroLeyenda).trim().toLowerCase() ===
+      String(nombreModulo ?? "").trim().toLowerCase()
+  );
+  const condicion = alumno.condicion ?? cursadaActual?.condicion;
+
+  return {
+    ...alumno,
+    curso: anioCurso,
+    division,
+    cursoId: alumno.cursoId ?? curso?.id,
+    moduloId: alumno.moduloId ?? modulo?.id,
+    moduloActual: nombreModulo,
+    faltas:
+      alumno.faltas ??
+      alumno.faltasAcumuladas ??
+      cursadaActual?.faltas ??
+      cursadaActual?.cantidadFaltasAcumuladas,
+    condicion: condicion
+      ? `${condicion[0]}${condicion.slice(1).toLowerCase()}`
+      : condicion,
+  };
+}
 
 function calcularEdad(fechaNacimiento) {
   if (!fechaNacimiento) return "";
@@ -49,11 +160,27 @@ function calcularEdad(fechaNacimiento) {
 }
 
 export function Alumnos() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const alumnoDesdeFicha = location.state?.editarAlumno ?? null;
+
   const [alumnos, setAlumnos] = useState([]);
   const [cursos, setCursos] = useState([]);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [alumnoEditando, setAlumnoEditando] = useState(null);
-  const [valores, setValores] = useState(ALUMNO_INICIAL);
+  const [mostrarFormulario, setMostrarFormulario] = useState(
+    Boolean(alumnoDesdeFicha)
+  );
+  const [alumnoEditando, setAlumnoEditando] = useState(alumnoDesdeFicha);
+  const [valores, setValores] = useState(() =>
+    valoresDesdeAlumno(alumnoDesdeFicha)
+  );
+  const [matricula, setMatricula] = useState(() =>
+    matriculaInicial(alumnoDesdeFicha)
+  );
+  const [editorMatricula, setEditorMatricula] = useState(false);
+  const [guardandoMatricula, setGuardandoMatricula] = useState(false);
+  const [errorMatricula, setErrorMatricula] = useState("");
+  const [mensajeMatricula, setMensajeMatricula] = useState("");
+  const [aviso, setAviso] = useState("");
   const [errores, setErrores] = useState({});
   const [asistencias, setAsistencias] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -61,60 +188,21 @@ export function Alumnos() {
   const [errorGuardar, setErrorGuardar] = useState("");
   const [errorEliminar, setErrorEliminar] = useState("");
 
+  // Si se llega desde la ficha del alumno, se abre su edición y se limpia
+  // el state de navegación para que no se reabra al recargar.
+  useEffect(() => {
+    if (location.state?.editarAlumno) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
+
   useEffect(() => {
     async function cargar() {
       try {
         const [datosAlumnos, datosAsistencias, datosCursos] =
           await Promise.all([getAlumnos(), getAsistencias(), getCursos()]);
         setAlumnos(
-          datosAlumnos.map((alumno) => {
-            const trayectoria = Array.isArray(alumno.trayectoria)
-              ? alumno.trayectoria
-              : [];
-            const cursadaActual =
-              trayectoria.find(
-                (cursada) =>
-                  alumno.cursadaModuloId != null &&
-                  String(cursada.idCursada ?? cursada.cursadaModuloId) ===
-                    String(alumno.cursadaModuloId)
-              ) ?? trayectoria[trayectoria.length - 1];
-            const anioCurso =
-              alumno.curso ?? alumno.anioCurso ?? cursadaActual?.anioCurso;
-            const division = alumno.division ?? cursadaActual?.division;
-            const curso = datosCursos.find(
-              (opcion) =>
-                String(opcion.anioCurso) === String(anioCurso) &&
-                opcion.division === division
-            );
-            const nombreModulo =
-              alumno.moduloActual ?? alumno.modulo ?? cursadaActual?.modulo;
-            const modulo = curso?.modulos?.find(
-              (opcion) =>
-                String(opcion.numeroLeyenda).trim().toLowerCase() ===
-                String(nombreModulo ?? "").trim().toLowerCase()
-            );
-
-            return {
-              ...alumno,
-              curso: anioCurso,
-              division,
-              cursoId: alumno.cursoId ?? curso?.id,
-              moduloId: alumno.moduloId ?? modulo?.id,
-              moduloActual: nombreModulo,
-              faltas:
-                alumno.faltas ??
-                alumno.faltasAcumuladas ??
-                cursadaActual?.faltas ??
-                cursadaActual?.cantidadFaltasAcumuladas,
-              condicion: (alumno.condicion ?? cursadaActual?.condicion)
-                ? `${(alumno.condicion ?? cursadaActual.condicion)[0]}${(
-                    alumno.condicion ?? cursadaActual.condicion
-                  )
-                    .slice(1)
-                    .toLowerCase()}`
-                : alumno.condicion,
-            };
-          })
+          datosAlumnos.map((alumno) => prepararAlumnoLista(alumno, datosCursos))
         );
         setAsistencias(datosAsistencias);
         setCursos(datosCursos);
@@ -138,41 +226,61 @@ export function Alumnos() {
     }));
   };
 
-  const aniosCurso = [
-    ...new Set(cursos.map((curso) => String(curso.anioCurso))),
-  ].sort((a, b) => Number(a) - Number(b));
-  const divisiones = [
-    ...new Set(
-      cursos
-        .filter((curso) => String(curso.anioCurso) === String(valores.curso))
-        .map((curso) => curso.division)
-    ),
-  ].sort();
-  const cursoSeleccionado = cursos.find(
-    (curso) =>
-      String(curso.anioCurso) === String(valores.curso) &&
-      curso.division === valores.division
+  const manejarCambioMatricula = (e) => {
+    const { name, value } = e.target;
+
+    setMatricula((anteriores) => ({
+      ...anteriores,
+      [name]: value,
+      ...(name === "curso" ? { division: "", moduloId: "" } : {}),
+      ...(name === "division" ? { moduloId: "" } : {}),
+    }));
+    setErrorMatricula("");
+    setMensajeMatricula("");
+  };
+
+  const aniosCurso = aniosDe(cursos);
+  const divisiones = divisionesDe(cursos, valores.curso);
+  const cursoSeleccionado = cursoDe(
+    cursos,
+    valores.curso,
+    valores.division
   );
-  const modulos = cursoSeleccionado?.modulos ?? [];
+  const modulos = modulosDe(cursoSeleccionado);
   const moduloSeleccionado = modulos.find(
     (modulo) => String(modulo.id) === String(valores.moduloId)
   );
 
+  const divisionesMatricula = divisionesDe(cursos, matricula.curso);
+  const cursoMatricula = cursoDe(
+    cursos,
+    matricula.curso,
+    matricula.division
+  );
+  const modulosMatricula = modulosDe(cursoMatricula);
+
   const abrirFormulario = () => {
     setAlumnoEditando(null);
     setValores(ALUMNO_INICIAL);
+    setMatricula(MATRICULA_INICIAL);
+    setEditorMatricula(false);
+    setErrorMatricula("");
+    setMensajeMatricula("");
+    setAviso("");
+    setErrorGuardar("");
     setErrores({});
     setMostrarFormulario(true);
   };
 
   const abrirEdicion = (alumno) => {
     setAlumnoEditando(alumno);
-    setValores({
-      ...ALUMNO_INICIAL,
-      ...alumno,
-      curso: String(alumno.curso ?? ""),
-      moduloId: String(alumno.moduloId ?? ""),
-    });
+    setValores(valoresDesdeAlumno(alumno));
+    setMatricula(matriculaInicial(alumno));
+    setEditorMatricula(false);
+    setErrorMatricula("");
+    setMensajeMatricula("");
+    setAviso("");
+    setErrorGuardar("");
     setErrores({});
     setMostrarFormulario(true);
   };
@@ -181,8 +289,96 @@ export function Alumnos() {
     setMostrarFormulario(false);
     setAlumnoEditando(null);
     setValores(ALUMNO_INICIAL);
+    setMatricula(MATRICULA_INICIAL);
+    setEditorMatricula(false);
+    setErrorMatricula("");
+    setMensajeMatricula("");
+    setErrorGuardar("");
     setErrores({});
   };
+
+  const abrirEditorMatricula = () => {
+    setMatricula(matriculaInicial(alumnoEditando));
+    setErrorMatricula("");
+    setMensajeMatricula("");
+    setEditorMatricula(true);
+  };
+
+  const cancelarEditorMatricula = () => {
+    setEditorMatricula(false);
+    setErrorMatricula("");
+    setMensajeMatricula("");
+  };
+
+  async function guardarMatricula() {
+    const moduloMatricula = modulosMatricula.find(
+      (modulo) => String(modulo.id) === String(matricula.moduloId)
+    );
+
+    let mensaje = "";
+    if (!matricula.curso) {
+      mensaje = "Seleccioná un curso.";
+    } else if (!cursoMatricula) {
+      mensaje = "El curso seleccionado ya no está disponible.";
+    } else if (!matricula.division) {
+      mensaje = "Seleccioná una división.";
+    } else if (!matricula.moduloId) {
+      mensaje = "Seleccioná un módulo.";
+    } else if (!moduloMatricula) {
+      mensaje = "El módulo seleccionado no corresponde al curso.";
+    }
+
+    if (mensaje) {
+      setErrorMatricula(mensaje);
+      return;
+    }
+
+    try {
+      setGuardandoMatricula(true);
+      setErrorMatricula("");
+      setMensajeMatricula("");
+
+      const actualizado = await actualizarMatricula(
+        alumnoEditando.id,
+        cursoMatricula.id,
+        Number(matricula.moduloId)
+      );
+
+      setAlumnoEditando((anterior) => ({
+        ...anterior,
+        cursadaModuloId: actualizado.cursadaModuloId,
+        cursoId: actualizado.cursoId,
+        curso: actualizado.curso,
+        division: actualizado.division,
+        moduloId: actualizado.moduloId,
+        moduloActual: actualizado.moduloActual,
+        faltas: actualizado.faltas,
+        condicion: actualizado.condicion,
+        trayectoria: actualizado.trayectoria,
+      }));
+      setValores((anterior) => ({
+        ...anterior,
+        curso: String(actualizado.curso ?? ""),
+        division: actualizado.division ?? "",
+        moduloId:
+          actualizado.moduloId == null ? "" : String(actualizado.moduloId),
+      }));
+      setMatricula(matriculaDesdeAlumno(actualizado));
+      setAlumnos((anteriores) =>
+        anteriores.map((alumno) =>
+          alumno.id === actualizado.id
+            ? prepararAlumnoLista(actualizado, cursos)
+            : alumno
+        )
+      );
+      setEditorMatricula(false);
+      setMensajeMatricula("Matrícula actualizada correctamente.");
+    } catch (e) {
+      setErrorMatricula(e.message);
+    } finally {
+      setGuardandoMatricula(false);
+    }
+  }
 
   async function eliminarAlumno(id) {
     const alumno = alumnos.find((a) => a.id === id);
@@ -208,11 +404,18 @@ export function Alumnos() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setErrorGuardar("");
+
     const nuevosErrores = {};
 
     if (!esDniValido(valores.dni)) {
       nuevosErrores.dni =
         "El DNI debe contener un número válido entre 1.000.000 y 99.999.999.";
+    }
+
+    if (!esCuilValido(valores.cuil, valores.dni)) {
+      nuevosErrores.cuil =
+        "El CUIL debe contener el DNI ingresado, y debe tener 11 dígitos de largo."
     }
 
     if (!esEmailValido(valores.email)) {
@@ -224,20 +427,26 @@ export function Alumnos() {
       nuevosErrores.fechaNacimiento = "Debe ingresar la fecha de nacimiento.";
     }
 
-    if (!valores.curso) {
-      nuevosErrores.curso = "Debe seleccionar un curso.";
-    } else if (!cursoSeleccionado) {
-      nuevosErrores.curso = "El curso seleccionado ya no está disponible.";
-    }
+    // Al editar, los datos académicos se cambian sólo desde el editor de
+    // matrícula (PUT /alumnos/:id/cursadas); este formulario guarda únicamente
+    // los datos personales.
+    if (!alumnoEditando) {
+      if (!valores.curso) {
+        nuevosErrores.curso = "Debe seleccionar un curso.";
+      } else if (!cursoSeleccionado) {
+        nuevosErrores.curso = "El curso seleccionado ya no está disponible.";
+      }
 
-    if (!valores.division) {
-      nuevosErrores.division = "Debe seleccionar una división.";
-    }
+      if (!valores.division) {
+        nuevosErrores.division = "Debe seleccionar una división.";
+      }
 
-    if (!valores.moduloId) {
-      nuevosErrores.moduloId = "Debe seleccionar un módulo.";
-    } else if (!moduloSeleccionado) {
-      nuevosErrores.moduloId = "El módulo seleccionado no corresponde al curso.";
+      if (!valores.moduloId) {
+        nuevosErrores.moduloId = "Debe seleccionar un módulo.";
+      } else if (!moduloSeleccionado) {
+        nuevosErrores.moduloId =
+          "El módulo seleccionado no corresponde al curso.";
+      }
     }
 
     if (Object.keys(nuevosErrores).length > 0) {
@@ -245,79 +454,70 @@ export function Alumnos() {
       return;
     }
 
-    const alumnoPreparado = {
-      ...valores,
-      curso: cursoSeleccionado?.anioCurso,
-      cursoId: cursoSeleccionado?.id,
-      division: cursoSeleccionado?.division,
-      moduloId: Number(valores.moduloId),
-      moduloActual: moduloSeleccionado?.numeroLeyenda ?? "",
+    const datosAlumno = {
       nombre: capitalizarNombre(valores.nombre.trim().replace(/\s+/g, " ")),
       apellido: capitalizarNombre(
         valores.apellido.trim().replace(/\s+/g, " ")
       ),
       dni: String(valores.dni).trim(),
+      fechaNacimiento: valores.fechaNacimiento,
+      cuil: valores.cuil,
+      lugarNacimiento: valores.lugarNacimiento,
+      domicilio: valores.domicilio,
+      telefono: valores.telefono,
+      email: valores.email,
+      trabaja: valores.trabaja,
+      telefonoEmergencia: valores.telefonoEmergencia,
       cantidadHijos: Number(valores.cantidadHijos) || 0,
-      edad: calcularEdad(valores.fechaNacimiento),
-      faltas: alumnoEditando?.faltas ?? 0,
-      condicion: alumnoEditando?.condicion ?? "Regular",
     };
 
     try {
-      setErrorGuardar("");
-
-      const datosAlumno = {
-        nombre: alumnoPreparado.nombre,
-        apellido: alumnoPreparado.apellido,
-        dni: alumnoPreparado.dni,
-        fechaNacimiento: alumnoPreparado.fechaNacimiento,
-        cuil: alumnoPreparado.cuil,
-        lugarNacimiento: alumnoPreparado.lugarNacimiento,
-        domicilio: alumnoPreparado.domicilio,
-        telefono: alumnoPreparado.telefono,
-        email: alumnoPreparado.email,
-        trabaja: alumnoPreparado.trabaja,
-        telefonoEmergencia: alumnoPreparado.telefonoEmergencia,
-        cantidadHijos: alumnoPreparado.cantidadHijos,
-      };
       const guardado = await setAlumno(
-        alumnoEditando
-          ? {
-              ...datosAlumno,
-              id: alumnoEditando.id,
-            }
-          : datosAlumno
+        alumnoEditando ? { ...datosAlumno, id: alumnoEditando.id } : datosAlumno
       );
-      if (!alumnoEditando) {
-        await matricularAlumno(
-          guardado.id,
-          alumnoPreparado.cursoId,
-          alumnoPreparado.moduloId
+
+      if (alumnoEditando) {
+        setAlumnos((anteriores) =>
+          anteriores.map((alumno) =>
+            alumno.id === guardado.id
+              ? prepararAlumnoLista(guardado, cursos)
+              : alumno
+          )
         );
+        alert("Datos del alumno actualizados correctamente.");
+        cerrarFormulario();
+        return;
       }
 
-      const alumnoConCursada = {
-        ...guardado,
-        curso: alumnoPreparado.curso,
-        division: alumnoPreparado.division,
-        moduloId: alumnoPreparado.moduloId,
-        moduloActual: alumnoPreparado.moduloActual,
-        faltas: guardado.faltas ?? 0,
-        condicion: guardado.condicion ?? "Regular",
-      };
+      try {
+        await matricularAlumno(
+          guardado.id,
+          cursoSeleccionado.id,
+          Number(valores.moduloId)
+        );
+      } catch (e) {
+        // El alumno ya quedó registrado: se informa el problema de matrícula
+        // y se ofrece completarla desde "Editar".
+        const creado = await getAlumno(guardado.id).catch(() => guardado);
+        setAlumnos((anteriores) => [
+          ...anteriores,
+          prepararAlumnoLista(creado, cursos),
+        ]);
+        setAviso(
+          `El alumno ${guardado.apellido}, ${guardado.nombre} se registró correctamente, pero no se pudo crear la matrícula: ${e.message}. Podés crearla desde "Editar".`
+        );
+        cerrarFormulario();
+        return;
+      }
 
-      setAlumnos((anteriores) =>
-        alumnoEditando
-          ? anteriores.map((alumno) =>
-              alumno.id === alumnoEditando.id ? alumnoConCursada : alumno
-            )
-          : [...anteriores, alumnoConCursada]
-      );
+      const creado = await getAlumno(guardado.id).catch(() => guardado);
+      setAlumnos((anteriores) => [
+        ...anteriores,
+        prepararAlumnoLista(creado, cursos),
+      ]);
 
       alert(
-        alumnoEditando
-          ? "Datos del alumno actualizados correctamente."
-          : `¡Alumno ${alumnoPreparado.nombre} ${alumnoPreparado.apellido} registrado con éxito!`
+        `¡Alumno ${datosAlumno.nombre} ${datosAlumno.apellido} registrado con éxito!`
       );
 
       cerrarFormulario();
@@ -360,9 +560,14 @@ export function Alumnos() {
         </p>
       )}
 
+      {aviso && (
+        <p className="mensaje-aviso" role="status">
+          {aviso}
+        </p>
+      )}
+
       <ListadoAlumnos
         alumnos={alumnos}
-        asistencias={asistencias}
         onEditar={abrirEdicion}
         onEliminar={eliminarAlumno}
       />
@@ -388,7 +593,9 @@ export function Alumnos() {
                   {alumnoEditando ? "Editar alumno" : "Registrar alumno"}
                 </h2>
                 <p>
-                  Complete los datos personales y académicos del estudiante.
+                  {alumnoEditando
+                    ? "Actualizá los datos personales del estudiante o su matrícula."
+                    : "Complete los datos personales y académicos del estudiante."}
                 </p>
               </div>
 
@@ -495,7 +702,7 @@ export function Alumnos() {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="cuil">CUIL</label>
+                    <label htmlFor="cuil">CUIL *</label>
                     <input
                       type="text"
                       id="cuil"
@@ -504,6 +711,7 @@ export function Alumnos() {
                       onChange={manejarCambio}
                       className="input-gestion"
                       placeholder="20-12345678-9"
+                      required
                     />
                   </div>
 
@@ -610,89 +818,234 @@ export function Alumnos() {
                 </div>
               </fieldset>
 
-              <fieldset>
-                <legend>Datos académicos</legend>
+              {alumnoEditando ? (
+                <fieldset>
+                  <legend>Matrícula</legend>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="curso">Curso *</label>
-                    <select
-                      id="curso"
-                      name="curso"
-                      value={valores.curso}
-                      onChange={manejarCambio}
-                      className={`input-gestion ${
-                        errores.curso ? "input-error" : ""
+                  <div className="matricula-resumen">
+                    <p>
+                      {alumnoEditando.moduloActual
+                        ? [
+                            alumnoEditando.curso
+                              ? `${alumnoEditando.curso}° Año`
+                              : null,
+                            alumnoEditando.division
+                              ? `División ${alumnoEditando.division}`
+                              : null,
+                            alumnoEditando.moduloActual,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")
+                        : "El alumno no tiene una matrícula registrada."}
+                    </p>
+                    <span
+                      className={`matricula-estado ${
+                        tieneCursadaActiva(alumnoEditando)
+                          ? "activa"
+                          : "inactiva"
                       }`}
-                      required
                     >
-                      <option value="">Seleccione un curso</option>
-                      {aniosCurso.map((anio) => (
-                        <option key={anio} value={anio}>
-                          {anio}° Año
-                        </option>
-                      ))}
-                    </select>
-
-                    {errores.curso && (
-                      <span className="mensaje-error">{errores.curso}</span>
-                    )}
+                      {tieneCursadaActiva(alumnoEditando)
+                        ? "Cursada activa"
+                        : "Sin cursada activa"}
+                    </span>
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="division">División *</label>
-                    <select
-                      id="division"
-                      name="division"
-                      value={valores.division}
-                      onChange={manejarCambio}
-                      className={`input-gestion ${
-                        errores.division ? "input-error" : ""
-                      }`}
-                      required
-                      disabled={!valores.curso}
-                    >
-                      <option value="">Seleccione una división</option>
-                      {divisiones.map((division) => (
-                        <option key={division} value={division}>
-                          {division}
-                        </option>
-                      ))}
-                    </select>
+                  {mensajeMatricula && (
+                    <p className="mensaje-exito" role="status">
+                      {mensajeMatricula}
+                    </p>
+                  )}
 
-                    {errores.division && (
-                      <span className="mensaje-error">{errores.division}</span>
-                    )}
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="moduloId">Módulo actual *</label>
-                    <select
-                      id="moduloId"
-                      name="moduloId"
-                      value={valores.moduloId}
-                      onChange={manejarCambio}
-                      className={`input-gestion ${
-                        errores.moduloId ? "input-error" : ""
-                      }`}
-                      required
-                      disabled={!cursoSeleccionado}
+                  {!editorMatricula ? (
+                    <button
+                      type="button"
+                      className="btn-secundario"
+                      onClick={abrirEditorMatricula}
                     >
-                      <option value="">Seleccione un módulo</option>
-                      {modulos.map((modulo) => (
-                        <option key={modulo.id} value={modulo.id}>
-                          {modulo.numeroLeyenda}
-                        </option>
-                      ))}
-                    </select>
-                    {errores.moduloId && (
-                      <span className="mensaje-error">
-                        {errores.moduloId}
-                      </span>
-                    )}
+                      <i className="fa-solid fa-pen-to-square"></i>
+                      {tieneCursadaActiva(alumnoEditando)
+                        ? "Editar matrícula"
+                        : "Crear nueva matrícula"}
+                    </button>
+                  ) : (
+                    <div className="editor-matricula">
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label htmlFor="cursoMatricula">Curso *</label>
+                          <select
+                            id="cursoMatricula"
+                            name="curso"
+                            value={matricula.curso}
+                            onChange={manejarCambioMatricula}
+                            className="input-gestion"
+                          >
+                            <option value="">Seleccione un curso</option>
+                            {aniosCurso.map((anio) => (
+                              <option key={anio} value={anio}>
+                                {anio}° Año
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="divisionMatricula">División *</label>
+                          <select
+                            id="divisionMatricula"
+                            name="division"
+                            value={matricula.division}
+                            onChange={manejarCambioMatricula}
+                            className="input-gestion"
+                            disabled={!matricula.curso}
+                          >
+                            <option value="">Seleccione una división</option>
+                            {divisionesMatricula.map((division) => (
+                              <option key={division} value={division}>
+                                {division}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="moduloMatricula">Módulo *</label>
+                          <select
+                            id="moduloMatricula"
+                            name="moduloId"
+                            value={matricula.moduloId}
+                            onChange={manejarCambioMatricula}
+                            className="input-gestion"
+                            disabled={!cursoMatricula}
+                          >
+                            <option value="">Seleccione un módulo</option>
+                            {modulosMatricula.map((modulo) => (
+                              <option key={modulo.id} value={modulo.id}>
+                                {modulo.numeroLeyenda}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {errorMatricula && (
+                        <p className="mensaje-error" role="alert">
+                          {errorMatricula}
+                        </p>
+                      )}
+
+                      <div className="acciones-formulario">
+                        <button
+                          type="button"
+                          className="btn-secundario"
+                          onClick={cancelarEditorMatricula}
+                          disabled={guardandoMatricula}
+                        >
+                          Cancelar
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-primario-gestion"
+                          onClick={guardarMatricula}
+                          disabled={guardandoMatricula}
+                        >
+                          <i className="fa-solid fa-floppy-disk"></i>
+                          {guardandoMatricula
+                            ? "Guardando..."
+                            : "Guardar matrícula"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </fieldset>
+              ) : (
+                <fieldset>
+                  <legend>Datos académicos</legend>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="curso">Curso *</label>
+                      <select
+                        id="curso"
+                        name="curso"
+                        value={valores.curso}
+                        onChange={manejarCambio}
+                        className={`input-gestion ${
+                          errores.curso ? "input-error" : ""
+                        }`}
+                        required
+                      >
+                        <option value="">Seleccione un curso</option>
+                        {aniosCurso.map((anio) => (
+                          <option key={anio} value={anio}>
+                            {anio}° Año
+                          </option>
+                        ))}
+                      </select>
+
+                      {errores.curso && (
+                        <span className="mensaje-error">{errores.curso}</span>
+                      )}
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="division">División *</label>
+                      <select
+                        id="division"
+                        name="division"
+                        value={valores.division}
+                        onChange={manejarCambio}
+                        className={`input-gestion ${
+                          errores.division ? "input-error" : ""
+                        }`}
+                        required
+                        disabled={!valores.curso}
+                      >
+                        <option value="">Seleccione una división</option>
+                        {divisiones.map((division) => (
+                          <option key={division} value={division}>
+                            {division}
+                          </option>
+                        ))}
+                      </select>
+
+                      {errores.division && (
+                        <span className="mensaje-error">
+                          {errores.division}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="moduloId">Módulo actual *</label>
+                      <select
+                        id="moduloId"
+                        name="moduloId"
+                        value={valores.moduloId}
+                        onChange={manejarCambio}
+                        className={`input-gestion ${
+                          errores.moduloId ? "input-error" : ""
+                        }`}
+                        required
+                        disabled={!cursoSeleccionado}
+                      >
+                        <option value="">Seleccione un módulo</option>
+                        {modulos.map((modulo) => (
+                          <option key={modulo.id} value={modulo.id}>
+                            {modulo.numeroLeyenda}
+                          </option>
+                        ))}
+                      </select>
+                      {errores.moduloId && (
+                        <span className="mensaje-error">
+                          {errores.moduloId}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </fieldset>
+                </fieldset>
+              )}
 
               {errorGuardar && (
                 <p className="mensaje-error" role="alert">
@@ -716,7 +1069,9 @@ export function Alumnos() {
                     }`}
                   ></i>
 
-                  {alumnoEditando ? "Guardar cambios" : "Registrar alumno"}
+                  {alumnoEditando
+                    ? "Guardar datos personales"
+                    : "Registrar alumno"}
                 </button>
               </div>
             </form>

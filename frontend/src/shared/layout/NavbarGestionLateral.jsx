@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router";
+import { useSesion } from "../../features/auth/context/SesionContext";
 import { ROLES } from "../../features/auth/roles";
-import { getSesion } from "../../features/auth/services/authServices";
 const {DIRECTIVO, DOCENTE, PRECEPTOR}=ROLES;
 
 const ITEMS = [
@@ -19,7 +19,7 @@ const ITEMS = [
 
 export default function NavBarGestionLateral() {
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const usuario=getSesion();
+  const { usuario } = useSesion();
  
   const cerrarMenu = () => {
     setMenuAbierto(false);

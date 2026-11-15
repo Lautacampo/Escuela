@@ -309,10 +309,10 @@ export function ListadoAlumnos({
                       type="button"
                       className="btn-accion btn-eliminar"
                       onClick={() => onEliminar(alumno.id)}
-                      aria-label={`Eliminar a ${alumno.nombre} ${alumno.apellido}`}
+                      aria-label={`Dar de Baja a ${alumno.nombre} ${alumno.apellido}`}
                     >
                       <i className="fa-solid fa-trash" aria-hidden="true"></i>
-                      <span>Eliminar</span>
+                      <span>Dar de Baja</span>
                     </button>
                   </div>
                 </td>

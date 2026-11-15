@@ -21,12 +21,6 @@ export async function apiFetch(path, options = {}) {
   }
 
   
-  if (res.status === 401) {
-    logout();
-    window.location.assign("/login");
-    throw new Error("Sesión vencida");
-  }
-
   const responseText = await res.text();
   let data = null;
   if (responseText) {
@@ -35,6 +29,13 @@ export async function apiFetch(path, options = {}) {
     } catch {
       // Successful non-JSON responses keep returning null.
     }
+  }
+
+  // Un 401 en el login son credenciales inválidas: no hay sesión que cerrar.
+  if (res.status === 401 && !path.startsWith("/auth/login")) {
+    logout();
+    window.location.assign("/login");
+    throw new Error("Sesión vencida");
   }
 
   if (!res.ok) {

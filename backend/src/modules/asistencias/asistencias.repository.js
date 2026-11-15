@@ -106,9 +106,10 @@ export const listarAlumnosPlanilla = async (cursoId, moduloId, fecha) => {
             asi.valor_falta
        FROM cursada_modulo cm
        JOIN persona p ON p.id = cm.alumno_id
+       JOIN alumno al ON al.id = cm.alumno_id
        LEFT JOIN asistencia asi
          ON asi.cursada_modulo_id = cm.id AND asi.fecha = $3::date
-      WHERE cm.curso_id = $1 AND cm.modulo_id = $2
+      WHERE cm.curso_id = $1 AND cm.modulo_id = $2 AND al.activo
       ORDER BY p.apellido, p.nombre`,
     [cursoId, moduloId, fecha],
   );
@@ -121,7 +122,7 @@ export const listarAsistencias = async ({
   preceptorId,
 }) => {
   const params = [];
-  const condiciones = [];
+  const condiciones = ["al.activo"];
 
   if (cursadaModuloId !== null) {
     params.push(cursadaModuloId);
@@ -154,6 +155,7 @@ export const listarAsistencias = async ({
        JOIN cursada_modulo cm ON cm.id = a.cursada_modulo_id
        JOIN curso c ON c.id = cm.curso_id
        JOIN persona p ON p.id = cm.alumno_id
+       JOIN alumno al ON al.id = cm.alumno_id
        ${where}
       ORDER BY a.fecha DESC, p.apellido, p.nombre`,
     params,
@@ -185,8 +187,8 @@ export const buscarAsistenciaPorId = async (id) => {
 };
 
 // Recalcula y sincroniza cantidad_faltas_acumuladas y condicion en cursada_modulo
-const sincronizarFaltasCursada = async (cursadaId) => {
-  const { rows } = await pool.query(
+const sincronizarFaltasCursada = async (cursadaId, db = pool) => {
+  const { rows } = await db.query(
     `SELECT COALESCE(SUM(valor_falta), 0)::float AS total
        FROM asistencia
       WHERE cursada_modulo_id = $1`,
@@ -195,7 +197,7 @@ const sincronizarFaltasCursada = async (cursadaId) => {
   const total = rows[0]?.total ?? 0;
   const condicion = total > LIMITE_FALTAS_LIBRE ? "Libre" : "Regular";
 
-  await pool.query(
+  await db.query(
     `UPDATE cursada_modulo
         SET cantidad_faltas_acumuladas = CEIL($2::numeric)::int,
             condicion = $3
@@ -208,34 +210,30 @@ const sincronizarFaltasCursada = async (cursadaId) => {
 
 // Guarda o actualiza la asistencia de un alumno en una fecha (Upsert)
 export const guardarAsistencia = async (cursadaId, fecha, valorFalta) => {
-  // Buscamos si ya existe un registro para esa cursada y fecha
-  const existente = await pool.query(
-    `SELECT id FROM asistencia WHERE cursada_modulo_id = $1 AND fecha = $2::date`,
-    [cursadaId, fecha],
-  );
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  let registro;
-  if (existente.rowCount > 0) {
-    const { rows } = await pool.query(
-      `UPDATE asistencia
-          SET valor_falta = $2
-        WHERE id = $1
-        RETURNING id, cursada_modulo_id AS "cursadaModuloId", TO_CHAR(fecha, 'YYYY-MM-DD') AS fecha, valor_falta::float AS "valorFalta"`,
-      [existente.rows[0].id, valorFalta],
-    );
-    registro = rows[0];
-  } else {
-    const { rows } = await pool.query(
+    const { rows } = await client.query(
       `INSERT INTO asistencia (cursada_modulo_id, fecha, valor_falta)
        VALUES ($1, $2::date, $3)
-       RETURNING id, cursada_modulo_id AS "cursadaModuloId", TO_CHAR(fecha, 'YYYY-MM-DD') AS fecha, valor_falta::float AS "valorFalta"`,
-      [cursadaId, fecha, valorFalta],
+       ON CONFLICT (cursada_modulo_id, fecha)
+       DO UPDATE SET valor_falta = EXCLUDED.valor_falta
+       RETURNING id, cursada_modulo_id AS "cursadaModuloId", TO_CHAR(fecha, 'YYYY-MM-DD') as fecha, valor_falta::float AS "valorFalta"`,
+      [cursadaId, fecha, valorFalta]
     );
-    registro = rows[0];
-  }
+    const registro = rows[0];
 
-  const resumen = await sincronizarFaltasCursada(cursadaId);
-  return { ...registro, ...resumen };
+    const resumen = await sincronizarFaltasCursada(cursadaId, client);
+
+    await client.query('COMMIT');
+    return { ...registro, ...resumen};
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 export const actualizarAsistenciaPorId = async (

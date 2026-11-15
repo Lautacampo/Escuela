@@ -5,6 +5,7 @@ import {
   getModulos,
   getCiclosCalificaciones,
 } from "../services/CalificacionesServices";
+import { useSesion } from "../../auth/context/SesionContext";
 import { CalificacionesTarjetas } from "../components/CalificacionesTarjetas";
 import "../components/calificacionestarjetas.css";
 
@@ -15,10 +16,11 @@ const ANIOS = {
 };
 
 export function CalificacionesPage() {
-  const esDocente = getSesion()?.rol === "docente";
   const [searchParams, setSearchParams] = useSearchParams();
   const anioSeleccionado = searchParams.get("anio") ?? "";
   const [ciclos, setCiclos] = useState([]);
+  const { usuario } = useSesion();
+  const esDocente = usuario?.rol === "docente";
   const [anios, setAnios] = useState([]);
   const [anioCargado, setAnioCargado] = useState("");
   const [cargandoCiclos, setCargandoCiclos] = useState(true);

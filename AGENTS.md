@@ -1,26 +1,43 @@
-# Guía para trabajar en este repositorio
+# AGENTS.md
 
-## Ubicación y comandos
-- El código está en `Escuela-main/`, no en la raíz de Git. No hay un paquete npm raíz ni workspaces: `frontend/` y `backend/` tienen dependencias y lockfiles independientes. Las rutas siguientes parten de `Escuela-main/`.
-- Usa Node.js 24 LTS: es compatible con los requisitos de Vite y ESLint del lockfile y con `process.loadEnvFile()` del backend.
-- En `frontend/`: `npm ci --include=dev`; después, `npm run dev` para Vite y, en otra terminal, `npm run server` para JSON Server en el puerto 3000. Este último script ya apunta a `../database/db.json`; no hace falta ejecutar `npx` desde la raíz.
-- En `backend/`: `npm ci`, preparar `.env` a partir de `.env.example` y ejecutar `npm run dev` (recarga automática) o `npm start`.
-- Verificación del frontend, desde `frontend/`: `npm run lint` y `npm run build`. No hay scripts de tests ni de typecheck en ninguno de los dos paquetes.
+Guía para agentes que trabajen en este repositorio (Sistema de Gestión Académica — Colegio Tomás Baras).
 
-## Dos API que todavía conviven
-- El README principal describe una etapa anterior: el inicio de sesión ya usa JWT y PostgreSQL, no una autenticación simulada. Para recorrer toda la gestión hacen falta Vite, Express y JSON Server.
-- **Configura `PORT=4000` en `backend/.env`**: `.env.example` propone 3000, pero ese puerto lo usa JSON Server. Tanto `frontend/src/shared/services/api.js` como `frontend/src/features/auth/services/authServices.js` apuntan a `http://localhost:4000/api`.
-- El backend carga `.env` con `process.loadEnvFile()` desde el directorio de ejecución: arráncalo desde `backend/`. Ajusta `CORS_ORIGIN` si Vite no está en `http://localhost:5173`.
-- Login, calificaciones y preceptores usan Express; los servicios de alumnos, docentes y asistencia siguen consultando JSON Server en `http://localhost:3000`, aunque ya existan rutas equivalentes en Express. Comprueba el servicio importado por cada pantalla antes de cambiar una API.
-- Las escrituras de JSON Server modifican `database/db.json`: las pruebas manuales pueden alterar los datos de ejemplo.
+## Estructura y estado
+- `frontend/`: React 19 + Vite 8 + Bootstrap 5, JavaScript/JSX. `backend/`: Express 5 + PostgreSQL (`pg`) + JWT, ESM. No hay `package.json` raíz ni workspaces: instalar y ejecutar cada carpeta por separado (el `package-lock.json` de la raíz está vacío).
+- `labtech-proyecto/` es una copia local sin versionar (solo `node_modules/public/src`); no forma parte de la app ni se debe editar.
+- `database/schema.sql` es un volcado completo de PostgreSQL 18.6; `database/db.json` es data vieja de la etapa JSON Server.
+- `README.md` mezcla la etapa JSON Server con la actual; `READMEv2.md` describe el flujo con backend/JWT. Ante dudas, confiar en `package.json` y en el código.
+- No hay tests, typecheck, CI ni pre-commit.
 
-## PostgreSQL y comprobaciones
-- La conexión usa las variables `PG*` de `backend/.env.example`. `database/schema.sql` es un volcado de PostgreSQL 18.6, no una migración ni una inicialización completa: no define las tablas `usuarios` y `roles` que necesita la autenticación. No des por hecho que restaurarlo basta para iniciar sesión.
-- Desde `backend/`, `node test-db.js` comprueba la conexión y consulta `roles`; no es una suite de tests. `node scripts/seed-usuarios.js` requiere `usuarios` y los roles ya creados; inserta cuentas de prueba con contraseña `1234`, sin actualizar las existentes.
-- Tanto la comprobación de base de datos como el seed capturan errores y los imprimen sin fijar un código de salida de fallo: revisa su salida, no solo el estado del proceso.
-- Hay una colección para comprobaciones manuales en `backend/postman/Escuela API.postman_collection.json`.
+## Comandos
+Backend (desde `backend/`):
+- `npm install`
+- Crear `.env` a partir de `.env.example` (`Copy-Item .env.example .env`) y ajustar `PORT`, `PGDATABASE`, `PGPASSWORD` y `JWT_SECRET`.
+- `npm run dev` (`node --watch src/server.js`) o `npm start`.
+- `node test-db.js`: comprueba la conexión a PostgreSQL y lista roles. No es una suite de tests.
+- `node scripts/seed-usuarios.js`: inserta usuarios de prueba con contraseña `1234`. El README menciona `npm run seed:usuarios`, pero ese script no existe en `package.json`.
 
-## Puntos de integración
-- La navegación y los permisos de pantalla se definen en `frontend/src/router.jsx`, mediante loaders de `features/auth/services/authServices.js`. La sesión se guarda en `localStorage` con las claves `sesion` y `token`; `apiFetch` añade el Bearer token y cierra la sesión ante un 401.
-- En Express, `backend/src/server.js` arranca `src/app.js`, que monta las rutas bajo `/api`. Cada módulo separa rutas, controladores, servicios y repositorios SQL; los permisos del servidor se aplican con `verificarToken` y `permitirRoles`, independientemente de los loaders del frontend.
-- `frontend/dist/` es salida de compilación; modifica `frontend/src/` o `frontend/public/`, no los archivos generados.
+Frontend (desde `frontend/`):
+- `npm install`
+- `npm run dev` → http://localhost:5173
+- `npm run lint` y `npm run build` son la única verificación automática.
+- `npm run server` levanta json-server sobre `../database/db.json` en el puerto 3000, pero ya no lo consume el frontend. Es legado.
+- Node 24 LTS (probado con v24.20.0 / npm 11.19.0). El backend necesita `process.loadEnvFile()`, disponible desde Node 20.12.
+
+## API: puertos y endpoints
+- `frontend/src/shared/services/api.js` tiene la base hardcodeada en **`http://localhost:8080/api`**. El backend escucha por defecto en **4000** (`PORT`), así que hay que alinear ambos antes de depurar problemas de red/CORS. `CORS_ORIGIN` debe coincidir con el origen de Vite (5173 por defecto).
+- El backend solo monta `/api/auth`, `/api/calificaciones`, `/api/asistencias`, `/api/docentes`, `/api/preceptores`, `/api/cursos` y `/api/alumnos` (ver `backend/src/app.js`).
+- El frontend aún llama endpoints sin implementar: `/materias`, `/plan-estudio*`, `/ciclo-lectivo`, `/reportes/*`, `/evaluaciones-modulo`, `/modulos` (asistencia) y `GET`/`DELETE /calificaciones` (ficha y borrado de alumno). Los 404 en esas pantallas son esperables; no rompas otras pantallas para "arreglarlos".
+- `apiFetch` agrega `Authorization: Bearer <token>` y, ante un 401, borra la sesión y redirige a `/login`.
+- Los roles del backend van en minúscula: `directivo`, `docente`, `preceptor`. Los permisos se validan dos veces: loaders de `frontend/src/router.jsx` (`controlSesion`) y middleware `verificarToken`/`permitirRoles`.
+
+## Base de datos
+- Crear primero la base (por ejemplo `escuela_db`) y cargar el dump con **psql**, no con pgAdmin Query Tool: `psql -U postgres -d escuela_db -f database/schema.sql`. El archivo usa metacomandos `\restrict`/`\unrestrict` y `COPY ... FROM stdin` de `pg_dump` 18.6; conviene usar psql/PostgreSQL 18.
+- `backend/.env.example` usa `PGDATABASE=Colegio` y una contraseña placeholder. El schema ya incluye `roles` y `usuarios`, con `director@escuela.com`, `docente@escuela.com` y `preceptor@escuela.com` (contraseña `1234`).
+- Arrancar el backend desde `backend/`: `process.loadEnvFile()` lee `.env` del directorio actual. Los defaults de `env.js` (`PGDATABASE=database`) no sirven para este proyecto.
+
+## Convenciones
+- Frontend feature-first: `src/features/<dominio>/{pages,components,services}`; lo compartido está en `src/shared/`. Las rutas se centralizan en `src/router.jsx` con `react-router` v8 (importar de `react-router`, no de `react-router-dom`).
+- Backend por módulos: `routes → controller → service → repository`, con SQL crudo sobre el pool de `pg`; los errores se centralizan en `middlewares/errorHandler.js`.
+- Hay servicios duplicados/legados en `features/SoftwareII/` (`*-is`) y extensiones mezcladas `.js`/`.jsx`; confirmar cuál importa la página antes de editar.
+- `npm run lint` ya falla con 7 errores preexistentes (`set-state-in-effect` en ConsultaMateria, DivisionCalificacionesPage y PlanEstudios; variables/imports sin usar). Comparar con `git diff` para no atribuirlos a cambios nuevos.

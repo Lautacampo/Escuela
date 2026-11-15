@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import {login} from "../services/authServices";
+import { useSesion } from "../context/SesionContext";
 import "./login.css";
 
 export function Login() {
@@ -9,6 +9,7 @@ export function Login() {
     contrasena: "",
   });
   const navigate = useNavigate();
+  const { iniciarSesion } = useSesion();
   const[error,setError]=useState("");
 
   const handleChange = (e) => {
@@ -19,7 +20,7 @@ export function Login() {
     e.preventDefault();
     setError("");
     try{
-      await login(credenciales.mail ,credenciales.contrasena);
+      await iniciarSesion(credenciales.mail ,credenciales.contrasena);
       navigate("/gestion");
     }catch(err){
       setError(err.message);

@@ -74,6 +74,16 @@ function normalizar(texto) {
     .toLowerCase();
 }
 
+// El backend identifica curso y división con el id del módulo: cada curso
+// tiene dos módulos consecutivos (módulos 1 y 2 => 1° año, 3 y 4 => 2° año...).
+function cursoDeModulo(moduloId) {
+  const numero = Number(moduloId);
+
+  if (!Number.isInteger(numero) || numero <= 0) return "";
+
+  return String(Math.ceil(numero / 2));
+}
+
 export function Docentes() {
   const [docentes, setDocentes] = useState([]);
   const [modulos, setModulos] = useState([]);
@@ -187,11 +197,11 @@ export function Docentes() {
       !hayFiltroAsignacion ||
       docente.asignaciones.some(
         (asignacion) =>
-          (!filtros.curso || String(asignacion.curso) === filtros.curso) &&
+          (!filtros.curso ||
+            cursoDeModulo(asignacion.moduloId) === filtros.curso) &&
           (!filtros.division || asignacion.division === filtros.division) &&
           (!filtros.materia || asignacion.materia === filtros.materia),
       );
-
     return coincideBusqueda && coincideAsignacion;
   });
 
@@ -278,15 +288,13 @@ export function Docentes() {
         ? {
             ...DOCENTE_INICIAL,
             ...docente,
-
-            asignaciones: [
-              ...new Map(
-                docente.asignaciones.map((asignacion) => [
-                  `${asignacion.materia}|${asignacion.curso}|${asignacion.division}`,
-                  asignacion,
-                ]),
-              ).values(),
-            ],
+            asignaciones: (docente.asignaciones ?? []).map(
+              ({ moduloId, division, materia }) => ({
+                moduloId: moduloId === null ? "" : String(moduloId),
+                division: division ?? "",
+                materia: materia ?? "",
+              }),
+            ),
           }
         : { ...DOCENTE_INICIAL, asignaciones: [] },
     );
@@ -346,7 +354,7 @@ export function Docentes() {
       ...anteriores,
       asignaciones: [
         ...anteriores.asignaciones,
-        { materia: "", curso: "", division: "" },
+        { materia: "", moduloId: "", division: "" },
       ],
     }));
 
@@ -360,8 +368,8 @@ export function Docentes() {
       asignaciones: anteriores.asignaciones.map((asignacion, posicion) =>
         posicion !== indice
           ? asignacion
-          : campo === "curso"
-            ? { ...asignacion, curso: valor, division: "" }
+          : campo === "moduloId"
+            ? { ...asignacion, moduloId: valor, division: "" }
             : { ...asignacion, [campo]: valor },
       ),
     }));
@@ -414,14 +422,21 @@ export function Docentes() {
     }
 
     const asignacionIncompleta = valores.asignaciones.some(
-      ({ materia, curso, division }) =>
-        !materiasDisponibles.includes(materia) ||
-        !cursos.includes(curso) ||
-        !divisionesPorCurso[curso]?.includes(division),
+      ({ materia, moduloId, division }) => {
+        const modulo = modulos.find(
+          (modulo) => String(modulo.id) === String(moduloId),
+        );
+
+        return (
+          !MATERIAS.includes(materia) ||
+          !modulo ||
+          !(modulo.divisiones ?? []).includes(division)
+        );
+      },
     );
 
     const claves = valores.asignaciones.map(
-      ({ materia, curso, division }) => `${materia}|${curso}|${division}`,
+      ({ materia, moduloId, division }) => `${materia}|${moduloId}|${division}`,
     );
 
     if (asignacionIncompleta) {
@@ -471,7 +486,13 @@ export function Docentes() {
       especialidad: valores.especialidad.trim(),
       email: valores.email.trim(),
       telefono: valores.telefono.trim(),
-      asignaciones: asignacionesPreparadas,
+      asignaciones: valores.asignaciones.map(
+        ({ materia, moduloId, division }) => ({
+          materia: materia.trim(),
+          moduloId: Number(moduloId),
+          division: division.trim().toUpperCase(),
+        }),
+      ),
     };
 
     if (editando !== null) docentePreparado.id = editando;
@@ -652,20 +673,25 @@ export function Docentes() {
 
                   <td>
                     <div className="personal-asignaciones">
-                      {docente.asignaciones.length === 0
+                      {(docente.asignaciones ?? []).length === 0
                         ? "Sin asignaciones"
-                        : docente.asignaciones.map((asignacion) => (
-                            <div
-                              className="personal-asignacion"
-                              key={`${asignacion.materia}-${asignacion.curso}-${asignacion.division}-${asignacion.moduloId}-${asignacion.cicloLectivo}`}
-                            >
-                              <strong>{asignacion.materia} · </strong>
-                              <span>
-                                {asignacion.curso}° Año · División{" "}
-                                {asignacion.division}
-                              </span>
-                            </div>
-                          ))}
+                        : docente.asignaciones.map((asignacion) => {
+                            const curso = cursoDeModulo(asignacion.moduloId);
+
+                            return (
+                              <div
+                                className="personal-asignacion"
+                                key={`${asignacion.materia}-${asignacion.moduloId}-${asignacion.division}`}
+                              >
+                                <strong>{asignacion.materia} · </strong>
+                                <span>
+                                  {curso ? `${curso}° Año` : "Módulo sin curso"}
+                                  {" · "}
+                                  División {asignacion.division}
+                                </span>
+                              </div>
+                            );
+                          })}
                     </div>
                   </td>
 
@@ -799,27 +825,31 @@ export function Docentes() {
               <fieldset>
                 <legend>Materias y cursos asignados</legend>
 
-                {valores.asignaciones.map((asignacion, indice) => (
-                  <div className="personal-fila-asignacion" key={indice}>
-                    {[
-                      {
-                        campo: "materia",
-                        etiqueta: "Materia",
-                        opciones: materiasDisponibles,
-                      },
-                      { campo: "curso", etiqueta: "Curso", opciones: cursos },
-                      {
-                        campo: "division",
-                        etiqueta: "División",
-                        opciones: divisionesPorCurso[asignacion.curso] ?? [],
-                      },
-                    ].map(({ campo, etiqueta, opciones }) => (
-                      <div className="form-group" key={campo}>
-                        <label
-                          htmlFor={`docente-asignacion-${indice}-${campo}`}
-                        >
-                          {etiqueta}
-                        </label>
+            {valores.asignaciones.map((asignacion, indice) => (
+              <div className="personal-fila-asignacion" key={indice}>
+                {[
+                  {
+                    campo: "materia", 
+                    etiqueta: "Materia", 
+                    opciones: MATERIAS
+                  },
+                  { 
+                    campo: "moduloId", 
+                    etiqueta: "Curso / Módulo", 
+                    opciones: modulos
+                  },
+                  {
+                    campo: "division",
+                    etiqueta: "División",
+                    opciones: modulos.find(
+                      (modulo) => String(modulo.id) === String(asignacion.moduloId)
+                    )?.divisiones ?? [],
+                  },
+                ].map(({ campo, etiqueta, opciones }) => (
+                  <div className="form-group" key={campo}>
+                    <label htmlFor={`docente-asignacion-${indice}-${campo}`}>
+                      {etiqueta}
+                    </label>
 
                         <select
                           id={`docente-asignacion-${indice}-${campo}`}
@@ -832,13 +862,25 @@ export function Docentes() {
                             )
                           }
                           className="input-gestion"
+                          disabled={campo === "division" && !asignacion.moduloId}
                         >
                           <option value="">Seleccionar</option>
-                          {opciones.map((opcion) => (
-                            <option key={opcion} value={opcion}>
-                              {campo === "curso" ? `${opcion}° Año` : opcion}
-                            </option>
-                          ))}
+
+                          {opciones.map((opcion) => {
+                            const valor =
+                              campo === "moduloId" ? String(opcion.id) : opcion;
+
+                            const etiquetaOpcion =
+                              campo === "moduloId"
+                                ? `${cursoDeModulo(opcion.id)}° Año - Módulo ${opcion.id}`
+                                : opcion;
+
+                            return (
+                              <option key={valor} value={valor}>
+                                {etiquetaOpcion}
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
                     ))}

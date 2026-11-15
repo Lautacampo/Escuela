@@ -274,7 +274,7 @@ export function FormularioPreinscripcion() {
               type="tel"
               name="emergencia_tel"
               id="emergencia_tel"
-              value={datos.emergencia_telr}
+              value={datos.emergencia_tel}
               onChange={handleChange}
               required
             />

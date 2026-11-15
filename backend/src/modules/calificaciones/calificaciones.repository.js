@@ -24,18 +24,18 @@ export const listarCursosModulos = async (docenteId = null, anio) => {
   if (docenteId !== null) {
     params.push(docenteId);
     filtro += `
-      AND EXISTS (
-        SELECT 1 FROM docente_curso dc
-        WHERE dc.docente_id = $2 AND dc.curso_id = c.id
-      )
-      AND EXISTS (
-        SELECT 1 FROM docente_materia dm
-        JOIN materia_modulo mm ON mm.materia_id = dm.materia_id
-        WHERE dm.docente_id = $2 AND mm.modulo_id = m.id
+      WHERE EXISTS (
+        SELECT 1 FROM docente_curso_materia dcm
+        JOIN materia_modulo mm
+          ON mm.materia_id = dcm.materia_id AND mm.modulo_id = m.id
+        WHERE dcm.docente_id = $2 AND dcm.curso_id = c.id
       )`;
     filtroMaterias = `
       AND ma.id IN (
-        SELECT materia_id FROM docente_materia WHERE docente_id = $2
+        SELECT dcm.materia_id
+          FROM docente_curso_materia dcm
+          JOIN curso_modulo cm2 ON cm2.curso_id = dcm.curso_id
+         WHERE dcm.docente_id = $2 AND cm2.modulo_id = m.id
       )`;
   }
 
@@ -77,11 +77,10 @@ export const listarDivisionesDeModulo = async (
   if (docenteId !== null) {
     params.push(docenteId);
     filtro = `
-      AND EXISTS (SELECT 1 FROM docente_curso dc
-        WHERE dc.docente_id = $3 AND dc.curso_id = c.id)
-      AND EXISTS (SELECT 1 FROM docente_materia dm
-        JOIN materia_modulo mm ON mm.materia_id = dm.materia_id
-        WHERE dm.docente_id = $3 AND mm.modulo_id = cm.modulo_id)`;
+        AND EXISTS (SELECT 1 FROM docente_curso_materia dcm
+        JOIN materia_modulo mm
+          ON mm.materia_id = dcm.materia_id AND mm.modulo_id = cm.modulo_id
+        WHERE dcm.docente_id = $3 AND dcm.curso_id = c.id)`;
   }
   const { rows } = await pool.query(
     `SELECT DISTINCT TRIM(c.division) AS division
@@ -112,19 +111,26 @@ export const buscarCurso = async (moduloId, division, anio) => {
 
 export const docenteTieneCurso = async (docenteId, cursoId) => {
   const { rowCount } = await pool.query(
-    "SELECT 1 FROM docente_curso WHERE docente_id = $1 AND curso_id = $2",
+    "SELECT 1 FROM docente_curso_materia WHERE docente_id = $1 AND curso_id = $2",
     [docenteId, cursoId],
   );
   return rowCount > 0;
 };
 
-export const listarMaterias = async (moduloId, docenteId = null) => {
+export const listarMaterias = async (moduloId, docenteId = null, cursoId = null) => {
   const params = [moduloId];
   let filtro = "";
   if (docenteId !== null) {
     params.push(docenteId);
-    filtro =
-      "AND ma.id IN (SELECT materia_id FROM docente_materia WHERE docente_id = $2)";
+    let filtroCurso = "";
+    if (cursoId !== null) {
+      params.push(cursoId);
+      filtroCurso = ` AND dcm.curso_id = $${params.length}`;
+    }
+    filtro = `AND ma.id IN (
+      SELECT dcm.materia_id FROM docente_curso_materia dcm
+      WHERE dcm.docente_id = $2${filtroCurso}
+    )`;
   }
   const { rows } = await pool.query(
     `SELECT ma.id, ma.nombre
@@ -140,7 +146,8 @@ export const listarAlumnos = async (cursoId, moduloId) => {
   const { rows } = await pool.query(
     `SELECT cm.id AS cursada_id, p.apellido, p.nombre
        FROM cursada_modulo cm JOIN persona p ON p.id = cm.alumno_id
-      WHERE cm.curso_id = $1 AND cm.modulo_id = $2
+       JOIN alumno al ON al.id = cm.alumno_id
+      WHERE cm.curso_id = $1 AND cm.modulo_id = $2 AND al.activo
       ORDER BY p.apellido, p.nombre`,
     [cursoId, moduloId],
   );
@@ -163,7 +170,8 @@ export const buscarCursadaConMateria = async (cursadaId, materiaId) => {
        JOIN curso c ON c.id = cm.curso_id
        JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
        JOIN materia_modulo mm ON mm.modulo_id = cm.modulo_id AND mm.materia_id = $2
-      WHERE cm.id = $1`,
+       JOIN alumno al ON al.id = cm.alumno_id
+      WHERE cm.id = $1 AND al.activo`,
     [cursadaId, materiaId],
   );
   return rows[0] ?? null;
@@ -175,9 +183,8 @@ export const docenteDaMateriaEnCurso = async (
   cursoId,
 ) => {
   const { rowCount } = await pool.query(
-    `SELECT 1 FROM docente_materia dm
-       JOIN docente_curso dc ON dc.docente_id = dm.docente_id
-      WHERE dm.docente_id = $1 AND dm.materia_id = $2 AND dc.curso_id = $3`,
+    `SELECT 1 FROM docente_curso_materia
+      WHERE docente_id = $1 AND materia_id = $2 AND curso_id = $3`,
     [docenteId, materiaId, cursoId],
   );
   return rowCount > 0;

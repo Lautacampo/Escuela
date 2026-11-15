@@ -4,6 +4,10 @@
         return apiFetch("/alumnos");
     }
 
+    export async function getAlumno(id){
+        return apiFetch(`/alumnos/${id}`);
+    }
+
     export async function getCursos(){
         return apiFetch("/cursos");
     }
@@ -16,12 +20,21 @@
     }
 
    export async function matricularAlumno(idAlumno, idCurso, idModulo) {
-        return apiFetch(`/alumnos/${idAlumno}/matricular`, {
+        return apiFetch(`/alumnos/${idAlumno}/cursadas`, {
             method: "POST",
             body: JSON.stringify({
-                idCurso: idCurso,
-                idModulo: idModulo,
-                autorizarConAdvertencias: false
+                idCurso,
+                idModulo
+            })
+        });
+   }
+
+   export async function actualizarMatricula(idAlumno, idCurso, idModulo) {
+        return apiFetch(`/alumnos/${idAlumno}/cursadas`, {
+            method: "PUT",
+            body: JSON.stringify({
+                idCurso,
+                idModulo
             })
         });
    }
