@@ -5,6 +5,12 @@ export const listarModulosConDivisionesYMaterias = async () => {
   const { rows } = await pool.query(
     `SELECT m.id,
             m.numero_leyenda AS nombre,
+
+      (SELECT MIN(c.anio_curso)::int
+        FROM curso_modulo cm
+        JOIN curso c ON c.id = cm.curso_id
+       WHERE cm.modulo_id = m.id
+      ) AS "anioCurso",
             COALESCE(
               ARRAY(
                 SELECT DISTINCT TRIM(c.division)
@@ -42,13 +48,16 @@ const obtenerMapaAsignaciones = async (docenteId = null) => {
 
   const { rows } = await pool.query(
     `SELECT DISTINCT
-            d.id AS docente_id,
-            cm.modulo_id AS "moduloId",
-            TRIM(c.division) AS division,
-            ma.nombre AS materia
+    d.id AS docente_id,
+    cm.modulo_id AS "moduloId",
+    c.anio_curso::text AS curso,
+    cl.anio AS "cicloLectivo",
+    TRIM(c.division) AS division,
+    ma.nombre AS materia
        FROM docente d
        JOIN docente_curso dc ON dc.docente_id = d.id
        JOIN curso c ON c.id = dc.curso_id
+       JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
        JOIN curso_modulo cm ON cm.curso_id = c.id
        JOIN docente_materia dm ON dm.docente_id = d.id
        JOIN materia_modulo mm ON mm.materia_id = dm.materia_id AND mm.modulo_id = cm.modulo_id
@@ -63,6 +72,8 @@ const obtenerMapaAsignaciones = async (docenteId = null) => {
     if (!mapa.has(r.docente_id)) mapa.set(r.docente_id, []);
     mapa.get(r.docente_id).push({
       moduloId: r.moduloId,
+      curso: r.curso,
+      cicloLectivo: r.cicloLectivo,
       division: r.division,
       materia: r.materia,
     });
@@ -325,3 +336,4 @@ export const eliminarDocente = async (id) => {
     client.release();
   }
 };
+
