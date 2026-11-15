@@ -99,7 +99,7 @@ export const listarAlumnosPlanilla = async (cursoId, moduloId, fecha) => {
               WHEN COALESCE(
                 (SELECT SUM(a2.valor_falta) FROM asistencia a2 WHERE a2.cursada_modulo_id = cm.id),
                 0
-              ) >= ${LIMITE_FALTAS_LIBRE} THEN 'Libre'
+              ) > ${LIMITE_FALTAS_LIBRE} THEN 'Libre'
               ELSE 'Regular'
             END AS condicion,
             asi.id AS asistencia_id,
@@ -193,7 +193,7 @@ const sincronizarFaltasCursada = async (cursadaId) => {
     [cursadaId],
   );
   const total = rows[0]?.total ?? 0;
-  const condicion = total >= LIMITE_FALTAS_LIBRE ? "Libre" : "Regular";
+  const condicion = total > LIMITE_FALTAS_LIBRE ? "Libre" : "Regular";
 
   await pool.query(
     `UPDATE cursada_modulo
