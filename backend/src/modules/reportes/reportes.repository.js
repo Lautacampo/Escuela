@@ -49,9 +49,20 @@ export const listarInasistenciasCriticas = async ({
            JOIN curso c ON c.id = cm.curso_id
            JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
            JOIN modulo m ON m.id = cm.modulo_id
-          WHERE 1=1 ${whereExtra}
+          
+           WHERE 1=1 ${whereExtra}
+           AND NOT EXISTS (
+           SELECT 1
+    FROM cursada_modulo cm_nueva
+    JOIN curso c_nuevo
+      ON c_nuevo.id = cm_nueva.curso_id
+    WHERE cm_nueva.alumno_id = cm.alumno_id
+      AND c_nuevo.ciclo_lectivo_id = c.ciclo_lectivo_id
+      AND cm_nueva.id > cm.id
+  )
        ) sub
-      WHERE sub.faltas >= $1
+      WHERE sub.faltas > $1
+
       ORDER BY sub.faltas DESC, sub.curso ASC, sub.division ASC, sub.apellido ASC`,
     params,
   );
