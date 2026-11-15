@@ -6,9 +6,14 @@ export const listarInasistenciasCriticas = async ({
   minFaltas = 25,
   curso = null,
   division = null,
+  anio = null,
 } = {}) => {
   const params = [minFaltas];
   const filtros = [];
+  if (anio !== null) {
+    params.push(anio);
+    filtros.push(`cl.anio = $${params.length}`);
+  }
 
   if (curso !== null) {
     params.push(curso);
@@ -42,6 +47,7 @@ export const listarInasistenciasCriticas = async ({
            FROM cursada_modulo cm
            JOIN persona p ON p.id = cm.alumno_id
            JOIN curso c ON c.id = cm.curso_id
+           JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
            JOIN modulo m ON m.id = cm.modulo_id
           WHERE 1=1 ${whereExtra}
        ) sub
@@ -58,9 +64,15 @@ export const listarInasistenciasCriticas = async ({
 export const listarDesaprobacionesPorMateria = async ({
   curso = null,
   division = null,
+  anio = null,
 } = {}) => {
   const params = [];
   const filtros = [];
+
+  if (anio !== null) {
+    params.push(anio);
+    filtros.push(`cl.anio = $${params.length}`);
+  }
 
   if (curso !== null) {
     params.push(curso);
@@ -103,6 +115,7 @@ export const listarDesaprobacionesPorMateria = async ({
        FROM calificacion cal
        JOIN cursada_modulo cm ON cm.id = cal.cursada_modulo_id
        JOIN curso c ON c.id = cm.curso_id
+       JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
        JOIN modulo m ON m.id = cm.modulo_id
        JOIN materia ma ON ma.id = cal.materia_id
        ${where}
