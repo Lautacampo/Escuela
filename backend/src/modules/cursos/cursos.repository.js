@@ -10,7 +10,11 @@ export const listarCursosVigentes = async () => {
         FROM curso c
         LEFT JOIN curso_modulo cm ON cm.curso_id = c.id
         LEFT JOIN modulo m ON m.id = cm.modulo_id
-        WHERE c.ciclo_lectivo_id = (SELECT id FROM ciclo_lectivo ORDER BY anio DESC LIMIT 1)
+        WHERE c.ciclo_lectivo_id = (SELECT cl.id
+                                    FROM ciclo_lectivo cl 
+                                    WHERE EXISTS (SELECT 1 FROM curso WHERE ciclo_lectivo_id = cl.id)
+                                    ORDER BY cl.anio DESC
+                                    LIMIT 1)
         GROUP BY c.id
         ORDER BY c.anio_curso, c.division`,
     );
