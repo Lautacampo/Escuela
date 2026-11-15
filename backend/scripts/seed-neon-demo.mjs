@@ -3,7 +3,8 @@
  * Ejecutar desde backend/: node scripts/seed-neon-demo.mjs
  * Requiere npm install, backend/.env con DATABASE_URL de Neon, pg y bcryptjs.
  * NO contiene datos personales reales, contraseñas fijas ni elimina registros.
- * Usa la estructura de 22 tablas en neon_estructura_tomas_baras.sql.
+ * Usa la estructura de neon_estructura_tomas_baras.sql (incluye alumno.activo,
+ * cursada_modulo.activa y docente_curso_materia). Ejecutar ANTES la migración 02_migracion_neon.sql.
  */
 import 'dotenv/config';
 import { randomBytes } from 'node:crypto';
@@ -15,6 +16,19 @@ if (!url) throw new Error('Falta DATABASE_URL en backend/.env');
 const host = new URL(url).hostname;
 if (!host.endsWith('.neon.tech')) {
   throw new Error('Seguridad: este script solo admite una conexion a Neon (*.neon.tech).');
+}
+
+// CUIL con dígito verificador válido (mismo algoritmo que cuilValido del backend).
+function cuilDemo(dni) {
+  const pesos = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  for (const prefijo of ['20', '27', '23', '24']) {
+    const digitos = (prefijo + dni).split('').map(Number);
+    const suma = pesos.reduce((acc, p, i) => acc + p * digitos[i], 0);
+    let dv = 11 - (suma % 11);
+    if (dv === 11) dv = 0;
+    if (dv < 10) return `${prefijo}-${dni}-${dv}`;
+  }
+  throw new Error(`No se pudo generar un CUIL válido para el DNI ${dni}`);
 }
 
 const { Pool } = pg;
@@ -115,13 +129,15 @@ try {
   // 3. Personas ficticias, personal, docentes, directivo y preceptor.
   async function personaDemo(codigo, nombre, apellido, nacimiento = null, trabaja = false) {
     const dni = String(99000000 + codigo);
-    const cuil = `20-${dni}-9`;
+    const cuil = cuilDemo(dni);
     const personaId = await asegurar(
       'SELECT id FROM persona WHERE dni=$1', [dni],
       `INSERT INTO persona (nombre, apellido, dni, cuil, domicilio, telefono, email)
        VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
       [nombre, apellido, dni, cuil, `Domicilio ficticio ${codigo}`, '0000000000', `demo${codigo}@example.com`]
     );
+    // Corrige CUIL de datos demo cargados antes (el CUIL es obligatorio y debe ser válido).
+    await asociar('UPDATE persona SET cuil=$1 WHERE id=$2 AND cuil<>$1', [cuil, personaId]);
     if (nacimiento) {
       await asociar(
         `INSERT INTO alumno (id, fecha_nacimiento, lugar_nacimiento, trabaja, telefono_emergencia, cantidad_hijos)
@@ -194,6 +210,21 @@ try {
        ON CONFLICT (docente_id,materia_id) DO NOTHING`, [docenteId, materias.get(nombre)]
     );
   }
+  // Asignación docente - curso - materia (modelo vigente que usa la autorización).
+  // Cada curso recibe las materias de sus dos módulos, repartidas entre los dos docentes demo.
+  for (const [clave, cursoId] of cursos) {
+    const anioCurso = Number(clave[0]);
+    for (const idx of [2*anioCurso-2, 2*anioCurso-1]) {
+      for (const nombre of grupos[idx]) {
+        const docenteId = nombresMaterias.indexOf(nombre) % 2 === 0 ? staffIds[1] : staffIds[2];
+        await asociar(
+          `INSERT INTO docente_curso_materia (docente_id,curso_id,materia_id)
+           VALUES ($1,$2,$3) ON CONFLICT (docente_id,curso_id,materia_id) DO NOTHING`,
+          [docenteId, cursoId, materias.get(nombre)]
+        );
+      }
+    }
+  }
   await asociar(
     `INSERT INTO asistencia_personal (personal_id,fecha,motivo,valor)
      SELECT $1, DATE '2026-10-20', 'Inasistencia ficticia', TRUE
@@ -264,21 +295,31 @@ try {
     const estadoPrimero = i === 4 ? 'A_RECURSAR' : (i === 7 ? 'PENDIENTE' : 'APROBADO');
     const estados = [{modIdx:primerIdx, estado:estadoPrimero}];
     if (estadoPrimero === 'APROBADO') estados.push({modIdx:segundoIdx,estado:'EN_CURSO'});
+    // Caso de prueba: el alumno que quedó A_RECURSAR vuelve a cursar el mismo módulo en el mismo curso.
+    if (estadoPrimero === 'A_RECURSAR') estados.push({modIdx:primerIdx, estado:'EN_CURSO'});
 
-    for (const item of estados) {
+    for (const [pos, item] of estados.entries()) {
       const esLibre = i === 3 && item.modIdx === primerIdx;
+      // Solo la última cursada del alumno queda activa (índice cursada_modulo_activa_uk).
+      const esActual = pos === estados.length - 1;
+      const esRecursada = item.estado === 'A_RECURSAR';
       const cursadaId = await asegurar(
         `SELECT id FROM cursada_modulo
-         WHERE alumno_id=$1 AND modulo_id=$2 AND curso_id=$3 LIMIT 1`,
-        [estudianteId, modulos[item.modIdx], cursoId],
+         WHERE alumno_id=$1 AND modulo_id=$2 AND curso_id=$3
+           AND (estado_academico = 'A_RECURSAR') = $4 LIMIT 1`,
+        [estudianteId, modulos[item.modIdx], cursoId, esRecursada],
         `INSERT INTO cursada_modulo
-         (alumno_id,modulo_id,curso_id,condicion,cantidad_faltas_acumuladas,estado_academico)
-         VALUES ($1,$2,$3,$4,0,$5) RETURNING id`,
-        [estudianteId, modulos[item.modIdx], cursoId, esLibre ? 'LIBRE' : 'REGULAR', item.estado]
+         (alumno_id,modulo_id,curso_id,condicion,cantidad_faltas_acumuladas,estado_academico,activa)
+         VALUES ($1,$2,$3,$4,0,$5,$6) RETURNING id`,
+        [estudianteId, modulos[item.modIdx], cursoId, esLibre ? 'LIBRE' : 'REGULAR', item.estado, esActual]
+      );
+      await asociar(
+        'UPDATE cursada_modulo SET activa=$1 WHERE id=$2 AND activa<>$1',
+        [esActual, cursadaId]
       );
       cursadasDemo++;
 
-      // Asistencias consistentes con el acumulado de faltas, siempre enteras.
+      // Asistencias consistentes con el acumulado de faltas (enteras, salvo una media falta de prueba).
       const faltas = esLibre ? 26 : (item.estado === 'EN_CURSO' ? (i%3)+1 : i%2);
       const mesBase = item.modIdx%2===0 ? 3 : 8; // abril / septiembre
       for (let f=0; f<faltas; f++) {
@@ -288,6 +329,15 @@ try {
            SELECT $1, $2::date, 1
            WHERE NOT EXISTS (SELECT 1 FROM asistencia WHERE cursada_modulo_id=$1 AND fecha=$2::date)`,
           [cursadaId,fecha]
+        );
+      }
+      if (i === 1 && item.estado === 'EN_CURSO') {
+        const fechaMedia = new Date(Date.UTC(2026, mesBase, 20)).toISOString().slice(0,10);
+        await asociar(
+          `INSERT INTO asistencia (cursada_modulo_id, fecha, valor_falta)
+           SELECT $1, $2::date, 0.5
+           WHERE NOT EXISTS (SELECT 1 FROM asistencia WHERE cursada_modulo_id=$1 AND fecha=$2::date)`,
+          [cursadaId, fechaMedia]
         );
       }
       const total = await client.query(
@@ -332,6 +382,18 @@ try {
     }
   }
 
+  // 6b. Alumno dado de baja (baja lógica): conserva persona, cursada e historial, pero no aparece en el padrón.
+  const bajaId = await personaDemo(119, 'Ezequiel', 'Baja', '2002-05-14', false);
+  await asegurar(
+    `SELECT id FROM cursada_modulo WHERE alumno_id=$1 AND modulo_id=$2 AND curso_id=$3 LIMIT 1`,
+    [bajaId, modulos[0], cursos.get('1A')],
+    `INSERT INTO cursada_modulo
+     (alumno_id,modulo_id,curso_id,condicion,cantidad_faltas_acumuladas,estado_academico,activa)
+     VALUES ($1,$2,$3,'REGULAR',0,'EN_CURSO',true) RETURNING id`,
+    [bajaId, modulos[0], cursos.get('1A')]
+  );
+  await asociar('UPDATE alumno SET activo=false WHERE id=$1', [bajaId]);
+
   // 7. Tablas de Plan de Estudios. El backend también puede crearlas automáticamente;
   // aqui se inicializan ahora para mostrar una demostracion completa.
   await asociar(`
@@ -373,6 +435,8 @@ try {
     UNION ALL SELECT 'usuarios', COUNT(*) FROM usuarios
     UNION ALL SELECT 'personas', COUNT(*) FROM persona
     UNION ALL SELECT 'alumnos', COUNT(*) FROM alumno
+    UNION ALL SELECT 'alumnos de baja', COUNT(*) FROM alumno WHERE NOT activo
+    UNION ALL SELECT 'asignaciones docente-curso-materia', COUNT(*) FROM docente_curso_materia
     UNION ALL SELECT 'docentes', COUNT(*) FROM docente
     UNION ALL SELECT 'preceptores', COUNT(*) FROM preceptor
     UNION ALL SELECT 'cursos', COUNT(*) FROM curso
