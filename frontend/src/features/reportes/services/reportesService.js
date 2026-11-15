@@ -1,7 +1,10 @@
 import { apiFetch } from "../../../shared/services/api.js";
 
-export const getReporteInasistencias = () =>
-  apiFetch("/reportes/inasistencias");
+const consultaAnio = (anio) =>
+  anio ? `?anio=${encodeURIComponent(anio)}` : "";
 
-export const getReporteDesaprobaciones = () =>
-  apiFetch("/reportes/desaprobaciones");
+export const getReporteInasistencias = (anio) =>
+  apiFetch(`/reportes/inasistencias${consultaAnio(anio)}`);
+
+export const getReporteDesaprobaciones = (anio) =>
+  apiFetch(`/reportes/desaprobaciones${consultaAnio(anio)}`);
