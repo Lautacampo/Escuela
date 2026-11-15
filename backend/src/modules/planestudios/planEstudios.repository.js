@@ -199,8 +199,6 @@ export const crearPlanEstudio = async ({
     );
     const nuevoPlan = ins.rows[0];
 
-    
-
     for (const mod of modulos) {
       const moduloId = Number(mod.moduloId);
       const materiasIds = Array.isArray(mod.materiasIds) ? mod.materiasIds : [];
@@ -333,11 +331,20 @@ export const listarCiclosLectivos = async () => {
   const { rows } = await pool.query(
     `SELECT id, anio FROM ciclo_lectivo ORDER BY anio DESC`,
   );
-  const maxAnio = rows[0]?.anio ?? 2026;
+  const anioActual = new Date().getFullYear();
+  const cicloVigente =
+    rows.find((r) => Number(r.anio) === anioActual) ??
+    rows.find((r) => Number(r.anio) < anioActual) ??
+    rows[0];
   return rows.map((r) => ({
     id: r.id,
     anio: r.anio,
-    activo: r.anio === maxAnio,
-    estado: r.anio === maxAnio ? "Activo" : "Cerrado",
+    activo: r.id === cicloVigente?.id,
+    estado:
+      r.id === cicloVigente?.id
+        ? "Activo"
+        : Number(r.anio) > Number(cicloVigente?.anio)
+          ? "Próximo"
+          : "Cerrado",
   }));
 };
