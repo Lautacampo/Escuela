@@ -4,7 +4,11 @@
   padding: 18px 18px 20px;
   border: 1px solid rgba(72, 169, 214, 0.32);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(72, 169, 214, 0.16), rgba(255, 255, 255, 0.5));
+  background: linear-gradient(
+    180deg,
+    rgba(72, 169, 214, 0.16),
+    rgba(255, 255, 255, 0.5)
+  );
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
@@ -69,7 +73,10 @@
   border: 1px solid #e0e7ed;
   border-top: 4px solid var(--color-tercero);
   box-shadow: 0 4px 14px rgba(32, 52, 73, 0.07);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .modulo:hover {
@@ -132,7 +139,11 @@
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
 }
 
 .divisionbtn:hover {
@@ -246,4 +257,34 @@
     margin-left: -16px;
     padding: 12px 16px 10px;
   }
+}
+/* Selector del ciclo lectivo: se mantiene al regresar de una división. */
+.calif-ciclo-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.calif-ciclo-encabezado h2 {
+  margin: 0;
+}
+.calif-ciclo-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.calif-ciclo-selector label {
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+.calif-ciclo-selector select {
+  min-width: 140px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #152238;
+  font: inherit;
 }
