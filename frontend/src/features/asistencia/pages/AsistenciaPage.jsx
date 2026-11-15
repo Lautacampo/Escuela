@@ -3,49 +3,68 @@ import { getModulos } from "../services/asistenciaServices";
 import { AsistenciaTarjetas } from "../components/AsistenciaTarjetas";
 import "../components/asistenciaTarjetas.css";
 
+const ANIOS = [
+  { anio: 1, titulo: "Primer Año" },
+  { anio: 2, titulo: "Segundo Año" },
+  { anio: 3, titulo: "Tercer Año" },
+];
 
 export function AsistenciaPage() {
-  const[modulos, setModulos] = useState([]);
-  const[cargando, setCargando]=useState(true);
-  const[error, setError]=useState(null);
+  const [grupos, setGrupos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect (()=>
-  {
-    async function cargar(){
-      try{
-        const datos= await getModulos();
-        setModulos(datos);
-      }catch(e){
-        setError(e.message);
-      }finally{
-        setCargando(false);
-      }
-    }
-    cargar();
-  },[]);
+  useEffect(() => {
+    let activo = true;
 
-  if (cargando) return <p>Cargando...</p>;
-  if (error) return <p>{error}</p>;
+    getModulos()
+      .then((datos) => {
+        if (!Array.isArray(datos)) {
+          throw new Error(
+            "El servidor devolvió un formato de módulos inesperado.",
+          );
+        }
+        if (activo) setGrupos(datos);
+      })
+      .catch((e) => {
+        if (activo) setError(e.message);
+      })
+      .finally(() => {
+        if (activo) setCargando(false);
+      });
 
-  const grupos = [
-    { titulo: "Primer Año", modulos: modulos.filter((m) => Number(m.id) <= 2) },
-    { titulo: "Segundo Año", modulos: modulos.filter((m) => Number(m.id) >= 3 && Number(m.id) <= 4) },
-    { titulo: "Tercer Año", modulos: modulos.filter((m) => Number(m.id) >= 5 && Number(m.id) <= 6) },
-  ];
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  if (cargando) return <p>Cargando módulos y divisiones...</p>;
+  if (error)
+    return <p role="alert">No se pudo cargar la asistencia: {error}</p>;
 
   return (
     <section className="pagina-asistencia-modulos">
       <h2>Asistencia</h2>
-      {grupos.map((grupo) => (
-          <div key={grupo.titulo} className="anio-grupo">
-            <h3 className="anio-titulo">{grupo.titulo}</h3>
+      {ANIOS.map(({ anio, titulo }) => {
+        // El backend devuelve [{ anio, modulos: [{ moduloId, nombre, divisiones }] }]
+        const grupo = grupos.find((item) => Number(item.anio) === anio);
+        const modulos = Array.isArray(grupo?.modulos) ? grupo.modulos : [];
+
+        return (
+          <div key={anio} className="anio-grupo">
+            <h3 className="anio-titulo">{titulo}</h3>
             <div className="modulosdivision">
-              {grupo.modulos.map((modulo)=> (
-                <AsistenciaTarjetas key={modulo.id} modulo={modulo}/>
-              ))}
+              {modulos.length === 0 ? (
+                <p>No hay módulos o divisiones asignados para este año.</p>
+              ) : (
+                modulos.map((modulo) => (
+                  <AsistenciaTarjetas key={modulo.moduloId} modulo={modulo} />
+                ))
+              )}
             </div>
           </div>
-      ))}
+        );
+      })}
     </section>
   );
 }
