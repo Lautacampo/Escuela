@@ -199,8 +199,7 @@ export const crearPlanEstudio = async ({
     );
     const nuevoPlan = ins.rows[0];
 
-    // Sincronizamos también materia_modulo para que el resto del sistema use el nuevo plan activo
-    await client.query("DELETE FROM materia_modulo");
+    
 
     for (const mod of modulos) {
       const moduloId = Number(mod.moduloId);
