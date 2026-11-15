@@ -1,8 +1,16 @@
 import * as service from "./calificaciones.service.js";
 
+export const listarCiclos = async (req, res, next) => {
+  try {
+    res.json(await service.listarCiclos());
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const listarModulos = async (req, res, next) => {
   try {
-    res.json(await service.listarModulos(req.usuario));
+    res.json(await service.listarModulos(req.usuario, req.query.anio));
   } catch (err) {
     next(err);
   }
@@ -11,7 +19,9 @@ export const listarModulos = async (req, res, next) => {
 export const listarDivisiones = async (req, res, next) => {
   try {
     const moduloId = Number(req.params.moduloId);
-    res.json(await service.listarDivisiones(req.usuario, moduloId));
+    res.json(
+      await service.listarDivisiones(req.usuario, moduloId, req.query.anio),
+    );
   } catch (err) {
     next(err);
   }
@@ -21,7 +31,14 @@ export const obtenerGrilla = async (req, res, next) => {
   try {
     const moduloId = Number(req.params.moduloId);
     const division = req.params.division.toUpperCase();
-    res.json(await service.obtenerGrilla(req.usuario, moduloId, division));
+    res.json(
+      await service.obtenerGrilla(
+        req.usuario,
+        moduloId,
+        division,
+        req.query.anio,
+      ),
+    );
   } catch (err) {
     next(err);
   }
