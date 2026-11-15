@@ -24,7 +24,7 @@ export const listarCursosModulos = async (docenteId = null, anio) => {
   if (docenteId !== null) {
     params.push(docenteId);
     filtro += `
-      WHERE EXISTS (
+      AND EXISTS (
         SELECT 1 FROM docente_curso_materia dcm
         JOIN materia_modulo mm
           ON mm.materia_id = dcm.materia_id AND mm.modulo_id = m.id
@@ -117,7 +117,11 @@ export const docenteTieneCurso = async (docenteId, cursoId) => {
   return rowCount > 0;
 };
 
-export const listarMaterias = async (moduloId, docenteId = null, cursoId = null) => {
+export const listarMaterias = async (
+  moduloId,
+  docenteId = null,
+  cursoId = null,
+) => {
   const params = [moduloId];
   let filtro = "";
   if (docenteId !== null) {
