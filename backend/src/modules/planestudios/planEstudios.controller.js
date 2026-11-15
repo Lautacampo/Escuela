@@ -43,6 +43,15 @@ export const crearMateria = async (req, res, next) => {
   }
 };
 
+export const crearCicloLectivo = async (req, res, next) => {
+  try {
+    const creado = await service.crearCicloLectivo(req.body ?? {});
+    res.status(201).json(creado);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const obtenerCicloLectivo = async (req, res, next) => {
   try {
     res.json(await service.obtenerCicloLectivo());
