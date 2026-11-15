@@ -1,5 +1,13 @@
 import { pool } from "../../config/db.js";
 
+// Ciclos disponibles para Directivos y Docentes (sin abrir las rutas de Plan de Estudios).
+export const listarCiclos = async () => {
+  const { rows } = await pool.query(
+    "SELECT id, anio FROM ciclo_lectivo ORDER BY anio DESC",
+  );
+  return rows;
+};
+
 export const buscarPersonaIdDeUsuario = async (usuarioId) => {
   const { rows } = await pool.query(
     "SELECT persona_id FROM usuarios WHERE id = $1",
@@ -8,25 +16,26 @@ export const buscarPersonaIdDeUsuario = async (usuarioId) => {
   return rows[0]?.persona_id ?? null;
 };
 
-export const listarCursosModulos = async (docenteId = null) => {
-  const params = [];
-  let filtro = "";
+export const listarCursosModulos = async (docenteId = null, anio) => {
+  const params = [anio];
+  let filtro = "WHERE cl.anio = $1";
   let filtroMaterias = "";
+
   if (docenteId !== null) {
     params.push(docenteId);
-    filtro = `
-      WHERE EXISTS (
+    filtro += `
+      AND EXISTS (
         SELECT 1 FROM docente_curso dc
-        WHERE dc.docente_id = $1 AND dc.curso_id = c.id
+        WHERE dc.docente_id = $2 AND dc.curso_id = c.id
       )
       AND EXISTS (
         SELECT 1 FROM docente_materia dm
         JOIN materia_modulo mm ON mm.materia_id = dm.materia_id
-        WHERE dm.docente_id = $1 AND mm.modulo_id = m.id
+        WHERE dm.docente_id = $2 AND mm.modulo_id = m.id
       )`;
     filtroMaterias = `
       AND ma.id IN (
-        SELECT materia_id FROM docente_materia WHERE docente_id = $1
+        SELECT materia_id FROM docente_materia WHERE docente_id = $2
       )`;
   }
 
@@ -41,6 +50,7 @@ export const listarCursosModulos = async (docenteId = null) => {
             ) AS materias
        FROM curso_modulo cm
        JOIN curso c ON c.id = cm.curso_id
+       JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
        JOIN modulo m ON m.id = cm.modulo_id
        ${filtro}
       ORDER BY c.anio_curso, m.id, c.division`,
@@ -57,36 +67,45 @@ export const buscarModulo = async (moduloId) => {
   return rows[0] ?? null;
 };
 
-export const listarDivisionesDeModulo = async (moduloId, docenteId = null) => {
-  const params = [moduloId];
+export const listarDivisionesDeModulo = async (
+  moduloId,
+  docenteId = null,
+  anio,
+) => {
+  const params = [moduloId, anio];
   let filtro = "";
   if (docenteId !== null) {
     params.push(docenteId);
     filtro = `
-        AND EXISTS (SELECT 1 FROM docente_curso dc
-        WHERE dc.docente_id = $2 AND dc.curso_id = c.id)
-        AND EXISTS (SELECT 1 FROM docente_materia dm
+      AND EXISTS (SELECT 1 FROM docente_curso dc
+        WHERE dc.docente_id = $3 AND dc.curso_id = c.id)
+      AND EXISTS (SELECT 1 FROM docente_materia dm
         JOIN materia_modulo mm ON mm.materia_id = dm.materia_id
-        WHERE dm.docente_id = $2 AND mm.modulo_id = cm.modulo_id)`;
+        WHERE dm.docente_id = $3 AND mm.modulo_id = cm.modulo_id)`;
   }
-  const {rows} = await pool.query(
-    `   SELECT c.division
-        FROM curso_modulo cm
-        JOIN curso c ON c.id = cm.curso_id
-        WHERE cm.modulo_id = $1 ${filtro}
-        ORDER BY c.division`,
-        params,
+  const { rows } = await pool.query(
+    `SELECT DISTINCT TRIM(c.division) AS division
+       FROM curso_modulo cm
+       JOIN curso c ON c.id = cm.curso_id
+       JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
+      WHERE cm.modulo_id = $1 AND cl.anio = $2 ${filtro}
+      ORDER BY division`,
+    params,
   );
-  return rows.map((r)=>r.division);
-
+  return rows.map((r) => r.division);
 };
 
-export const buscarCurso = async (moduloId, division) => {
+export const buscarCurso = async (moduloId, division, anio) => {
   const { rows } = await pool.query(
     `SELECT c.id FROM curso c
        JOIN curso_modulo cm ON cm.curso_id = c.id
-      WHERE cm.modulo_id = $1 AND c.division = $2`,
-    [moduloId, division],
+       JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
+      WHERE cm.modulo_id = $1
+        AND TRIM(c.division) = $2
+        AND cl.anio = $3
+      ORDER BY c.id DESC
+      LIMIT 1`,
+    [moduloId, division, anio],
   );
   return rows[0] ?? null;
 };
@@ -104,7 +123,8 @@ export const listarMaterias = async (moduloId, docenteId = null) => {
   let filtro = "";
   if (docenteId !== null) {
     params.push(docenteId);
-    filtro = "AND ma.id IN (SELECT materia_id FROM docente_materia WHERE docente_id = $2)";
+    filtro =
+      "AND ma.id IN (SELECT materia_id FROM docente_materia WHERE docente_id = $2)";
   }
   const { rows } = await pool.query(
     `SELECT ma.id, ma.nombre
@@ -138,8 +158,10 @@ export const listarEstados = async (cursadaIds, materiaIds) => {
 
 export const buscarCursadaConMateria = async (cursadaId, materiaId) => {
   const { rows } = await pool.query(
-    `SELECT cm.curso_id
+    `SELECT cm.curso_id, cl.anio
        FROM cursada_modulo cm
+       JOIN curso c ON c.id = cm.curso_id
+       JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
        JOIN materia_modulo mm ON mm.modulo_id = cm.modulo_id AND mm.materia_id = $2
       WHERE cm.id = $1`,
     [cursadaId, materiaId],
@@ -147,7 +169,11 @@ export const buscarCursadaConMateria = async (cursadaId, materiaId) => {
   return rows[0] ?? null;
 };
 
-export const docenteDaMateriaEnCurso = async (docenteId, materiaId, cursoId) => {
+export const docenteDaMateriaEnCurso = async (
+  docenteId,
+  materiaId,
+  cursoId,
+) => {
   const { rowCount } = await pool.query(
     `SELECT 1 FROM docente_materia dm
        JOIN docente_curso dc ON dc.docente_id = dm.docente_id
