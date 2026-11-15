@@ -23,7 +23,7 @@ export function esCuilValido(cuil, dni) {
   }
 
   const mult = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
-  const digitos = limpiocuil.split('').map(Number);
+  const digitos = cuilLimpio.split('').map(Number);
   const digitoVerificador = digitos.pop();
 
   const acum = digitos.reduce((acc, curr, index) => {
