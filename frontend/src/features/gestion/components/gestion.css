@@ -433,6 +433,61 @@ body:has(.contenedor-dashboard) {
   margin-top: 4px;
 }
 
+.mensaje-aviso {
+  display: block;
+  color: #92400e;
+  background-color: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: var(--gestion-radio);
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  margin: 12px 0;
+}
+
+.mensaje-exito {
+  display: block;
+  color: #166534;
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
+
+.matricula-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.matricula-resumen p {
+  margin: 0;
+  font-weight: 500;
+  color:var(--gestion-texto)
+}
+
+.matricula-estado {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.matricula-estado.activa {
+  color: #166534;
+  background-color: #dcfce7;
+}
+
+.matricula-estado.inactiva {
+  color: #92400e;
+  background-color: #fef3c7;
+}
+
+.editor-matricula {
+  margin-top: 4px;
+}
+
 .acciones-formulario {
   display: flex;
   gap: 12px;

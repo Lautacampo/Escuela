@@ -13,5 +13,6 @@ router.post("/", controller.crear);
 router.delete("/:id", controller.eliminar);
 router.put("/:id", controller.actualizar);
 router.post("/:id/cursadas", controller.crearCursada);
+router.put("/:id/cursadas", controller.actualizarCursada);
 
 export default router;

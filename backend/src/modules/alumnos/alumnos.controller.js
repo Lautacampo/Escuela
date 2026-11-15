@@ -48,3 +48,11 @@ export const crearCursada = async (req, res, next) => {
         next(err);
     }
 };
+
+export const actualizarCursada = async (req, res, next) => {
+    try {
+        res.json(await service.actualizarCursada(Number(req.params.id), req.body ?? {}));
+    } catch (err) {
+        next(err);
+    }
+};

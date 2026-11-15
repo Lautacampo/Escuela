@@ -39,6 +39,7 @@ const traducirError = (err) => {
     if (err.constraint === "persona_dni_key") return new HttpError(409, "Ya existe una persona con ese DNI");
     if (err.constraint === "persona_cuil_key") return new HttpError(409, "Ya existe una persona con ese CUIL");
     if (err.constraint === "cursada_en_curso_unica") return new HttpError(409, "El alumno ya está cursando ese módulo");
+    if (err.constraint === "cursada_modulo_activa_uk") return new HttpError(409, "El alumno ya tiene una cursada activa");
     if (err.code === "23503") return new HttpError(409, "El alumno tiene asistencias o calificaciones y no puede eliminarse");
     if (err.code === "22007" || err.code === "22008") return new HttpError(400, "Fecha inválida");
     if (err.code === "P0001") return new HttpError(409, err.message);
@@ -65,6 +66,7 @@ const armar = async (filas) => {
                 division: c.division,
                 estadoAcademico: c.estado_academico,
                 condicion: c.condicion,
+                activa: c.activa,
                 faltas: c.cantidad_faltas_acumuladas,
                 evaluaciones: evaluaciones
                     .filter((e) => e.cursada_modulo_id === c.id)
@@ -78,6 +80,7 @@ const armar = async (filas) => {
             }));
 
         const actual = 
+            trayectoria.find((c) => c.activa) ??
             [...trayectoria].reverse().find((c) => c.estadoAcademico !== "APROBADO") ??
             trayectoria.at(-1);
 
@@ -158,6 +161,9 @@ export const matricular = async (id, { idCurso, idModulo }) => {
     if (!(await repo.cursoTieneModulo(idCurso, idModulo))) {
         throw new HttpError(400, "El módulo no pertenece a ese curso");
     }
+    if (await repo.buscarCursadaActiva(id)) {
+        throw new HttpError(409, "El alumno ya tiene una cursada activa. Editá su matrícula para cambiarla");
+    }
     if (await repo.yaAproboModulo(id, idModulo)) {
         throw new HttpError(409, "El alumno ya aprobó ese módulo");
     }
@@ -166,4 +172,50 @@ export const matricular = async (id, { idCurso, idModulo }) => {
     } catch (err) {
         throw traducirError(err);
     }
+};
+
+/**
+ * PUT /alumnos/:id/cursadas
+ * Modifica la matrícula del alumno (curso, división y módulo) manteniendo
+ * una única cursada activa. Si se cambia de módulo se validan primero las
+ * correlatividades configuradas en modulo_correlativo.
+ */
+export const actualizarCursada = async (id, { idCurso, idModulo }) => {
+    await buscarOFallar(id);
+
+    if (!Number.isInteger(idCurso) || !Number.isInteger(idModulo)) {
+        throw new HttpError(400, "Curso o módulo inválido");
+    }
+
+    if (!(await repo.cursoTieneModulo(idCurso, idModulo))) {
+        throw new HttpError(400, "El módulo no pertenece a ese curso");
+    }
+
+    const cursadaActual = await repo.buscarCursadaActiva(id);
+    const cambiaModulo =
+        !cursadaActual || Number(cursadaActual.modulo_id) !== Number(idModulo);
+
+    if (cambiaModulo) {
+        if (await repo.yaAproboModulo(id, idModulo)) {
+            throw new HttpError(409, "El alumno ya aprobó ese módulo");
+        }
+
+        const pendientes = await repo.correlativosPendientes(id, idModulo);
+
+        if (pendientes.length > 0) {
+            const nombres = pendientes.map((modulo) => modulo.nombre).join(", ");
+            throw new HttpError(
+                409,
+                `Para cursar ese módulo debe aprobar antes: ${nombres}`
+            );
+        }
+    }
+
+    try {
+        await repo.actualizarCursadaActiva(id, { cursoId: idCurso, moduloId: idModulo });
+    } catch (err) {
+        throw traducirError(err);
+    }
+
+    return obtener(id);
 };

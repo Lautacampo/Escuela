@@ -38,8 +38,8 @@ export const listarCursadas = async (alumnoIds) => {
     const { rows } = await pool.query(
         `
         SELECT cm.id, cm.alumno_id, cm.curso_id, cm.modulo_id, cm.condicion,
-               cm.cantidad_faltas_acumuladas, cm.estado_academico, m.numero_leyenda,
-               c.anio_curso, c.division, cl.anio AS ciclo_anio
+               cm.cantidad_faltas_acumuladas, cm.estado_academico, cm.activa,
+               m.numero_leyenda, c.anio_curso, c.division, cl.anio AS ciclo_anio
         FROM cursada_modulo cm
         JOIN modulo m ON m.id = cm.modulo_id
         JOIN curso c ON c.id = cm.curso_id
@@ -126,10 +126,121 @@ export const yaAproboModulo = async (alumnoId, moduloId) => {
 export const crearCursada = async (alumnoId, cursoId, moduloId) => {
     const { rows } = await pool.query(
         `INSERT INTO cursada_modulo
-                (alumno_id, curso_id, modulo_id, condicion, cantidad_faltas_acumuladas, estado_academico)
-        VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO')
+                (alumno_id, curso_id, modulo_id, condicion, cantidad_faltas_acumuladas, estado_academico, activa)
+        VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', true)
         RETURNING id`,
         [alumnoId, cursoId, moduloId]
     );
     return rows[0].id;
 };
+
+export const buscarCursadaActiva = async (alumnoId) => {
+    const { rows } = await pool.query(
+        `SELECT id, curso_id, modulo_id
+           FROM cursada_modulo
+          WHERE alumno_id = $1 AND activa
+          ORDER BY id DESC
+          LIMIT 1`,
+        [alumnoId]
+    );
+    return rows[0] ?? null;
+};
+
+// Módulos correlativos del módulo indicado que el alumno todavía no aprobó.
+export const correlativosPendientes = async (alumnoId, moduloId) => {
+    const { rows } = await pool.query(
+        `SELECT m.id, m.numero_leyenda AS nombre
+           FROM modulo_correlativo mc
+           JOIN modulo m ON m.id = mc.modulo_correlativo_id
+          WHERE mc.modulo_id = $1
+            AND NOT EXISTS (
+                SELECT 1
+                  FROM cursada_modulo cm
+                 WHERE cm.alumno_id = $2
+                   AND cm.modulo_id = mc.modulo_correlativo_id
+                   AND cm.estado_academico = 'APROBADO'
+            )
+          ORDER BY m.id`,
+        [moduloId, alumnoId]
+    );
+    return rows;
+};
+
+/**
+ * Cambia la cursada activa del alumno.
+ *
+ * - Si el módulo no cambia, sólo se actualiza el curso (año/división).
+ * - Si el módulo cambia y la cursada actual no tiene datos académicos
+ *   (evaluaciones, asistencias o calificaciones), se corrige la misma fila.
+ * - Si la cursada actual ya tiene datos, se marca como inactiva y se crea
+ *   una nueva cursada activa, conservando el historial.
+ */
+export const actualizarCursadaActiva = (alumnoId, { cursoId, moduloId }) =>
+    enTransaccion(async (db) => {
+        const { rows } = await db.query(
+            `SELECT cm.id, cm.curso_id, cm.modulo_id, cm.estado_academico,
+                    EXISTS (
+                        SELECT 1 FROM evaluacion_modulo e
+                         WHERE e.cursada_modulo_id = cm.id
+                    ) AS tiene_evaluaciones,
+                    EXISTS (
+                        SELECT 1 FROM asistencia a
+                         WHERE a.cursada_modulo_id = cm.id
+                    ) AS tiene_asistencias,
+                    EXISTS (
+                        SELECT 1 FROM calificacion c
+                         WHERE c.cursada_modulo_id = cm.id
+                    ) AS tiene_calificaciones
+               FROM cursada_modulo cm
+              WHERE cm.alumno_id = $1 AND cm.activa
+              ORDER BY cm.id DESC
+              LIMIT 1
+              FOR UPDATE`,
+            [alumnoId]
+        );
+        const actual = rows[0] ?? null;
+
+        if (actual && Number(actual.modulo_id) === Number(moduloId)) {
+            if (Number(actual.curso_id) !== Number(cursoId)) {
+                await db.query(
+                    `UPDATE cursada_modulo SET curso_id = $2 WHERE id = $1`,
+                    [actual.id, cursoId]
+                );
+            }
+            return { cursadaModuloId: actual.id, creada: false };
+        }
+
+        const esCorreccion =
+            actual != null &&
+            actual.estado_academico !== "APROBADO" &&
+            !actual.tiene_evaluaciones &&
+            !actual.tiene_asistencias &&
+            !actual.tiene_calificaciones;
+
+        if (esCorreccion) {
+            await db.query(
+                `UPDATE cursada_modulo
+                    SET curso_id = $2, modulo_id = $3
+                  WHERE id = $1`,
+                [actual.id, cursoId, moduloId]
+            );
+            return { cursadaModuloId: actual.id, creada: false };
+        }
+
+        if (actual) {
+            await db.query(
+                `UPDATE cursada_modulo SET activa = false WHERE id = $1`,
+                [actual.id]
+            );
+        }
+
+        const { rows: nuevas } = await db.query(
+            `INSERT INTO cursada_modulo
+                    (alumno_id, curso_id, modulo_id, condicion, cantidad_faltas_acumuladas, estado_academico, activa)
+            VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', true)
+            RETURNING id`,
+            [alumnoId, cursoId, moduloId]
+        );
+
+        return { cursadaModuloId: nuevas[0].id, creada: true };
+    });
