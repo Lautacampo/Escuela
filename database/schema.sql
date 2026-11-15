@@ -175,7 +175,8 @@ CREATE TABLE public.cursada_modulo (
     curso_id integer NOT NULL,
     condicion character varying(20) NOT NULL,
     cantidad_faltas_acumuladas integer NOT NULL,
-    estado_academico character varying(20) NOT NULL
+    estado_academico character varying(20) NOT NULL,
+    activa boolean DEFAULT true NOT NULL
 );
 
 
@@ -1214,6 +1215,16 @@ ALTER TABLE ONLY public.ciclo_lectivo
 
 ALTER TABLE ONLY public.cursada_modulo
     ADD CONSTRAINT cursada_modulo_pkey PRIMARY KEY (id);
+
+
+--
+-- Nombre: cursada_modulo_activa_uk; Tipo: ÍNDICE PARCIAL
+-- Garantiza una sola cursada activa por alumno.
+--
+
+CREATE UNIQUE INDEX cursada_modulo_activa_uk
+    ON public.cursada_modulo USING btree (alumno_id)
+    WHERE activa;
 
 
 --
