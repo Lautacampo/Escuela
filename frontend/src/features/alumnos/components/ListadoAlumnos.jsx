@@ -2,8 +2,6 @@ import { useNavigate } from "react-router";
 import { useForm } from "../../../shared/hooks/useForm";
 import { formatearDNI } from "../../../shared/utils/formato";
 
-const LIMITE_FALTAS = 25;
-
 function normalizar(texto) {
   return String(texto)
     .normalize("NFD")
@@ -12,7 +10,7 @@ function normalizar(texto) {
     .toLowerCase();
 }
 
-export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}) {
+export function ListadoAlumnos({alumnos, onEditar, onEliminar}) {
     const navigate = useNavigate();
 
     const { valores: filtros, manejarCambio, resetearFormulario: limpiarFiltros } = useForm({

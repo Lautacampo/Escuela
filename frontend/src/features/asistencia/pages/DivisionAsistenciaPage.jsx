@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
-import { getAlumnos , getAsistencias , setAsistencia } from "../services/AsistenciaServices.js";
+import { getAlumnos , getAsistencias , setAsistencia } from "../services/asistenciaServices.js";
 import { AsistenciaAlumnos } from "../components/AsistenciaAlumnos.jsx";
 import "../components/asistenciaAlumnos.css";
 

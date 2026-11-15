@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getSesion } from "../../auth/services/authServices";
+import { useSesion } from "../../auth/context/SesionContext";
 import { getModulos } from "../services/CalificacionesServices";
 import { CalificacionesTarjetas } from "../components/CalificacionesTarjetas";
 import "../components/calificacionestarjetas.css";
@@ -12,7 +12,8 @@ const ANIOS = {
 
 
 export function CalificacionesPage() {
-  const esDocente = getSesion()?.rol === "docente";
+  const { usuario } = useSesion();
+  const esDocente = usuario?.rol === "docente";
   const [anios, setAnios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);

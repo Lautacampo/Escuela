@@ -362,7 +362,6 @@ export function Alumnos() {
 
       <ListadoAlumnos
         alumnos={alumnos}
-        asistencias={asistencias}
         onEditar={abrirEdicion}
         onEliminar={eliminarAlumno}
       />

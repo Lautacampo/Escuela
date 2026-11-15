@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { getSesion, logout } from "../../features/auth/services/authServices";
+import { useSesion } from "../../features/auth/context/SesionContext";
 
 const ETIQUETAS_ROL = {
   directivo: "Directivo",
@@ -8,10 +8,7 @@ const ETIQUETAS_ROL = {
 };
 
 export default function NavabarGestion() {
-  const usuario= getSesion();
-  const cerrarSesion= () => {
-    logout();
-  }
+  const { usuario, cerrarSesion } = useSesion();
 
   return (
     <header className="navhorizontal">
