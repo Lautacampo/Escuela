@@ -1,4 +1,5 @@
 import {pool} from "../../config/db.js"
+import { HttpError } from "../../utils/httpError.js";
 
 const SELECTgeneral = `
   SELECT  prece.id,  perso.nombre, perso.apellido,  perso.dni,  perso.cuil,  perso.domicilio,  perso.telefono,  perso.email,  pl.titulo,  pl.antiguedad,
@@ -58,6 +59,21 @@ export const crearPreceptor = async (datos) =>{
         //ahora preceptor con el mismo id
 
         await cliente.query(`INSERT INTO preceptor(id) VALUES($1)`,[nuevoId]);
+
+        const usuarioVinculado = await cliente.query(
+            `UPDATE usuarios u
+             SET persona_id = $1
+             FROM roles r
+             WHERE u.rol_id = r.id
+               AND r.nombre = 'preceptor'
+               AND u.email = $2
+               AND u.persona_id IS NULL
+             RETURNING u.id`,
+            [nuevoId, datos.email],
+        );
+        if (usuarioVinculado.rowCount !== 1) {
+            throw new HttpError(409, "No se encontró un usuario de preceptor disponible para vincular con ese correo");
+        }
 
         await cliente.query("COMMIT");
         return{id: nuevoId, ...datos};
