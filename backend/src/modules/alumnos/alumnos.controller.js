@@ -2,7 +2,9 @@ import * as service from "./alumnos.service.js";
 
 export const listar = async (req, res, next) => {
     try {
-        res.json(await service.listar());
+        const incluirInactivos =
+            String(req.query.incluirInactivos ?? "").toLowerCase() === "true";
+        res.json(await service.listar({ incluirInactivos }));
     } catch (err) {
         next(err);
     }
@@ -36,6 +38,14 @@ export const eliminar = async (req, res, next) => {
     try {
         await service.eliminar(Number(req.params.id));
         res.status(204).end();
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const reactivar = async (req, res, next) => {
+    try {
+        res.json(await service.reactivar(Number(req.params.id)));
     } catch (err) {
         next(err);
     }

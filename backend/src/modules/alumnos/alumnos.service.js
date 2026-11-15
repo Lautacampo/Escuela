@@ -40,7 +40,6 @@ const traducirError = (err) => {
     if (err.constraint === "persona_cuil_key") return new HttpError(409, "Ya existe una persona con ese CUIL");
     if (err.constraint === "cursada_en_curso_unica") return new HttpError(409, "El alumno ya está cursando ese módulo");
     if (err.constraint === "cursada_modulo_activa_uk") return new HttpError(409, "El alumno ya tiene una cursada activa");
-    if (err.code === "23503") return new HttpError(409, "El alumno tiene asistencias o calificaciones y no puede eliminarse");
     if (err.code === "22007" || err.code === "22008") return new HttpError(400, "Fecha inválida");
     if (err.code === "P0001") return new HttpError(409, err.message);
     return err;
@@ -98,6 +97,7 @@ const armar = async (filas) => {
             trabaja: f.trabaja,
             telefonoEmergencia: f.telefono_emergencia,
             cantidadHijos: f.cantidad_hijos,
+            activo: f.activo,
             cursadaModuloId: actual?.idCursada ?? null,
             cursoId: actual?.cursoId ?? null,
             curso: actual?.anioCurso ?? null,
@@ -118,7 +118,14 @@ const buscarOFallar = async (id) => {
     return fila;
 };
 
-export const listar = async () => armar(await repo.listarAlumnos());
+const buscarActivoOFallar = async (id) => {
+    const fila = await buscarOFallar(id);
+    if (!fila.activo) throw new HttpError(409, "El alumno está dado de baja");
+    return fila;
+};
+
+export const listar = async ({ incluirInactivos = false } = {}) =>
+    armar(await repo.listarAlumnos({ incluirInactivos }));
 
 export const obtener = async (id) => (await armar([await buscarOFallar(id)]))[0];
 
@@ -134,7 +141,7 @@ export const crear = async (body) => {
 };
 
 export const actualizar = async (id, body) => {
-    await buscarOFallar(id);
+    await buscarActivoOFallar(id);
     const datos = validar(body);
     try {
         await repo.actualizarAlumno(id, datos);
@@ -144,17 +151,32 @@ export const actualizar = async (id, body) => {
     return obtener(id);
 };
 
+/**
+ * Baja lógica (DELETE /alumnos/:id): no se borra ningún dato. El alumno queda
+ * inactivo, desaparece del padrón y de las planillas, y puede reactivarse.
+ */
 export const eliminar = async (id) => {
-    await buscarOFallar(id);
+    const fila = await buscarOFallar(id);
+    if (!fila.activo) return;
     try {
-        await repo.eliminarAlumno(id);
+        await repo.darDeBajaAlumno(id);
     } catch (err) {
         throw traducirError(err);
     }
 };
 
-export const matricular = async (id, { idCurso, idModulo }) => {
+export const reactivar = async (id) => {
     await buscarOFallar(id);
+    try {
+        await repo.reactivarAlumno(id);
+    } catch (err) {
+        throw traducirError(err);
+    }
+    return obtener(id);
+};
+
+export const matricular = async (id, { idCurso, idModulo }) => {
+    await buscarActivoOFallar(id);
     if (!Number.isInteger(idCurso) || !Number.isInteger(idModulo)) {
         throw new HttpError(400, "Curso o módulo inválido");
     }
@@ -181,7 +203,7 @@ export const matricular = async (id, { idCurso, idModulo }) => {
  * correlatividades configuradas en modulo_correlativo.
  */
 export const actualizarCursada = async (id, { idCurso, idModulo }) => {
-    await buscarOFallar(id);
+    await buscarActivoOFallar(id);
 
     if (!Number.isInteger(idCurso) || !Number.isInteger(idModulo)) {
         throw new HttpError(400, "Curso o módulo inválido");

@@ -36,7 +36,8 @@ CREATE TABLE public.alumno (
     lugar_nacimiento character varying(100) NOT NULL,
     trabaja boolean NOT NULL,
     telefono_emergencia character varying(30) NOT NULL,
-    cantidad_hijos integer DEFAULT 0 NOT NULL
+    cantidad_hijos integer DEFAULT 0 NOT NULL,
+    activo boolean DEFAULT true NOT NULL
 );
 
 

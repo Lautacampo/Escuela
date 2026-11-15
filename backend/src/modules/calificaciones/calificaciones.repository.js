@@ -120,7 +120,8 @@ export const listarAlumnos = async (cursoId, moduloId) => {
   const { rows } = await pool.query(
     `SELECT cm.id AS cursada_id, p.apellido, p.nombre
        FROM cursada_modulo cm JOIN persona p ON p.id = cm.alumno_id
-      WHERE cm.curso_id = $1 AND cm.modulo_id = $2
+       JOIN alumno al ON al.id = cm.alumno_id
+      WHERE cm.curso_id = $1 AND cm.modulo_id = $2 AND al.activo
       ORDER BY p.apellido, p.nombre`,
     [cursoId, moduloId],
   );
@@ -141,7 +142,8 @@ export const buscarCursadaConMateria = async (cursadaId, materiaId) => {
     `SELECT cm.curso_id
        FROM cursada_modulo cm
        JOIN materia_modulo mm ON mm.modulo_id = cm.modulo_id AND mm.materia_id = $2
-      WHERE cm.id = $1`,
+       JOIN alumno al ON al.id = cm.alumno_id
+      WHERE cm.id = $1 AND al.activo`,
     [cursadaId, materiaId],
   );
   return rows[0] ?? null;

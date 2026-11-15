@@ -106,9 +106,10 @@ export const listarAlumnosPlanilla = async (cursoId, moduloId, fecha) => {
             asi.valor_falta
        FROM cursada_modulo cm
        JOIN persona p ON p.id = cm.alumno_id
+       JOIN alumno al ON al.id = cm.alumno_id
        LEFT JOIN asistencia asi
          ON asi.cursada_modulo_id = cm.id AND asi.fecha = $3::date
-      WHERE cm.curso_id = $1 AND cm.modulo_id = $2
+      WHERE cm.curso_id = $1 AND cm.modulo_id = $2 AND al.activo
       ORDER BY p.apellido, p.nombre`,
     [cursoId, moduloId, fecha],
   );
@@ -121,7 +122,7 @@ export const listarAsistencias = async ({
   preceptorId,
 }) => {
   const params = [];
-  const condiciones = [];
+  const condiciones = ["al.activo"];
 
   if (cursadaModuloId !== null) {
     params.push(cursadaModuloId);
@@ -154,6 +155,7 @@ export const listarAsistencias = async ({
        JOIN cursada_modulo cm ON cm.id = a.cursada_modulo_id
        JOIN curso c ON c.id = cm.curso_id
        JOIN persona p ON p.id = cm.alumno_id
+       JOIN alumno al ON al.id = cm.alumno_id
        ${where}
       ORDER BY a.fecha DESC, p.apellido, p.nombre`,
     params,

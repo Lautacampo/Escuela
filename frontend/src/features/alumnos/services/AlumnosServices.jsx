@@ -4,8 +4,10 @@
         return apiFetch("/asistencias");
     }
 
-    export async function getAlumnos(){
-        return apiFetch("/alumnos");
+    export async function getAlumnos(incluirInactivos = false){
+        return apiFetch(
+            incluirInactivos ? "/alumnos?incluirInactivos=true" : "/alumnos"
+        );
     }
 
     export async function setAlumno(alumno) {
@@ -16,22 +18,7 @@
     }
 
     export async function borrarAlumno(id) {
-        const [asistencias, calificaciones] = await Promise.all([
-            apiFetch(`/asistencias?alumnoId=${encodeURIComponent(id)}`),
-            apiFetch(`/calificaciones?alumnoId=${encodeURIComponent(id)}`)
-        ]);
-
-        await Promise.all(
-            asistencias.map((asistencia) =>
-                apiFetch(`/asistencias/${asistencia.id}`, { method: "DELETE" })
-            )
-        );
-
-        await Promise.all(
-            calificaciones.map((calificacion) =>
-                apiFetch(`/calificaciones/${calificacion.id}`, { method: "DELETE" })
-            )
-        );
-
+        // Baja lógica: el backend conserva el historial y marca al alumno
+        // como inactivo. Ya no hace falta borrar asistencias ni notas.
         await apiFetch(`/alumnos/${id}`, { method: "DELETE" });
     }

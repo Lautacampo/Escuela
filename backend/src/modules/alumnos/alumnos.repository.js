@@ -3,7 +3,8 @@ import { pool } from "../../config/db.js";
 const SELECT_ALUMNO = `
     SELECT p.id, p.nombre, p.apellido, p.dni, p.cuil, p.domicilio,
         p.telefono, p.email, to_char(a.fecha_nacimiento, 'YYYY-MM-DD') AS fecha_nacimiento,
-        a.lugar_nacimiento, a.trabaja, a.telefono_emergencia, a.cantidad_hijos
+        a.lugar_nacimiento, a.trabaja, a.telefono_emergencia, a.cantidad_hijos,
+        a.activo
     FROM alumno a
     JOIN persona p ON p.id = a.id
 `;
@@ -23,8 +24,11 @@ const enTransaccion = async (fn) => {
     }
 };
 
-export const listarAlumnos = async () => {
-    const { rows } = await pool.query(`${SELECT_ALUMNO} ORDER BY p.apellido, p.nombre`);
+export const listarAlumnos = async ({ incluirInactivos = false } = {}) => {
+    const filtro = incluirInactivos ? "" : "WHERE a.activo";
+    const { rows } = await pool.query(
+        `${SELECT_ALUMNO} ${filtro} ORDER BY p.apellido, p.nombre`
+    );
     return rows;
 }
 
@@ -99,12 +103,26 @@ export const actualizarAlumno = (id, d) =>
         );
 });
 
-export const eliminarAlumno = (id) =>
-    enTransaccion(async (db) => {
-        await db.query("DELETE FROM cursada_modulo WHERE alumno_id = $1", [id]);
-        await db.query("DELETE FROM alumno WHERE id = $1", [id]);
-        await db.query("DELETE FROM persona WHERE id = $1", [id]);
-});
+/**
+ * Baja lógica: el alumno deja de aparecer en el padrón y en las planillas,
+ * pero se conservan sus datos personales y todo su historial académico.
+ * Las cursadas no se tocan para poder reactivarlo sin perder la matrícula.
+ */
+export const darDeBajaAlumno = async (id) => {
+    const { rowCount } = await pool.query(
+        "UPDATE alumno SET activo = false WHERE id = $1 AND activo",
+        [id]
+    );
+    return rowCount > 0;
+};
+
+export const reactivarAlumno = async (id) => {
+    const { rowCount } = await pool.query(
+        "UPDATE alumno SET activo = true WHERE id = $1 AND NOT activo",
+        [id]
+    );
+    return rowCount > 0;
+};
 
 export const cursoTieneModulo = async (cursoId, moduloId) => {
     const { rowCount } = await pool.query(
