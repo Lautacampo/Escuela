@@ -50,17 +50,11 @@ export function ListadoAlumnos({alumnos, asistencias = [], onEditar, onEliminar}
     ];
 
     const alumnosFiltrados = alumnos
-        .map((alumno) => {
-            const faltas = asistencias
-                .filter((asistencia) => String(asistencia.alumnoId) === String(alumno.id))
-                .reduce((total, asistencia) => total + Number(asistencia.falta || 0), 0);
-
-            return {
-                ...alumno,
-                faltas,
-                condicion: faltas >= LIMITE_FALTAS ? "Libre" : "Regular",
-            };
-        })
+        .map((alumno) => ({
+            ...alumno,
+            faltas: Number(alumno.faltas || 0),
+            condicion: alumno.condicion || "Regular"
+        }))
         .filter((alumno) => {
             const texto = normalizar(`${alumno.apellido} ${alumno.nombre} ${alumno.dni}`);
 
