@@ -3,10 +3,23 @@ import {
   getReporteInasistencias,
   getReporteDesaprobaciones,
 } from "../services/reportesService.js";
+import {
+  getCicloLectivo,
+  crearCicloLectivo,
+} from "../../planestudios/services/planEstudiosService.js";
 
 export function Reportes() {
   const [curso, setCurso] = useState("");
   const [division, setDivision] = useState("");
+  const [ciclos, setCiclos] = useState([]);
+  const [anioSeleccionado, setAnioSeleccionado] = useState("");
+  const [cargandoCiclos, setCargandoCiclos] = useState(true);
+  const [mostrarAltaCiclo, setMostrarAltaCiclo] = useState(false);
+  const [nuevoAnio, setNuevoAnio] = useState(
+    String(new Date().getFullYear() + 1),
+  );
+  const [guardandoCiclo, setGuardandoCiclo] = useState(false);
+  const [errorCiclo, setErrorCiclo] = useState("");
   const [alertas, setAlertas] = useState([]);
   const [materias, setMaterias] = useState([]);
   const [umbral, setUmbral] = useState(25);
@@ -15,9 +28,44 @@ export function Reportes() {
 
   useEffect(() => {
     let activo = true;
-    Promise.all([getReporteInasistencias(), getReporteDesaprobaciones()])
+
+    getCicloLectivo()
+      .then((respuesta) => {
+        if (!activo) return;
+
+        const lista = respuesta?.ciclos ?? [];
+        setCiclos(lista);
+
+        const vigente = respuesta?.cicloActivo?.anio ?? lista[0]?.anio;
+
+        setAnioSeleccionado(vigente == null ? "" : String(vigente));
+      })
+      .catch((err) => {
+        if (activo) setError(err.message);
+      })
+      .finally(() => {
+        if (activo) setCargandoCiclos(false);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!anioSeleccionado) return;
+
+    let activo = true;
+    setCargando(true);
+    setError("");
+
+    Promise.all([
+      getReporteInasistencias(anioSeleccionado),
+      getReporteDesaprobaciones(anioSeleccionado),
+    ])
       .then(([resInasistencias, resDesaprobaciones]) => {
         if (!activo) return;
+
         setAlertas(resInasistencias?.alertas ?? []);
         setUmbral(resInasistencias?.umbralFaltas ?? 25);
         setMaterias(resDesaprobaciones?.resultados ?? []);
@@ -32,7 +80,7 @@ export function Reportes() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [anioSeleccionado]);
 
   const divisiones = curso === "3" ? ["A", "B", "C"] : ["A", "B", "C", "D"];
 
@@ -40,16 +88,61 @@ export function Reportes() {
     (!curso || String(registro.curso) === String(curso)) &&
     (!division || String(registro.division).trim() === String(division));
 
-  const alertasVisibles = alertas.filter(coincideConFiltros);
-  const materiasVisibles = materias.filter(coincideConFiltros);
+  const alertasVisibles = (cargando || error ? [] : alertas).filter(
+    coincideConFiltros,
+  );
+
+  const materiasVisibles = (cargando || error ? [] : materias).filter(
+    coincideConFiltros,
+  );
+
+  async function agregarCiclo(evento) {
+    evento.preventDefault();
+    setErrorCiclo("");
+
+    const anio = Number(nuevoAnio);
+
+    if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
+      setErrorCiclo("Ingresá un año válido entre 2000 y 2100.");
+      return;
+    }
+
+    try {
+      setGuardandoCiclo(true);
+
+      await crearCicloLectivo(anio);
+
+      const respuesta = await getCicloLectivo();
+
+      setCiclos(respuesta.ciclos ?? []);
+      setAnioSeleccionado(String(anio));
+
+      setCurso("");
+      setDivision("");
+      setMostrarAltaCiclo(false);
+    } catch (err) {
+      setErrorCiclo(err.message);
+    } finally {
+      setGuardandoCiclo(false);
+    }
+  }
 
   function limpiarFiltros() {
     setCurso("");
     setDivision("");
   }
 
-  if (cargando) return <p>Cargando reportes estadísticos...</p>;
-  if (error) return <p role="alert">{error}</p>;
+  if (cargandoCiclos) {
+    return <p>Cargando ciclos lectivos...</p>;
+  }
+
+  if (error && !anioSeleccionado) {
+    return <p role="alert">{error}</p>;
+  }
+
+  if (!anioSeleccionado) {
+    return <p>No hay ciclos lectivos registrados.</p>;
+  }
 
   return (
     <div className="reportes-panel">
@@ -63,8 +156,86 @@ export function Reportes() {
           </p>
         </div>
 
-        <span className="rep-ciclo">Ciclo lectivo 2026</span>
+        <div className="rep-selector-ciclo">
+          <label htmlFor="reporte-ciclo">Ciclo lectivo</label>
+
+          <select
+            id="reporte-ciclo"
+            className="rep-ciclo"
+            value={anioSeleccionado}
+            onChange={(evento) => {
+              setAnioSeleccionado(evento.target.value);
+              setCurso("");
+              setDivision("");
+            }}
+          >
+            {ciclos.map((ciclo) => (
+              <option key={ciclo.id} value={ciclo.anio}>
+                {ciclo.anio}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            className="btn-secundario"
+            onClick={() => {
+              setErrorCiclo("");
+              setMostrarAltaCiclo(!mostrarAltaCiclo);
+            }}
+          >
+            <i className="fa-solid fa-plus" aria-hidden="true" /> Agregar ciclo
+          </button>
+        </div>
       </header>
+
+      {mostrarAltaCiclo && (
+        <form className="rep-alta-ciclo" onSubmit={agregarCiclo}>
+          <label htmlFor="nuevo-ciclo-lectivo">Nuevo ciclo lectivo</label>
+
+          <input
+            id="nuevo-ciclo-lectivo"
+            type="number"
+            min="2000"
+            max="2100"
+            value={nuevoAnio}
+            onChange={(evento) => setNuevoAnio(evento.target.value)}
+            required
+          />
+
+          <button
+            type="submit"
+            className="btn-secundario"
+            disabled={guardandoCiclo}
+          >
+            {guardandoCiclo ? "Guardando..." : "Guardar ciclo"}
+          </button>
+
+          <button
+            type="button"
+            className="btn-secundario"
+            onClick={() => setMostrarAltaCiclo(false)}
+          >
+            Cancelar
+          </button>
+
+          {errorCiclo && (
+            <p role="alert" className="mensaje-error">
+              {errorCiclo}
+            </p>
+          )}
+        </form>
+      )}
+
+      {cargando && (
+        <p role="status">Cargando reportes del ciclo {anioSeleccionado}...</p>
+      )}
+
+      {error && (
+        <p role="alert" className="mensaje-error">
+          {error}
+        </p>
+      )}
 
       {/* FILTROS COMPARTIDOS */}
       <div
@@ -134,7 +305,7 @@ export function Reportes() {
         </div>
 
         <p className="rep-periodo">
-          Inasistencias acumuladas del ciclo lectivo 2026.
+          Inasistencias acumuladas del ciclo lectivo {anioSeleccionado}.
         </p>
 
         <div
@@ -276,3 +447,4 @@ export function Reportes() {
     </div>
   );
 }
+
