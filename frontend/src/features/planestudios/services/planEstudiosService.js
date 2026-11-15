@@ -22,3 +22,9 @@ export const crearMateriaPlan = (datos) =>
   });
 
 export const getCicloLectivo = () => apiFetch("/ciclo-lectivo");
+
+export const crearCicloLectivo = (anio) =>
+  apiFetch("/ciclo-lectivo", {
+    method: "POST",
+    body: JSON.stringify({ anio }),
+  });
