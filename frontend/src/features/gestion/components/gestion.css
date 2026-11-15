@@ -2403,3 +2403,19 @@ body:has(.contenedor-dashboard) {
     grid-template-columns: 1fr;
   }
 }
+.cabecera-tabla {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cabecera-tabla > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  white-space: nowrap;
+}
+
+.cabecera-tabla > button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
