@@ -89,6 +89,19 @@ export const crearMateria = async (body = {}) => {
   }
 };
 
+export const crearCicloLectivo = async (body = {}) => {
+  const anio = Number(body.anio);
+
+  if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
+    throw new HttpError(
+      400,
+      "El ciclo lectivo debe ser un año válido entre 2000 y 2100",
+    );
+  }
+
+  return await repo.crearCicloLectivo(anio);
+};
+
 export const obtenerCicloLectivo = async () => {
   const ciclos = await repo.listarCiclosLectivos();
   const cicloActivo = ciclos.find((c) => c.activo) ?? {
