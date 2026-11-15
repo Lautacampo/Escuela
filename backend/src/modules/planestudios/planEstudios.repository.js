@@ -108,7 +108,9 @@ const armarEstructuraPlan = async (planRow) => {
     }
     aniosMap.get(anio).modulos.push({
       id: r.moduloId,
-      nombre: `Módulo ${r.moduloNombre}`,
+      nombre: /^m[oó]dulo\s/i.test(r.moduloNombre)
+        ? r.moduloNombre
+        : `Módulo ${r.moduloNombre}`,
       numeroLeyenda: r.moduloNombre,
       materias: r.materias,
     });
@@ -301,6 +303,30 @@ export const crearMateria = async ({ nombre, modulosIds = [] }) => {
   } finally {
     client.release();
   }
+};
+
+export const crearCicloLectivo = async (anio) => {
+  const existente = await pool.query(
+    `SELECT id, anio
+       FROM ciclo_lectivo
+      WHERE anio = $1
+      ORDER BY id
+      LIMIT 1`,
+    [anio],
+  );
+
+  if (existente.rows.length) {
+    return existente.rows[0];
+  }
+
+  const { rows } = await pool.query(
+    `INSERT INTO ciclo_lectivo (anio)
+     VALUES ($1)
+     RETURNING id, anio`,
+    [anio],
+  );
+
+  return rows[0];
 };
 
 // #40 - GET /api/ciclo-lectivo
