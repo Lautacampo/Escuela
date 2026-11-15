@@ -262,3 +262,121 @@ export const actualizarCursadaActiva = (alumnoId, { cursoId, moduloId }) =>
 
         return { cursadaModuloId: nuevas[0].id, creada: true };
     });
+
+/**
+ * Registra una evaluación de módulo y, si la nota alcanza, acredita el módulo.
+ *
+ * Todo ocurre en una transacción con la fila de cursada bloqueada: así dos
+ * envíos simultáneos no pueden insertar la misma instancia ni evaluar un
+ * módulo que acaba de ser aprobado.
+ *
+ * Devuelve { creada: false, motivo, ... } cuando una regla de negocio no se
+ * cumple, para que el service traduzca el motivo a un error HTTP.
+ */
+export const registrarEvaluacionModulo = (
+    cursadaId,
+    { fecha, nota, nroInstancia, tipoInstancia }
+) =>
+    enTransaccion(async (db) => {
+        const { rows } = await db.query(
+            `SELECT cm.id, cm.modulo_id,
+                    UPPER(TRIM(cm.estado_academico)) AS estado_academico,
+                    al.activo AS alumno_activo,
+                    EXISTS (
+                        SELECT 1
+                          FROM evaluacion_modulo e
+                         WHERE e.cursada_modulo_id = cm.id
+                           AND e.nota >= 7
+                    ) AS tiene_aprobacion
+               FROM cursada_modulo cm
+               JOIN alumno al ON al.id = cm.alumno_id
+              WHERE cm.id = $1
+              FOR UPDATE`,
+            [cursadaId]
+        );
+
+        const cursada = rows[0];
+        if (!cursada) return { creada: false, motivo: "NO_EXISTE" };
+        if (!cursada.alumno_activo) {
+            return { creada: false, motivo: "ALUMNO_INACTIVO" };
+        }
+        if (cursada.estado_academico === "APROBADO" || cursada.tiene_aprobacion) {
+            return { creada: false, motivo: "MODULO_APROBADO" };
+        }
+
+        // Para evaluar el módulo todas sus materias deben estar aprobadas.
+        const { rows: pendientes } = await db.query(
+            `SELECT ma.nombre
+               FROM materia_modulo mm
+               JOIN materia ma ON ma.id = mm.materia_id
+              WHERE mm.modulo_id = $1
+                AND NOT EXISTS (
+                    SELECT 1
+                      FROM calificacion c
+                     WHERE c.cursada_modulo_id = $2
+                       AND c.materia_id = mm.materia_id
+                       AND UPPER(TRIM(c.estado)) = 'APROBADO'
+                )
+              ORDER BY ma.nombre`,
+            [cursada.modulo_id, cursadaId]
+        );
+
+        if (pendientes.length > 0) {
+            return {
+                creada: false,
+                motivo: "MATERIAS_PENDIENTES",
+                pendientes: pendientes.map((m) => m.nombre),
+            };
+        }
+
+        const { rows: instancias } = await db.query(
+            `SELECT COALESCE(MAX(nro_instancia), 0)::int AS ultima
+               FROM evaluacion_modulo
+              WHERE cursada_modulo_id = $1`,
+            [cursadaId]
+        );
+        const ultima = instancias[0].ultima;
+
+        if (ultima >= 4) {
+            return { creada: false, motivo: "MAXIMO_INSTANCIAS" };
+        }
+
+        const siguiente = ultima + 1;
+        if (nroInstancia !== siguiente) {
+            return {
+                creada: false,
+                motivo: "INSTANCIA_INVALIDA",
+                instanciaEsperada: siguiente,
+            };
+        }
+
+        const { rows: evaluaciones } = await db.query(
+            `INSERT INTO evaluacion_modulo
+                    (cursada_modulo_id, fecha, nota, nro_instancia, tipo_instancia)
+             VALUES ($1, $2::date, $3, $4, $5)
+             RETURNING id,
+                       cursada_modulo_id,
+                       to_char(fecha, 'YYYY-MM-DD') AS fecha,
+                       nota::float AS nota,
+                       nro_instancia,
+                       tipo_instancia`,
+            [cursadaId, fecha, nota, siguiente, tipoInstancia]
+        );
+
+        const aprobado = Number(nota) >= 7;
+        if (aprobado) {
+            await db.query(
+                `UPDATE cursada_modulo
+                    SET estado_academico = 'APROBADO'
+                  WHERE id = $1`,
+                [cursadaId]
+            );
+        }
+
+        return {
+            creada: true,
+            evaluacion: evaluaciones[0],
+            aprobado,
+            estadoAcademico: aprobado ? "APROBADO" : cursada.estado_academico,
+        };
+    });

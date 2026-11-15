@@ -241,3 +241,132 @@ export const actualizarCursada = async (id, { idCurso, idModulo }) => {
 
     return obtener(id);
 };
+
+// Tipos de instancia definidos por la cátedra: la 1 es colegiada, la 4 es
+// especial y las intermedias son de calendario. Se derivan del número para
+// que el cliente no pueda guardar combinaciones inconsistentes.
+const TIPO_POR_INSTANCIA = {
+    1: "COLEGIADA",
+    2: "CALENDARIO",
+    3: "CALENDARIO",
+    4: "ESPECIAL",
+};
+
+const esFechaISOValida = (valor) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false;
+
+    const [anio, mes, dia] = valor.split("-").map(Number);
+    const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+
+    return (
+        fecha.getUTCFullYear() === anio &&
+        fecha.getUTCMonth() === mes - 1 &&
+        fecha.getUTCDate() === dia
+    );
+};
+
+/**
+ * POST /alumnos/evaluaciones-modulo
+ * Registra una instancia de evaluación para la cursada de un módulo.
+ *
+ * Requisitos:
+ * - La cursada debe existir y pertenecer a un alumno activo.
+ * - El módulo no puede estar aprobado ni superar las 4 instancias.
+ * - Todas las materias del módulo deben estar calificadas como Aprobado.
+ * - La instancia enviada debe ser la próxima (MAX + 1), para evitar
+ *   duplicados o saltos si la ficha quedó desactualizada.
+ */
+export const evaluarModulo = async (body = {}) => {
+    const cursadaModuloId = Number(body.idCursadaModulo);
+    const nota = Number(body.nota);
+    const nroInstancia = Number(body.nroInstancia);
+    const fecha = String(body.fecha ?? "").trim();
+    const tipoRecibido = String(body.tipoInstancia ?? "")
+        .trim()
+        .toUpperCase();
+
+    if (!Number.isInteger(cursadaModuloId) || cursadaModuloId <= 0) {
+        throw new HttpError(400, "idCursadaModulo inválido");
+    }
+
+    if (!esFechaISOValida(fecha)) {
+        throw new HttpError(
+            400,
+            "La fecha debe ser válida y tener el formato AAAA-MM-DD"
+        );
+    }
+
+    if (!Number.isFinite(nota) || nota < 0 || nota > 10) {
+        throw new HttpError(400, "La nota debe ser un número entre 0 y 10");
+    }
+
+    if (
+        !Number.isInteger(nroInstancia) ||
+        nroInstancia < 1 ||
+        nroInstancia > 4
+    ) {
+        throw new HttpError(400, "La instancia debe ser un entero entre 1 y 4");
+    }
+
+    const tipoInstancia = TIPO_POR_INSTANCIA[nroInstancia];
+    if (tipoRecibido && tipoRecibido !== tipoInstancia) {
+        throw new HttpError(
+            400,
+            `La instancia ${nroInstancia} corresponde al tipo ${tipoInstancia}`
+        );
+    }
+
+    let resultado;
+    try {
+        resultado = await repo.registrarEvaluacionModulo(cursadaModuloId, {
+            fecha,
+            nota: Math.round(nota * 100) / 100,
+            nroInstancia,
+            tipoInstancia,
+        });
+    } catch (err) {
+        throw traducirError(err);
+    }
+
+    switch (resultado.motivo) {
+        case "NO_EXISTE":
+            throw new HttpError(404, "La cursada del alumno no existe");
+        case "ALUMNO_INACTIVO":
+            throw new HttpError(409, "El alumno está dado de baja");
+        case "MODULO_APROBADO":
+            throw new HttpError(
+                409,
+                "El módulo ya está aprobado y no admite otra instancia"
+            );
+        case "MATERIAS_PENDIENTES":
+            throw new HttpError(
+                409,
+                `Todas las materias del módulo deben estar aprobadas. Pendientes: ${resultado.pendientes.join(", ")}`
+            );
+        case "MAXIMO_INSTANCIAS":
+            throw new HttpError(
+                409,
+                "El módulo ya alcanzó el máximo de 4 instancias"
+            );
+        case "INSTANCIA_INVALIDA":
+            throw new HttpError(
+                409,
+                `La próxima instancia es la ${resultado.instanciaEsperada}. Actualizá la ficha e intentá de nuevo`
+            );
+        default:
+            break;
+    }
+
+    const evaluacion = resultado.evaluacion;
+
+    return {
+        id: evaluacion.id,
+        idCursadaModulo: evaluacion.cursada_modulo_id,
+        fecha: evaluacion.fecha,
+        nota: Number(evaluacion.nota),
+        nroInstancia: evaluacion.nro_instancia,
+        tipoInstancia: evaluacion.tipo_instancia,
+        estadoAcademico: resultado.estadoAcademico,
+        aprobado: resultado.aprobado,
+    };
+};

@@ -66,3 +66,11 @@ export const actualizarCursada = async (req, res, next) => {
         next(err);
     }
 };
+
+export const evaluarModulo = async (req, res, next) => {
+    try {
+        res.status(201).json(await service.evaluarModulo(req.body ?? {}));
+    } catch (err) {
+        next(err);
+    }
+};
