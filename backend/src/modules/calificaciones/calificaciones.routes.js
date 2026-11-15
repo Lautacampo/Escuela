@@ -7,6 +7,7 @@ const router = Router();
 
 router.use(verificarToken, permitirRoles("directivo", "docente"));
 
+router.get("/ciclos", controller.listarCiclos);
 router.get("/modulos", controller.listarModulos);
 router.get("/modulos/:moduloId/divisiones", controller.listarDivisiones);
 router.get("/modulos/:moduloId/divisiones/:division", controller.obtenerGrilla);
