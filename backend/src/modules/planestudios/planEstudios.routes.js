@@ -22,5 +22,6 @@ router.post("/materias", ctrl.crearMateria);
 
 // #40 - Ciclo lectivo activo
 router.get("/ciclo-lectivo", ctrl.obtenerCicloLectivo);
+router.post("/ciclo-lectivo", ctrl.crearCicloLectivo);
 
 export default router;
