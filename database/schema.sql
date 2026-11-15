@@ -326,6 +326,19 @@ CREATE TABLE public.docente_materia (
 ALTER TABLE public.docente_materia OWNER TO postgres;
 
 --
+-- Name: docente_curso_materia; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.docente_curso_materia (
+    docente_id integer NOT NULL,
+    curso_id integer NOT NULL,
+    materia_id integer NOT NULL
+);
+
+
+ALTER TABLE public.docente_curso_materia OWNER TO postgres;
+
+--
 -- TOC entry 236 (class 1259 OID 16559)
 -- Name: docente_materia_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
@@ -1003,6 +1016,22 @@ COPY public.usuarios (id, email, contrahash, rol_id, activo, creado_en, nombre, 
 
 
 --
+-- Name: docente_curso_materia; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+-- Asignaciones heredadas de docente_curso + docente_materia: cada par
+-- (docente, curso) recibe las materias que pertenecen a un módulo del curso.
+INSERT INTO public.docente_curso_materia (docente_id, curso_id, materia_id)
+SELECT DISTINCT dc.docente_id, dc.curso_id, dm.materia_id
+  FROM public.docente_curso dc
+  JOIN public.curso_modulo cm ON cm.curso_id = dc.curso_id
+  JOIN public.materia_modulo mm ON mm.modulo_id = cm.modulo_id
+  JOIN public.docente_materia dm
+    ON dm.docente_id = dc.docente_id AND dm.materia_id = mm.materia_id
+ WHERE NOT EXISTS (SELECT 1 FROM public.docente_curso_materia);
+
+
+--
 -- TOC entry 5247 (class 0 OID 0)
 -- Dependencies: 250
 -- Name: asistencia_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
@@ -1298,6 +1327,14 @@ ALTER TABLE ONLY public.docente_materia
 
 ALTER TABLE ONLY public.docente_materia
     ADD CONSTRAINT docente_materia_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: docente_curso_materia docente_curso_materia_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.docente_curso_materia
+    ADD CONSTRAINT docente_curso_materia_pkey PRIMARY KEY (docente_id, curso_id, materia_id);
 
 
 --
@@ -1613,6 +1650,30 @@ ALTER TABLE ONLY public.docente_materia
 
 ALTER TABLE ONLY public.docente_materia
     ADD CONSTRAINT docente_materia_materia_id_fkey FOREIGN KEY (materia_id) REFERENCES public.materia(id);
+
+
+--
+-- Name: docente_curso_materia docente_curso_materia_curso_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.docente_curso_materia
+    ADD CONSTRAINT docente_curso_materia_curso_id_fkey FOREIGN KEY (curso_id) REFERENCES public.curso(id) ON DELETE CASCADE;
+
+
+--
+-- Name: docente_curso_materia docente_curso_materia_docente_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.docente_curso_materia
+    ADD CONSTRAINT docente_curso_materia_docente_id_fkey FOREIGN KEY (docente_id) REFERENCES public.docente(id) ON DELETE CASCADE;
+
+
+--
+-- Name: docente_curso_materia docente_curso_materia_materia_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.docente_curso_materia
+    ADD CONSTRAINT docente_curso_materia_materia_id_fkey FOREIGN KEY (materia_id) REFERENCES public.materia(id) ON DELETE CASCADE;
 
 
 --
