@@ -14,7 +14,14 @@ const validarAnio = (valor) => {
 
 export const listarCiclos = async () => {
   const ciclos = await repo.listarCiclos();
-  return { ciclos, cicloActivo: ciclos[0] ?? null };
+  const anioActual = new Date().getFullYear();
+  // Crear el ciclo del año próximo no debe volverlo vigente automáticamente.
+  const cicloActivo =
+    ciclos.find((c) => Number(c.anio) === anioActual) ??
+    ciclos.find((c) => Number(c.anio) < anioActual) ??
+    ciclos[0] ??
+    null;
+  return { ciclos, cicloActivo };
 };
 
 const resolverDocenteId = async (usuario) => {
