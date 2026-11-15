@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
-import { getSesion } from "../../auth/services/authServices";
 import {
   getModulos,
   getCiclosCalificaciones,
