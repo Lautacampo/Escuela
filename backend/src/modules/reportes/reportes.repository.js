@@ -2,19 +2,23 @@ import { pool } from "../../config/db.js";
 
 // #41 - GET /api/reportes/inasistencias
 // Lista los alumnos que alcanzaron o superaron el límite de faltas (por defecto 25)
+// Reporta faltas por cursada de módulo, sin sumarlas entre módulos.
+// Sin filtro de módulo, muestra solo la cursada más reciente del alumno
+// dentro del ciclo seleccionado. Con módulo, permite consultar su historial.
 export const listarInasistenciasCriticas = async ({
   minFaltas = 25,
   curso = null,
   division = null,
   anio = null,
+  moduloId = null,
 } = {}) => {
   const params = [minFaltas];
   const filtros = [];
+
   if (anio !== null) {
     params.push(anio);
     filtros.push(`cl.anio = $${params.length}`);
   }
-
   if (curso !== null) {
     params.push(curso);
     filtros.push(`c.anio_curso = $${params.length}`);
@@ -23,8 +27,26 @@ export const listarInasistenciasCriticas = async ({
     params.push(division);
     filtros.push(`TRIM(c.division) = $${params.length}`);
   }
+  if (moduloId !== null) {
+    params.push(moduloId);
+    filtros.push(`cm.modulo_id = $${params.length}`);
+  }
 
-  const whereExtra = filtros.length > 0 ? `AND ${filtros.join(" AND ")}` : "";
+  const whereExtra = filtros.length ? `AND ${filtros.join(" AND ")}` : "";
+
+  // Un ID de cursada posterior representa una inscripción más reciente.
+  // Este criterio respeta el funcionamiento actual del proyecto.
+  const filtroCursadaActual =
+    moduloId === null
+      ? `AND NOT EXISTS (
+         SELECT 1
+           FROM cursada_modulo cm_nueva
+           JOIN curso c_nuevo ON c_nuevo.id = cm_nueva.curso_id
+          WHERE cm_nueva.alumno_id = cm.alumno_id
+            AND c_nuevo.ciclo_lectivo_id = c.ciclo_lectivo_id
+            AND cm_nueva.id > cm.id
+       )`
+      : "";
 
   const { rows } = await pool.query(
     `SELECT *
@@ -41,7 +63,11 @@ export const listarInasistenciasCriticas = async ({
                 m.numero_leyenda AS modulo,
                 GREATEST(
                   cm.cantidad_faltas_acumuladas::numeric,
-                  COALESCE((SELECT SUM(a.valor_falta) FROM asistencia a WHERE a.cursada_modulo_id = cm.id), 0)
+                  COALESCE((
+                    SELECT SUM(a.valor_falta)
+                      FROM asistencia a
+                     WHERE a.cursada_modulo_id = cm.id
+                  ), 0)
                 )::float AS faltas,
                 cm.condicion
            FROM cursada_modulo cm
@@ -49,21 +75,12 @@ export const listarInasistenciasCriticas = async ({
            JOIN curso c ON c.id = cm.curso_id
            JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
            JOIN modulo m ON m.id = cm.modulo_id
-          
-           WHERE 1=1 ${whereExtra}
-           AND NOT EXISTS (
-           SELECT 1
-    FROM cursada_modulo cm_nueva
-    JOIN curso c_nuevo
-      ON c_nuevo.id = cm_nueva.curso_id
-    WHERE cm_nueva.alumno_id = cm.alumno_id
-      AND c_nuevo.ciclo_lectivo_id = c.ciclo_lectivo_id
-      AND cm_nueva.id > cm.id
-  )
+          WHERE 1 = 1 ${whereExtra}
+            ${filtroCursadaActual}
        ) sub
       WHERE sub.faltas > $1
-
-      ORDER BY sub.faltas DESC, sub.curso ASC, sub.division ASC, sub.apellido ASC`,
+      ORDER BY sub.faltas DESC, sub.curso ASC,
+               sub.division ASC, sub.apellido ASC`,
     params,
   );
 
