@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { esEmailValido, esDniValido } from "../../../shared/utils/validaciones";
+import { esEmailValido, esDniValido, esCuilValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre } from "../../../shared/utils/formato";
 import { ListadoAlumnos } from "./ListadoAlumnos";
 import {
@@ -413,6 +413,11 @@ export function Alumnos() {
         "El DNI debe contener un número válido entre 1.000.000 y 99.999.999.";
     }
 
+    if (!esCuilValido(valores.cuil, valores.dni)) {
+      nuevosErrores.cuil =
+        "El CUIL debe contener el DNI ingresado, y debe tener 11 dígitos de largo."
+    }
+
     if (!esEmailValido(valores.email)) {
       nuevosErrores.email =
         "El formato del correo electrónico ingresado no es válido.";
@@ -697,7 +702,7 @@ export function Alumnos() {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="cuil">CUIL</label>
+                    <label htmlFor="cuil">CUIL *</label>
                     <input
                       type="text"
                       id="cuil"
@@ -706,6 +711,7 @@ export function Alumnos() {
                       onChange={manejarCambio}
                       className="input-gestion"
                       placeholder="20-12345678-9"
+                      required
                     />
                   </div>
 
