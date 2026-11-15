@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "../../../shared/hooks/useForm";
 import { esDniValido, esEmailValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
+import { exportarExcel } from "../../../shared/utils/exportarExcel.js";
 import {
   getPreceptores,
   setPreceptor,
@@ -150,6 +151,60 @@ export function Preceptores() {
       .split(/\s+/)
       .every((palabra) => texto.includes(palabra));
   });
+
+  // Exporta exactamente los preceptores que muestra la búsqueda.
+  // Un mismo preceptor ocupa una fila por cada curso a cargo.
+  const exportarListado = () => {
+    if (preceptoresFiltrados.length === 0) return;
+
+    const filas = preceptoresFiltrados.flatMap((preceptor) => {
+      const cursosAsignados = preceptor.cursos?.length
+        ? preceptor.cursos
+        : [null];
+
+      return cursosAsignados.map((curso) => ({
+        apellido: preceptor.apellido ?? "",
+        nombre: preceptor.nombre ?? "",
+        dni: String(preceptor.dni ?? ""),
+        cuil: String(preceptor.cuil ?? ""),
+        email: preceptor.email ?? "",
+        telefono: String(preceptor.telefono ?? ""),
+        domicilio: preceptor.domicilio ?? "",
+        titulo: preceptor.titulo ?? "",
+        antiguedad: preceptor.antiguedad ?? "",
+        curso:
+          (curso?.anio ?? curso?.anio_curso) != null
+            ? `${curso.anio ?? curso.anio_curso}º año`
+            : "",
+        division: curso?.division ?? "",
+        modulos: (curso?.modulos ?? []).map((m) => m.nombre).join(" y "),
+        cicloLectivo: curso?.cicloLectivo ?? "",
+      }));
+    });
+
+    exportarExcel({
+      nombreArchivo: filtros.busqueda.trim()
+        ? "preceptores_filtrados"
+        : "preceptores_completo",
+      nombreHoja: "Listado de preceptores",
+      columnas: [
+        { titulo: "Apellido", clave: "apellido", ancho: 23 },
+        { titulo: "Nombre", clave: "nombre", ancho: 23 },
+        { titulo: "DNI", clave: "dni", ancho: 16 },
+        { titulo: "CUIL", clave: "cuil", ancho: 21 },
+        { titulo: "Correo electrónico", clave: "email", ancho: 34 },
+        { titulo: "Teléfono", clave: "telefono", ancho: 21 },
+        { titulo: "Domicilio", clave: "domicilio", ancho: 35 },
+        { titulo: "Título", clave: "titulo", ancho: 27 },
+        { titulo: "Antigüedad (años)", clave: "antiguedad", ancho: 20 },
+        { titulo: "Curso", clave: "curso", ancho: 16 },
+        { titulo: "División", clave: "division", ancho: 13 },
+        { titulo: "Módulos a cargo", clave: "modulos", ancho: 35 },
+        { titulo: "Ciclo lectivo", clave: "cicloLectivo", ancho: 18 },
+      ],
+      filas,
+    });
+  };
 
   function abrirFormulario(preceptor = null) {
     setEditando(preceptor?.id ?? null);
@@ -400,6 +455,17 @@ export function Preceptores() {
               {preceptoresFiltrados.length === 1 ? "preceptor" : "preceptores"}
             </span>
           </div>
+
+          <button
+            type="button"
+            className="btn-secundario"
+            onClick={exportarListado}
+            disabled={preceptoresFiltrados.length === 0}
+            title="Exportar listado de preceptores a Excel"
+          >
+            <i className="fa-solid fa-file-excel" aria-hidden="true" /> Exportar
+            Excel
+          </button>
         </div>
 
         <div className="barra-filtros">
@@ -860,3 +926,4 @@ export function Preceptores() {
     </div>
   );
 }
+
