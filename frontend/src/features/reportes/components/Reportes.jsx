@@ -11,6 +11,7 @@ import {
 export function Reportes() {
   const [curso, setCurso] = useState("");
   const [division, setDivision] = useState("");
+  const [materiaId, setMateriaId] = useState("");
   const [ciclos, setCiclos] = useState([]);
   const [anioSeleccionado, setAnioSeleccionado] = useState("");
   const [cargandoCiclos, setCargandoCiclos] = useState(true);
@@ -84,6 +85,19 @@ export function Reportes() {
 
   const divisiones = curso === "3" ? ["A", "B", "C"] : ["A", "B", "C", "D"];
 
+  // Opciones derivadas de las materias que tienen calificaciones en el ciclo elegido.
+  const opcionesMaterias = [
+    ...new Map(
+      materias.map((r) => [
+        String(r.materiaId),
+        {
+          id: String(r.materiaId),
+          nombre: r.materia,
+        },
+      ]),
+    ).values(),
+  ].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+
   const coincideConFiltros = (registro) =>
     (!curso || String(registro.curso) === String(curso)) &&
     (!division || String(registro.division).trim() === String(division));
@@ -92,8 +106,11 @@ export function Reportes() {
     coincideConFiltros,
   );
 
+  // El filtro de materia solo corresponde a desaprobación, no a inasistencias.
   const materiasVisibles = (cargando || error ? [] : materias).filter(
-    coincideConFiltros,
+    (registro) =>
+      coincideConFiltros(registro) &&
+      (!materiaId || String(registro.materiaId) === materiaId),
   );
 
   async function agregarCiclo(evento) {
@@ -119,6 +136,7 @@ export function Reportes() {
 
       setCurso("");
       setDivision("");
+      setMateriaId("");
       setMostrarAltaCiclo(false);
     } catch (err) {
       setErrorCiclo(err.message);
@@ -130,6 +148,7 @@ export function Reportes() {
   function limpiarFiltros() {
     setCurso("");
     setDivision("");
+    setMateriaId("");
   }
 
   if (cargandoCiclos) {
@@ -167,6 +186,7 @@ export function Reportes() {
               setAnioSeleccionado(evento.target.value);
               setCurso("");
               setDivision("");
+              setMateriaId("");
             }}
           >
             {ciclos.map((ciclo) => (
@@ -251,6 +271,7 @@ export function Reportes() {
             onChange={(e) => {
               setCurso(e.target.value);
               setDivision("");
+              setMateriaId("");
             }}
           >
             <option value="">Todos los cursos</option>
@@ -265,12 +286,31 @@ export function Reportes() {
           <select
             id="reporte-division"
             value={division}
-            onChange={(e) => setDivision(e.target.value)}
+            onChange={(e) => {
+              setDivision(e.target.value);
+              setMateriaId("");
+            }}
           >
             <option value="">Todas las divisiones</option>
             {divisiones.map((letra) => (
               <option key={letra} value={letra}>
                 División {letra}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="rep-campo">
+          <label htmlFor="reporte-materia">Materia (desaprobación)</label>
+          <select
+            id="reporte-materia"
+            value={materiaId}
+            onChange={(e) => setMateriaId(e.target.value)}
+          >
+            <option value="">Todas las materias</option>
+            {opcionesMaterias.map((opcion) => (
+              <option key={opcion.id} value={opcion.id}>
+                {opcion.nombre}
               </option>
             ))}
           </select>
@@ -447,4 +487,3 @@ export function Reportes() {
     </div>
   );
 }
-
