@@ -15,13 +15,26 @@ function anioFiltro(query) {
   return anio;
 }
 
+// Año del curso (1.º, 2.º, 3.º): opcional, pero si viene debe ser un entero.
+function cursoFiltro(query) {
+  if (query.curso === undefined || query.curso === "") return null;
+  const curso = Number(query.curso);
+  if (!Number.isInteger(curso) || curso <= 0) {
+    throw new HttpError(400, "Curso inválido");
+  }
+  return curso;
+}
+
 export const obtenerReporteInasistencias = async (query = {}) => {
   const minFaltas =
     query.minFaltas !== undefined && query.minFaltas !== ""
       ? Number(query.minFaltas)
       : 25;
+  if (!Number.isFinite(minFaltas) || minFaltas < 0) {
+    throw new HttpError(400, "El mínimo de faltas debe ser un número mayor o igual a 0");
+  }
 
-  const curso = query.curso ? Number(query.curso) : null;
+  const curso = cursoFiltro(query);
   const division = query.division
     ? String(query.division).trim().toUpperCase()
     : null;
@@ -37,22 +50,22 @@ export const obtenerReporteInasistencias = async (query = {}) => {
   }
 
   const alertas = await repo.listarInasistenciasCriticas({
-    minFaltas: Number.isFinite(minFaltas) ? minFaltas : 25,
-    curso: Number.isInteger(curso) ? curso : null,
+    minFaltas,
+    curso,
     division,
     anio,
     moduloId,
   });
 
   return {
-    umbralFaltas: Number.isFinite(minFaltas) ? minFaltas : 25,
+    umbralFaltas: minFaltas,
     totalAlertas: alertas.length,
     alertas,
   };
 };
 
 export const obtenerReporteDesaprobaciones = async (query = {}) => {
-  const curso = query.curso ? Number(query.curso) : null;
+  const curso = cursoFiltro(query);
   const division = query.division
     ? String(query.division).trim().toUpperCase()
     : null;
@@ -60,7 +73,7 @@ export const obtenerReporteDesaprobaciones = async (query = {}) => {
   const anio = anioFiltro(query);
 
   const resultados = await repo.listarDesaprobacionesPorMateria({
-    curso: Number.isInteger(curso) ? curso : null,
+    curso,
     division,
     anio,
   });
