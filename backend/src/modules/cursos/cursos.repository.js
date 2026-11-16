@@ -4,7 +4,20 @@ export const listarCursosVigentes = async () => {
   const { rows } = await pool.query(
     `SELECT c.id, c.anio_curso, c.division,
                 COALESCE(
-                json_agg(json_build_object('id', m.id, 'numeroLeyenda', m.numero_leyenda)
+                json_agg(json_build_object(
+                          'id', m.id,
+                          'numeroLeyenda', m.numero_leyenda,
+                          'anioCurso', m.anio_curso,
+                          'periodo', m.periodo,
+                          -- Módulos que deben estar aprobados para cursar este.
+                          'correlativos', COALESCE((
+                              SELECT json_agg(json_build_object(
+                                         'id', r.id,
+                                         'numeroLeyenda', r.numero_leyenda)
+                                     ORDER BY r.id)
+                                FROM modulo_correlativo mc
+                                JOIN modulo r ON r.id = mc.modulo_correlativo_id
+                               WHERE mc.modulo_id = m.id), '[]'::json))
                         ORDER BY m.id) FILTER (WHERE m.id IS NOT NULL),
                 '[]') AS modulos
         FROM curso c
