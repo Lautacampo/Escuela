@@ -3499,6 +3499,535 @@ ALTER TABLE ONLY public.usuarios
     ADD CONSTRAINT usuarios_rol_id_fkey FOREIGN KEY (rol_id) REFERENCES public.roles(id);
 
 
+--
+-- =====================================================================
+-- MIGRACIÓN 005 (integrada): correlatividades, condición LIBRE y
+-- equivalencias. Es una copia de
+-- database/migrations/005_correlatividades_condicion_equivalencias.sql
+-- para que una base creada desde cero con este archivo quede completa.
+-- =====================================================================
+--
+
+-- 005_correlatividades_condicion_equivalencias.sql
+--
+-- Reglas académicas del Colegio Tomás Baras (Res. N.º 195-ME-2024):
+--
+--   1. Correlatividades (se validan al matricular y al acreditar):
+--        Módulo III y IV  -> requieren Módulo I y II aprobados (pasar a 2.º año)
+--        Módulo V  y VI   -> requieren Módulo III y IV aprobados (pasar a 3.º año)
+--      Dentro del mismo año NO hay correlatividad: se puede cursar el 2.º módulo
+--      del año con el 1.º desaprobado, pero no se pasa de año hasta aprobar ambos.
+--
+--   2. Condición LIBRE (el alumno debe recursar el módulo) en 3 escenarios:
+--        INASISTENCIAS        -> supera las 25 faltas
+--        MATERIA_DESAPROBADA  -> tiene una materia del módulo desaprobada
+--        INSTANCIAS_AGOTADAS  -> rindió las 4 instancias sin aprobar
+--      La situación se recalcula sola (triggers) cada vez que cambia una
+--      asistencia, una calificación de materia o una evaluación de módulo.
+--
+--   3. Ingreso por equivalencia: módulos acreditados en otra institución,
+--      registrados explícitamente en equivalencia_modulo.
+--
+-- Estados de cursada_modulo después de esta migración:
+--   condicion         REGULAR | LIBRE
+--   estado_academico  EN_CURSO   (cursando, sin evaluaciones de módulo)
+--                     PENDIENTE  (rindió y no aprobó; le quedan instancias)
+--                     APROBADO   (nota de módulo >= 7)
+--                     A_RECURSAR (quedó LIBRE)
+--   motivo_libre      NULL | INASISTENCIAS | MATERIA_DESAPROBADA | INSTANCIAS_AGOTADAS
+--
+-- Es idempotente: se puede ejecutar más de una vez.
+--   psql "<cadena de conexión>" -f database/migrations/005_correlatividades_condicion_equivalencias.sql
+
+BEGIN;
+
+SET LOCAL search_path TO public;
+
+-- ---------------------------------------------------------------------------
+-- 0. Requisito previo (migración 001): una sola asistencia por cursada y fecha.
+--    El backend guarda asistencias con ON CONFLICT (cursada_modulo_id, fecha);
+--    sin esta restricción POST /api/asistencias responde 500. Se repite acá
+--    porque database/schema.sql no la traía.
+-- ---------------------------------------------------------------------------
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                    WHERE conname = 'asistencia_cursada_fecha_uk') THEN
+        DELETE FROM asistencia a USING asistencia b
+         WHERE a.ctid < b.ctid
+           AND a.cursada_modulo_id = b.cursada_modulo_id
+           AND a.fecha = b.fecha;
+
+        ALTER TABLE asistencia
+            ADD CONSTRAINT asistencia_cursada_fecha_uk UNIQUE (cursada_modulo_id, fecha);
+    END IF;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 1. Módulos: año del curso y período de dictado
+--    Período 1 = marzo a julio (I, III, V) · Período 2 = agosto a diciembre (II, IV, VI)
+-- ---------------------------------------------------------------------------
+ALTER TABLE modulo ADD COLUMN IF NOT EXISTS anio_curso smallint;
+ALTER TABLE modulo ADD COLUMN IF NOT EXISTS periodo smallint;
+
+UPDATE modulo m
+   SET anio_curso = d.anio_curso,
+       periodo    = d.periodo
+  FROM (VALUES ('I', 1, 1), ('II', 1, 2),
+               ('III', 2, 1), ('IV', 2, 2),
+               ('V', 3, 1), ('VI', 3, 2)) AS d(romano, anio_curso, periodo)
+ WHERE upper(btrim(regexp_replace(m.numero_leyenda, '^\s*m[oó]dulo\s*', '', 'i'))) = d.romano
+   AND (m.anio_curso IS NULL OR m.periodo IS NULL);
+
+-- Sin año y período no se pueden derivar las correlatividades: se corta acá.
+DO $$
+DECLARE
+    v_sin_datos text;
+BEGIN
+    SELECT string_agg(numero_leyenda, ', ' ORDER BY id) INTO v_sin_datos
+      FROM modulo
+     WHERE anio_curso IS NULL OR periodo IS NULL;
+    IF v_sin_datos IS NOT NULL THEN
+        RAISE EXCEPTION 'No se pudo determinar el año y período de: %. Completar modulo.anio_curso y modulo.periodo a mano y volver a ejecutar.', v_sin_datos;
+    END IF;
+END;
+$$;
+
+ALTER TABLE modulo DROP CONSTRAINT IF EXISTS modulo_periodo_check;
+ALTER TABLE modulo ADD CONSTRAINT modulo_periodo_check
+    CHECK (periodo IS NULL OR periodo IN (1, 2));
+
+-- ---------------------------------------------------------------------------
+-- 2. Tabla de correlatividades: se deja EXACTAMENTE la de la resolución
+-- ---------------------------------------------------------------------------
+DELETE FROM modulo_correlativo;
+
+INSERT INTO modulo_correlativo (modulo_id, modulo_correlativo_id)
+SELECT m.id, r.id
+  FROM modulo m
+  JOIN modulo r ON r.anio_curso = m.anio_curso - 1
+ WHERE m.anio_curso IS NOT NULL
+ON CONFLICT (modulo_id, modulo_correlativo_id) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 3. Equivalencias (ingreso con módulos acreditados en otra institución)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS equivalencia_modulo (
+    id          integer GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    alumno_id   integer NOT NULL REFERENCES alumno(id),
+    modulo_id   integer NOT NULL REFERENCES modulo(id),
+    fecha       date NOT NULL DEFAULT CURRENT_DATE,
+    observacion character varying(300) NOT NULL,
+    CONSTRAINT equivalencia_modulo_alumno_modulo_uk UNIQUE (alumno_id, modulo_id)
+);
+
+-- ---------------------------------------------------------------------------
+-- 4. cursada_modulo: motivo de la condición LIBRE y valores normalizados
+-- ---------------------------------------------------------------------------
+ALTER TABLE cursada_modulo ADD COLUMN IF NOT EXISTS motivo_libre character varying(30);
+
+ALTER TABLE cursada_modulo DROP CONSTRAINT IF EXISTS cursada_modulo_condicion_check;
+ALTER TABLE cursada_modulo DROP CONSTRAINT IF EXISTS cursada_modulo_estado_academico_check;
+ALTER TABLE cursada_modulo DROP CONSTRAINT IF EXISTS cursada_modulo_motivo_libre_check;
+
+UPDATE cursada_modulo
+   SET condicion        = upper(btrim(condicion)),
+       estado_academico = upper(btrim(estado_academico))
+ WHERE condicion <> upper(btrim(condicion))
+    OR estado_academico <> upper(btrim(estado_academico));
+
+-- ---------------------------------------------------------------------------
+-- 5. Funciones
+-- ---------------------------------------------------------------------------
+
+-- Un módulo está acreditado si el alumno lo aprobó o lo tiene por equivalencia.
+CREATE OR REPLACE FUNCTION modulo_acreditado(p_alumno_id integer, p_modulo_id integer)
+RETURNS boolean
+LANGUAGE sql STABLE
+SET search_path = public
+AS $$
+    SELECT EXISTS (
+               SELECT 1 FROM cursada_modulo cm
+                WHERE cm.alumno_id = p_alumno_id
+                  AND cm.modulo_id = p_modulo_id
+                  AND cm.estado_academico = 'APROBADO')
+        OR EXISTS (
+               SELECT 1 FROM equivalencia_modulo e
+                WHERE e.alumno_id = p_alumno_id
+                  AND e.modulo_id = p_modulo_id);
+$$;
+
+-- Nombres de los correlativos que el alumno todavía no acreditó (NULL si no hay).
+CREATE OR REPLACE FUNCTION correlativos_pendientes(p_alumno_id integer, p_modulo_id integer)
+RETURNS text
+LANGUAGE sql STABLE
+SET search_path = public
+AS $$
+    SELECT string_agg(m.numero_leyenda, ', ' ORDER BY m.id)
+      FROM modulo_correlativo mc
+      JOIN modulo m ON m.id = mc.modulo_correlativo_id
+     WHERE mc.modulo_id = p_modulo_id
+       AND NOT modulo_acreditado(p_alumno_id, mc.modulo_correlativo_id);
+$$;
+
+-- Única fuente de verdad de la situación de una cursada.
+CREATE OR REPLACE FUNCTION recalcular_situacion_cursada(p_cursada_id integer)
+RETURNS void
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+    LIMITE_FALTAS  CONSTANT integer := 25;
+    MAX_INSTANCIAS CONSTANT integer := 4;
+    NOTA_APROBACION CONSTANT numeric := 7;
+    v_estado     text;
+    v_alumno     integer;
+    v_modulo     integer;
+    v_faltas     numeric;
+    v_instancias integer;
+    v_aprobado   boolean;
+    v_motivo     text;
+BEGIN
+    SELECT estado_academico, cantidad_faltas_acumuladas, alumno_id, modulo_id
+      INTO v_estado, v_faltas, v_alumno, v_modulo
+      FROM cursada_modulo
+     WHERE id = p_cursada_id
+       FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
+
+    -- Cursada cerrada: el alumno quedó libre y ya se inscribió para recursar
+    -- el módulo. Queda como historial y no se vuelve a abrir.
+    IF v_estado = 'A_RECURSAR' AND EXISTS (
+           SELECT 1 FROM cursada_modulo nueva
+            WHERE nueva.alumno_id = v_alumno
+              AND nueva.modulo_id = v_modulo
+              AND nueva.id > p_cursada_id) THEN
+        RETURN;
+    END IF;
+
+    SELECT count(*), COALESCE(bool_or(nota >= NOTA_APROBACION), false)
+      INTO v_instancias, v_aprobado
+      FROM evaluacion_modulo
+     WHERE cursada_modulo_id = p_cursada_id;
+
+    -- Un módulo aprobado es definitivo: no vuelve a quedar libre.
+    IF v_aprobado OR v_estado = 'APROBADO' THEN
+        UPDATE cursada_modulo
+           SET estado_academico = 'APROBADO',
+               condicion        = 'REGULAR',
+               motivo_libre     = NULL
+         WHERE id = p_cursada_id
+           AND (estado_academico <> 'APROBADO'
+                OR condicion <> 'REGULAR'
+                OR motivo_libre IS NOT NULL);
+        RETURN;
+    END IF;
+
+    v_motivo := CASE
+        WHEN v_faltas > LIMITE_FALTAS THEN 'INASISTENCIAS'
+        WHEN EXISTS (SELECT 1 FROM calificacion c
+                      WHERE c.cursada_modulo_id = p_cursada_id
+                        AND upper(btrim(c.estado)) = 'DESAPROBADO')
+            THEN 'MATERIA_DESAPROBADA'
+        WHEN v_instancias >= MAX_INSTANCIAS THEN 'INSTANCIAS_AGOTADAS'
+        ELSE NULL
+    END;
+
+    UPDATE cursada_modulo
+       SET condicion        = CASE WHEN v_motivo IS NULL THEN 'REGULAR' ELSE 'LIBRE' END,
+           estado_academico = CASE
+                                  WHEN v_motivo IS NOT NULL THEN 'A_RECURSAR'
+                                  WHEN v_instancias > 0     THEN 'PENDIENTE'
+                                  ELSE 'EN_CURSO'
+                              END,
+           motivo_libre     = v_motivo
+     WHERE id = p_cursada_id;
+END;
+$$;
+
+-- Asistencias: sincroniza las faltas acumuladas y recalcula la situación.
+CREATE OR REPLACE FUNCTION trg_asistencia_recalcular()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+    v_id integer;
+BEGIN
+    FOR v_id IN
+        SELECT DISTINCT x
+          FROM unnest(ARRAY[
+                   CASE WHEN TG_OP <> 'DELETE' THEN NEW.cursada_modulo_id END,
+                   CASE WHEN TG_OP <> 'INSERT' THEN OLD.cursada_modulo_id END
+               ]) AS x
+         WHERE x IS NOT NULL
+    LOOP
+        UPDATE cursada_modulo cm
+           SET cantidad_faltas_acumuladas = (
+                   SELECT COALESCE(ceil(sum(a.valor_falta)), 0)::int
+                     FROM asistencia a
+                    WHERE a.cursada_modulo_id = v_id)
+         WHERE cm.id = v_id;
+
+        PERFORM recalcular_situacion_cursada(v_id);
+    END LOOP;
+    RETURN NULL;
+END;
+$$;
+
+-- Calificaciones de materia y evaluaciones de módulo: recalculan la situación.
+CREATE OR REPLACE FUNCTION trg_cursada_hija_recalcular()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+    IF TG_OP <> 'DELETE' THEN
+        PERFORM recalcular_situacion_cursada(NEW.cursada_modulo_id);
+    END IF;
+    IF TG_OP <> 'INSERT'
+       AND (TG_OP = 'DELETE' OR OLD.cursada_modulo_id <> NEW.cursada_modulo_id) THEN
+        PERFORM recalcular_situacion_cursada(OLD.cursada_modulo_id);
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+-- Toda cursada nueva arranca con la situación que le corresponde.
+CREATE OR REPLACE FUNCTION trg_cursada_nueva_recalcular()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+    PERFORM recalcular_situacion_cursada(NEW.id);
+    RETURN NULL;
+END;
+$$;
+
+-- Última barrera de correlatividades al matricular (alta o cambio de módulo).
+CREATE OR REPLACE FUNCTION trg_cursada_validar_correlativas()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+    v_pendientes text;
+    v_modulo     text;
+BEGIN
+    IF TG_OP = 'UPDATE'
+       AND NEW.modulo_id = OLD.modulo_id
+       AND NEW.alumno_id = OLD.alumno_id THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT numero_leyenda INTO v_modulo FROM modulo WHERE id = NEW.modulo_id;
+
+    IF modulo_acreditado(NEW.alumno_id, NEW.modulo_id)
+       AND NEW.estado_academico <> 'APROBADO' THEN
+        RAISE EXCEPTION 'El alumno ya tiene acreditado %', v_modulo
+              USING ERRCODE = 'P0001';
+    END IF;
+
+    v_pendientes := correlativos_pendientes(NEW.alumno_id, NEW.modulo_id);
+    IF v_pendientes IS NOT NULL THEN
+        RAISE EXCEPTION 'Correlatividad: para cursar % el alumno debe tener aprobados: %',
+              v_modulo, v_pendientes
+              USING ERRCODE = 'P0001';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+-- Última barrera al acreditar: no se evalúa un módulo ya aprobado, ni a un
+-- alumno LIBRE, ni con correlativas pendientes.
+CREATE OR REPLACE FUNCTION trg_evaluacion_validar()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+    v_cursada    cursada_modulo%ROWTYPE;
+    v_pendientes text;
+BEGIN
+    SELECT * INTO v_cursada
+      FROM cursada_modulo
+     WHERE id = NEW.cursada_modulo_id
+       FOR UPDATE;
+
+    IF EXISTS (SELECT 1 FROM evaluacion_modulo e
+                WHERE e.cursada_modulo_id = NEW.cursada_modulo_id
+                  AND e.nota >= 7) THEN
+        RAISE EXCEPTION 'El módulo ya está aprobado y no admite otra instancia'
+              USING ERRCODE = 'P0001';
+    END IF;
+
+    IF v_cursada.condicion = 'LIBRE' THEN
+        RAISE EXCEPTION 'El alumno está LIBRE en este módulo y debe recursarlo'
+              USING ERRCODE = 'P0001';
+    END IF;
+
+    v_pendientes := correlativos_pendientes(v_cursada.alumno_id, v_cursada.modulo_id);
+    IF v_pendientes IS NOT NULL THEN
+        RAISE EXCEPTION 'Correlatividad: para acreditar este módulo el alumno debe tener aprobados: %',
+              v_pendientes
+              USING ERRCODE = 'P0001';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 6. Regularización de los datos que ya existían
+-- ---------------------------------------------------------------------------
+
+-- 6.a Faltas acumuladas coherentes con las asistencias cargadas.
+UPDATE cursada_modulo cm
+   SET cantidad_faltas_acumuladas = GREATEST(cm.cantidad_faltas_acumuladas, s.total)
+  FROM (SELECT cursada_modulo_id, ceil(sum(valor_falta))::int AS total
+          FROM asistencia
+         GROUP BY cursada_modulo_id) s
+ WHERE s.cursada_modulo_id = cm.id
+   AND cm.cantidad_faltas_acumuladas < s.total;
+
+-- 6.b Alumnos que ya estaban matriculados en un módulo sin tener cargados sus
+--     correlativos: se les registra la equivalencia de esos módulos previos
+--     (ingresaron a la escuela en un módulo avanzado). Solo aplica a módulos
+--     que el alumno NUNCA cursó en la institución.
+DO $$
+DECLARE
+    v_filas integer;
+    v_total integer := 0;
+BEGIN
+    LOOP
+        INSERT INTO equivalencia_modulo (alumno_id, modulo_id, observacion)
+        SELECT DISTINCT x.alumno_id, mc.modulo_correlativo_id,
+               'Regularización automática (migración 005): matrícula previa al control de correlatividades'
+          FROM (SELECT alumno_id, modulo_id FROM cursada_modulo
+                UNION
+                SELECT alumno_id, modulo_id FROM equivalencia_modulo) x
+          JOIN modulo_correlativo mc ON mc.modulo_id = x.modulo_id
+         WHERE NOT modulo_acreditado(x.alumno_id, mc.modulo_correlativo_id)
+           AND NOT EXISTS (SELECT 1 FROM cursada_modulo c
+                            WHERE c.alumno_id = x.alumno_id
+                              AND c.modulo_id = mc.modulo_correlativo_id)
+        ON CONFLICT (alumno_id, modulo_id) DO NOTHING;
+
+        GET DIAGNOSTICS v_filas = ROW_COUNT;
+        v_total := v_total + v_filas;
+        EXIT WHEN v_filas = 0;
+    END LOOP;
+    RAISE NOTICE 'Equivalencias registradas por regularización: %', v_total;
+END;
+$$;
+
+-- 6.c Situación real de todas las cursadas existentes.
+SELECT count(*) AS cursadas_recalculadas
+  FROM (SELECT recalcular_situacion_cursada(id) FROM cursada_modulo) t;
+
+-- ---------------------------------------------------------------------------
+-- 7. Restricciones de dominio
+-- ---------------------------------------------------------------------------
+ALTER TABLE cursada_modulo ADD CONSTRAINT cursada_modulo_condicion_check
+    CHECK (condicion IN ('REGULAR', 'LIBRE'));
+ALTER TABLE cursada_modulo ADD CONSTRAINT cursada_modulo_estado_academico_check
+    CHECK (estado_academico IN ('EN_CURSO', 'PENDIENTE', 'APROBADO', 'A_RECURSAR'));
+ALTER TABLE cursada_modulo ADD CONSTRAINT cursada_modulo_motivo_libre_check
+    CHECK (motivo_libre IS NULL OR motivo_libre IN
+           ('INASISTENCIAS', 'MATERIA_DESAPROBADA', 'INSTANCIAS_AGOTADAS'));
+
+-- Recursar implica tener más de una cursada del mismo módulo. Una restricción
+-- UNIQUE completa sobre (alumno_id, modulo_id[, curso_id]) lo impediría, así
+-- que si la base tiene alguna se elimina.
+DO $$
+DECLARE
+    r record;
+BEGIN
+    FOR r IN
+        SELECT i.indexrelid::regclass::text AS indice, c.conname
+          FROM pg_index i
+          LEFT JOIN pg_constraint c
+            ON c.conindid = i.indexrelid AND c.contype = 'u'
+         WHERE i.indrelid = 'cursada_modulo'::regclass
+           AND i.indisunique
+           AND NOT i.indisprimary
+           AND i.indpred IS NULL
+           AND (SELECT array_agg(a.attname::text)
+                  FROM pg_attribute a
+                 WHERE a.attrelid = i.indrelid
+                   AND a.attnum = ANY (i.indkey::smallint[]))
+               @> ARRAY['alumno_id', 'modulo_id']
+    LOOP
+        IF r.conname IS NOT NULL THEN
+            EXECUTE format('ALTER TABLE cursada_modulo DROP CONSTRAINT %I', r.conname);
+        ELSE
+            EXECUTE format('DROP INDEX %s', r.indice);
+        END IF;
+        RAISE NOTICE 'Se eliminó la restricción única % (impedía recursar un módulo)',
+              COALESCE(r.conname, r.indice);
+    END LOOP;
+END;
+$$;
+
+-- Un alumno no puede tener dos cursadas ABIERTAS del mismo módulo. Sí puede
+-- tener varias cerradas (libre -> recursada).
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM cursada_modulo
+                WHERE estado_academico IN ('EN_CURSO', 'PENDIENTE')
+                GROUP BY alumno_id, modulo_id
+               HAVING count(*) > 1) THEN
+        RAISE NOTICE 'ATENCIÓN: hay alumnos con más de una cursada abierta del mismo módulo. Revisarlos a mano y volver a ejecutar para crear el índice cursada_modulo_abierta_uk.';
+    ELSE
+        CREATE UNIQUE INDEX IF NOT EXISTS cursada_modulo_abierta_uk
+            ON cursada_modulo (alumno_id, modulo_id)
+            WHERE estado_academico IN ('EN_CURSO', 'PENDIENTE');
+    END IF;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 8. Triggers
+-- ---------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS asistencia_recalcular_situacion ON asistencia;
+CREATE TRIGGER asistencia_recalcular_situacion
+    AFTER INSERT OR UPDATE OR DELETE ON asistencia
+    FOR EACH ROW EXECUTE FUNCTION trg_asistencia_recalcular();
+
+DROP TRIGGER IF EXISTS calificacion_recalcular_situacion ON calificacion;
+CREATE TRIGGER calificacion_recalcular_situacion
+    AFTER INSERT OR UPDATE OR DELETE ON calificacion
+    FOR EACH ROW EXECUTE FUNCTION trg_cursada_hija_recalcular();
+
+DROP TRIGGER IF EXISTS evaluacion_modulo_validar ON evaluacion_modulo;
+CREATE TRIGGER evaluacion_modulo_validar
+    BEFORE INSERT ON evaluacion_modulo
+    FOR EACH ROW EXECUTE FUNCTION trg_evaluacion_validar();
+
+DROP TRIGGER IF EXISTS evaluacion_modulo_recalcular_situacion ON evaluacion_modulo;
+CREATE TRIGGER evaluacion_modulo_recalcular_situacion
+    AFTER INSERT OR UPDATE OR DELETE ON evaluacion_modulo
+    FOR EACH ROW EXECUTE FUNCTION trg_cursada_hija_recalcular();
+
+DROP TRIGGER IF EXISTS cursada_modulo_validar_correlativas ON cursada_modulo;
+CREATE TRIGGER cursada_modulo_validar_correlativas
+    BEFORE INSERT OR UPDATE OF modulo_id, alumno_id ON cursada_modulo
+    FOR EACH ROW EXECUTE FUNCTION trg_cursada_validar_correlativas();
+
+DROP TRIGGER IF EXISTS cursada_modulo_nueva_recalcular ON cursada_modulo;
+CREATE TRIGGER cursada_modulo_nueva_recalcular
+    AFTER INSERT ON cursada_modulo
+    FOR EACH ROW EXECUTE FUNCTION trg_cursada_nueva_recalcular();
+
+COMMIT;
+
+
 -- Completed on 2026-11-14 17:14:26
 
 --
