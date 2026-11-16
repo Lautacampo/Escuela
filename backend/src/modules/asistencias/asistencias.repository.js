@@ -1,7 +1,5 @@
 import { pool } from "../../config/db.js";
 
-const LIMITE_FALTAS_LIBRE = 25;
-
 // Verifica que el usuario esté vinculado a una persona que además sea preceptor
 export const buscarPreceptorIdDeUsuario = async (usuarioId) => {
   const { rows } = await pool.query(
@@ -93,15 +91,13 @@ export const listarAlumnosPlanilla = async (cursoId, moduloId, fecha) => {
             p.dni,
             COALESCE(
               (SELECT SUM(a2.valor_falta) FROM asistencia a2 WHERE a2.cursada_modulo_id = cm.id),
-              0
+              cm.cantidad_faltas_acumuladas
             ) AS faltas_acumuladas,
-            CASE
-              WHEN COALESCE(
-                (SELECT SUM(a2.valor_falta) FROM asistencia a2 WHERE a2.cursada_modulo_id = cm.id),
-                0
-              ) > ${LIMITE_FALTAS_LIBRE} THEN 'Libre'
-              ELSE 'Regular'
-            END AS condicion,
+            -- Condición real de la cursada: contempla los 3 escenarios de
+            -- LIBRE (inasistencias, materia desaprobada, instancias agotadas).
+            INITCAP(cm.condicion) AS condicion,
+            cm.motivo_libre,
+            cm.estado_academico,
             asi.id AS asistencia_id,
             asi.valor_falta
        FROM cursada_modulo cm
@@ -110,6 +106,14 @@ export const listarAlumnosPlanilla = async (cursoId, moduloId, fecha) => {
        LEFT JOIN asistencia asi
          ON asi.cursada_modulo_id = cm.id AND asi.fecha = $3::date
       WHERE cm.curso_id = $1 AND cm.modulo_id = $2 AND al.activo
+        -- Si el alumno recursa el módulo en el mismo curso, solo se lista
+        -- su cursada más reciente.
+        AND NOT EXISTS (
+            SELECT 1 FROM cursada_modulo nueva
+             WHERE nueva.alumno_id = cm.alumno_id
+               AND nueva.modulo_id = cm.modulo_id
+               AND nueva.curso_id = cm.curso_id
+               AND nueva.id > cm.id)
       ORDER BY p.apellido, p.nombre`,
     [cursoId, moduloId, fecha],
   );
@@ -165,7 +169,13 @@ export const listarAsistencias = async ({
 
 export const buscarCursada = async (cursadaId) => {
   const { rows } = await pool.query(
-    "SELECT id, alumno_id, modulo_id, curso_id FROM cursada_modulo WHERE id = $1",
+    `SELECT cm.id, cm.alumno_id, cm.modulo_id, cm.curso_id,
+            EXISTS (SELECT 1 FROM cursada_modulo nueva
+                     WHERE nueva.alumno_id = cm.alumno_id
+                       AND nueva.modulo_id = cm.modulo_id
+                       AND nueva.id > cm.id) AS reemplazada
+       FROM cursada_modulo cm
+      WHERE cm.id = $1`,
     [cursadaId],
   );
   return rows[0] ?? null;
@@ -177,7 +187,11 @@ export const buscarAsistenciaPorId = async (id) => {
             a.cursada_modulo_id,
             TO_CHAR(a.fecha, 'YYYY-MM-DD') AS fecha_iso,
             a.valor_falta::float AS valor_falta,
-            cm.curso_id
+            cm.curso_id,
+            EXISTS (SELECT 1 FROM cursada_modulo nueva
+                     WHERE nueva.alumno_id = cm.alumno_id
+                       AND nueva.modulo_id = cm.modulo_id
+                       AND nueva.id > cm.id) AS reemplazada
        FROM asistencia a
        JOIN cursada_modulo cm ON cm.id = a.cursada_modulo_id
       WHERE a.id = $1`,
@@ -186,26 +200,25 @@ export const buscarAsistenciaPorId = async (id) => {
   return rows[0] ?? null;
 };
 
-// Recalcula y sincroniza cantidad_faltas_acumuladas y condicion en cursada_modulo
+// Las faltas acumuladas y la condición las mantiene la base (trigger
+// asistencia_recalcular_situacion): acá solo se lee el resultado para
+// devolverlo al cliente.
 const sincronizarFaltasCursada = async (cursadaId, db = pool) => {
   const { rows } = await db.query(
-    `SELECT COALESCE(SUM(valor_falta), 0)::float AS total
-       FROM asistencia
-      WHERE cursada_modulo_id = $1`,
+    `SELECT COALESCE((SELECT SUM(a.valor_falta) FROM asistencia a
+                       WHERE a.cursada_modulo_id = cm.id), 0)::float AS total,
+            INITCAP(cm.condicion) AS condicion,
+            cm.motivo_libre
+       FROM cursada_modulo cm
+      WHERE cm.id = $1`,
     [cursadaId],
   );
-  const total = rows[0]?.total ?? 0;
-  const condicion = total > LIMITE_FALTAS_LIBRE ? "Libre" : "Regular";
 
-  await db.query(
-    `UPDATE cursada_modulo
-        SET cantidad_faltas_acumuladas = CEIL($2::numeric)::int,
-            condicion = $3
-      WHERE id = $1`,
-    [cursadaId, total, condicion],
-  );
-
-  return { faltasAcumuladas: total, condicion };
+  return {
+    faltasAcumuladas: rows[0]?.total ?? 0,
+    condicion: rows[0]?.condicion ?? "Regular",
+    motivoLibre: rows[0]?.motivo_libre ?? null,
+  };
 };
 
 // Guarda o actualiza la asistencia de un alumno en una fecha (Upsert)
