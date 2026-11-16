@@ -244,6 +244,58 @@ export const desactivarPlanEstudio = async (id) => {
   return rows[0] ? await armarEstructuraPlan(rows[0]) : null;
 };
 
+// PATCH /api/plan-estudio/:id/reactivar
+// Un plan inactivo vuelve a estar vigente. Como solo puede haber un plan
+// vigente, el que lo estaba pasa a inactivo en la misma transacción.
+export const reactivarPlanEstudio = async (id) => {
+  await asegurarEsquemaPlanEstudio();
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    await client.query(
+      `UPDATE plan_estudio
+          SET activo = false,
+              estado = 'Inactivo'
+        WHERE activo = true AND id <> $1`,
+      [id],
+    );
+
+    const { rows } = await client.query(
+      `UPDATE plan_estudio
+          SET activo = true,
+              estado = 'Vigente'
+        WHERE id = $1
+        RETURNING id, titulo, resolucion, orientacion, anio_inicio, estado, activo`,
+      [id],
+    );
+
+    await client.query("COMMIT");
+    return rows[0] ? await armarEstructuraPlan(rows[0]) : null;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
+// Ids que NO existen en la tabla indicada (para validar antes de guardar).
+const idsInexistentes = async (tabla, ids) => {
+  if (ids.length === 0) return [];
+  const { rows } = await pool.query(
+    `SELECT pedido.id
+       FROM unnest($1::int[]) AS pedido(id)
+      WHERE NOT EXISTS (SELECT 1 FROM ${tabla} t WHERE t.id = pedido.id)`,
+    [ids],
+  );
+  return rows.map((r) => r.id);
+};
+
+export const modulosInexistentes = (ids) => idsInexistentes("modulo", ids);
+export const materiasInexistentes = (ids) => idsInexistentes("materia", ids);
+
 // #38 - GET /api/materias
 export const listarMaterias = async () => {
   const { rows } = await pool.query(
