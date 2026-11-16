@@ -11,7 +11,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test:reglas": "node --test tests/reglas-academicas.test.mjs"
+    "test:reglas": "node --test tests/reglas-academicas.test.mjs",
+    "test:api": "node --test tests/api-completa.test.mjs"
   },
   "engines": {
     "node": ">=20"
