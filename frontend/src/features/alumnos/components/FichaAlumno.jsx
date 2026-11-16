@@ -5,8 +5,8 @@ import {
   getCursos,
   quitarEquivalencia,
   registrarEquivalencias,
-} from "../../SoftwareII/AlumnoService-is";
-import { crearEvaluacionModulo } from "../../SoftwareII/EvaluacionesModuloService-is";
+} from "../services/AlumnosServices";
+import { crearEvaluacionModulo } from "../services/EvaluacionesModuloService";
 import {
   DESCRIPCION_MOTIVO_LIBRE,
   analizarMatricula,
