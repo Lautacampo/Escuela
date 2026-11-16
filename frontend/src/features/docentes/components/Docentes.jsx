@@ -468,33 +468,6 @@ export function Docentes() {
 
     if (Object.keys(nuevosErrores).length > 0) return;
 
-    const asignacionesPreparadas = valores.asignaciones.map((asignacion) => {
-      const modulosDelCurso = modulos.filter(
-        (modulo) =>
-          String(modulo.anioCurso) === String(asignacion.curso) &&
-          (modulo.divisiones ?? []).includes(asignacion.division),
-      );
-
-      const modulo =
-        modulosDelCurso.find((modulo) =>
-          (modulo.materias ?? []).includes(asignacion.materia),
-        ) ?? modulosDelCurso[0];
-
-      return {
-        ...asignacion,
-        moduloId: modulo?.id ?? null,
-      };
-    });
-
-    if (asignacionesPreparadas.some((a) => a.moduloId == null)) {
-      setErrores({
-        ...nuevosErrores,
-        asignaciones:
-          "No se encontró un módulo para el curso y división seleccionados.",
-      });
-      return;
-    }
-
     const docentePreparado = {
       ...valores,
       nombre: capitalizarNombre(valores.nombre.trim().replace(/\s+/g, " ")),
