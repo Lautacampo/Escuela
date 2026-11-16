@@ -8,7 +8,7 @@ import {
   getDocentes,
   getModulos,
   setDocente,
-} from "../services/DocentesServices";
+} from "../services/DocentesServices.js";
 
 const MATERIAS = [
   "Biología",
@@ -38,6 +38,7 @@ const DOCENTE_INICIAL = {
   especialidad: "",
   email: "",
   telefono: "",
+  password: "",
   asignaciones: [],
 };
 
@@ -58,12 +59,20 @@ const CAMPOS = [
     obligatorio: true,
   },
   { nombre: "telefono", etiqueta: "Teléfono", tipo: "tel" },
+  {
+    nombre: "password",
+    etiqueta: "Contraseña de acceso (mín. 4 caracteres)",
+    tipo: "password",
+    obligatorio: true,
+    soloAlta: true,
+  },
 ];
 
 const FILAS_CAMPOS = [
   [CAMPOS[0], CAMPOS[1]],
   [CAMPOS[2], CAMPOS[3]],
   [CAMPOS[4], CAMPOS[5]],
+  [CAMPOS[6]],
 ];
 
 function normalizar(texto) {
@@ -421,6 +430,14 @@ export function Docentes() {
         "El formato del correo electrónico ingresado no es válido.";
     }
 
+    if (
+      editando === null &&
+      (typeof valores.password !== "string" || valores.password.length < 4)
+    ) {
+      nuevosErrores.password =
+        "Debe ingresar una contraseña de al menos 4 caracteres.";
+    }
+
     const asignacionIncompleta = valores.asignaciones.some(
       ({ materia, moduloId, division }) => {
         const modulo = modulos.find(
@@ -512,7 +529,7 @@ export function Docentes() {
       setMensaje(
         editando !== null
           ? "Datos del docente actualizados."
-          : "Docente registrado correctamente.",
+          : "Docente y usuario de acceso registrados correctamente.",
       );
 
       limpiarFiltros();
@@ -778,7 +795,9 @@ export function Docentes() {
 
                 {FILAS_CAMPOS.map((fila) => (
                   <div className="form-row" key={fila[0].nombre}>
-                    {fila.map((campo) => (
+                    {fila
+                      .filter((campo) => !campo.soloAlta || editando === null)
+                      .map((campo) => (
                       <div className="form-group" key={campo.nombre}>
                         <label htmlFor={`docente-${campo.nombre}`}>
                           {campo.etiqueta}
@@ -796,6 +815,9 @@ export function Docentes() {
                             campo.nombre === "dni" ? "numeric" : undefined
                           }
                           maxLength={campo.nombre === "dni" ? 8 : undefined}
+                          minLength={
+                            campo.nombre === "password" ? 4 : undefined
+                          }
                           className={`input-gestion ${
                             errores[campo.nombre] ? "input-error" : ""
                           }`}

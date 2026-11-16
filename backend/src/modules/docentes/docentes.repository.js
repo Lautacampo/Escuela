@@ -1,4 +1,5 @@
 import { pool } from "../../config/db.js";
+import { HttpError } from "../../utils/httpError.js";
 
 // Devuelve los módulos con sus divisiones y sus materias para los selectores del Front
 export const listarModulosConDivisionesYMaterias = async () => {
@@ -205,7 +206,7 @@ const guardarAsignacionesDocente = async (client, docenteId, asignaciones) => {
   }
 };
 
-export const crearDocente = async (datos) => {
+export const crearDocente = async (datos, passwordHash) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -239,6 +240,26 @@ export const crearDocente = async (datos) => {
 
     // 4. Guardar asignaciones en docente_curso_materia
     await guardarAsignacionesDocente(client, nuevoId, datos.asignaciones);
+
+    const usuarioCreado = await client.query(
+      `INSERT INTO usuarios (
+         nombre, apellido, email, contrahash, rol_id, persona_id
+       )
+       SELECT $1, $2, $3, $4, r.id, $5
+         FROM roles r
+        WHERE r.nombre = 'docente'
+       RETURNING id`,
+      [
+        datos.nombre,
+        datos.apellido,
+        datos.email,
+        passwordHash,
+        nuevoId,
+      ],
+    );
+    if (usuarioCreado.rowCount !== 1) {
+      throw new HttpError(500, "No está configurado el rol docente");
+    }
 
     await client.query("COMMIT");
     return await buscarDocentePorId(nuevoId);

@@ -1,6 +1,8 @@
+import bcrypt from "bcryptjs";
 import { HttpError } from "../../utils/httpError.js";
 import * as repo from "./docentes.repository.js";
 
+const PASSWORD_SALT_ROUNDS = 10;
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const REGEX_DNI = /^\d{7,8}$/;
 
@@ -119,15 +121,20 @@ export const obtenerPorId = async (id) => {
 };
 
 export const crear = async (body) => {
+  if (typeof body.password !== "string" || body.password.length < 4) {
+    throw new HttpError(400, "La contraseña debe tener al menos 4 caracteres");
+  }
+
   const datos = validarDatosDocente(body);
+  const passwordHash = await bcrypt.hash(body.password, PASSWORD_SALT_ROUNDS);
 
   try {
-    return await repo.crearDocente(datos);
+    return await repo.crearDocente(datos, passwordHash);
   } catch (err) {
     if (err.code === "23505") {
       throw new HttpError(
         409,
-        "Ya existe una persona registrada con ese DNI o CUIL",
+        "Ya existe un usuario registrado con ese correo, DNI o CUIL",
       );
     }
     throw err;
