@@ -10,10 +10,12 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test:reglas": "node --test tests/reglas-academicas.test.mjs"
   },
-  "engines": {"node":">=20"},
-
+  "engines": {
+    "node": ">=20"
+  },
   "name": "backend",
   "version": "1.0.0",
   "description": "",
