@@ -38,6 +38,10 @@ export async function getGrilla(moduloId, division, anio) {
       id: a.cursadaId,
       apellido: a.apellido,
       nombre: a.nombre,
+      // Situación de la cursada: REGULAR/LIBRE, estado académico y motivo.
+      condicion: a.condicion,
+      estadoAcademico: a.estadoAcademico,
+      motivoLibre: a.motivoLibre,
       estados: Object.fromEntries(
         Object.entries(a.calificaciones).map(([materiaId, estado]) => [
           materiaId,
