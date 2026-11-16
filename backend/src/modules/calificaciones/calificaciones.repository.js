@@ -148,10 +148,19 @@ export const listarMaterias = async (
 
 export const listarAlumnos = async (cursoId, moduloId) => {
   const { rows } = await pool.query(
-    `SELECT cm.id AS cursada_id, p.apellido, p.nombre
+    `SELECT cm.id AS cursada_id, p.apellido, p.nombre,
+            cm.condicion, cm.estado_academico, cm.motivo_libre
        FROM cursada_modulo cm JOIN persona p ON p.id = cm.alumno_id
        JOIN alumno al ON al.id = cm.alumno_id
       WHERE cm.curso_id = $1 AND cm.modulo_id = $2 AND al.activo
+        -- Si el alumno recursa el módulo en el mismo curso, solo se lista
+        -- su cursada más reciente (la anterior queda en su trayectoria).
+        AND NOT EXISTS (
+            SELECT 1 FROM cursada_modulo nueva
+             WHERE nueva.alumno_id = cm.alumno_id
+               AND nueva.modulo_id = cm.modulo_id
+               AND nueva.curso_id = cm.curso_id
+               AND nueva.id > cm.id)
       ORDER BY p.apellido, p.nombre`,
     [cursoId, moduloId],
   );
@@ -169,7 +178,12 @@ export const listarEstados = async (cursadaIds, materiaIds) => {
 
 export const buscarCursadaConMateria = async (cursadaId, materiaId) => {
   const { rows } = await pool.query(
-    `SELECT cm.curso_id, cl.anio
+    `SELECT cm.curso_id, cl.anio, cm.estado_academico,
+            -- El alumno ya se reinscribió para recursar este módulo.
+            EXISTS (SELECT 1 FROM cursada_modulo nueva
+                     WHERE nueva.alumno_id = cm.alumno_id
+                       AND nueva.modulo_id = cm.modulo_id
+                       AND nueva.id > cm.id) AS reemplazada
        FROM cursada_modulo cm
        JOIN curso c ON c.id = cm.curso_id
        JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
@@ -204,4 +218,14 @@ export const guardarEstado = async (materiaId, cursadaId, estado) => {
     [materiaId, cursadaId, estado],
   );
   return rows[0];
+};
+
+// Situación de la cursada ya recalculada por el trigger de calificacion.
+export const buscarSituacionCursada = async (cursadaId) => {
+  const { rows } = await pool.query(
+    `SELECT condicion, estado_academico, motivo_libre
+       FROM cursada_modulo WHERE id = $1`,
+    [cursadaId],
+  );
+  return rows[0] ?? null;
 };
