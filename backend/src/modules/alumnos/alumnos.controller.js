@@ -74,3 +74,26 @@ export const evaluarModulo = async (req, res, next) => {
         next(err);
     }
 };
+
+export const registrarEquivalencias = async (req, res, next) => {
+    try {
+        res.status(201).json(
+            await service.registrarEquivalencias(Number(req.params.id), req.body ?? {})
+        );
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const quitarEquivalencia = async (req, res, next) => {
+    try {
+        res.json(
+            await service.quitarEquivalencia(
+                Number(req.params.id),
+                Number(req.params.moduloId)
+            )
+        );
+    } catch (err) {
+        next(err);
+    }
+};
