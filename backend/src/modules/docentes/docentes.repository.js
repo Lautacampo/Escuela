@@ -1,5 +1,10 @@
 import { pool } from "../../config/db.js";
 import { HttpError } from "../../utils/httpError.js";
+import {
+  desvincularUsuario,
+  sincronizarEmailUsuario,
+  vincularOCrearUsuario,
+} from "../auth/auth.repository.js";
 
 // Devuelve los módulos con sus divisiones y sus materias para los selectores del Front
 export const listarModulosConDivisionesYMaterias = async () => {
@@ -156,12 +161,19 @@ const guardarAsignacionesDocente = async (client, docenteId, asignaciones) => {
     );
 
     // Sin curso no se puede registrar una asignación acotada por curso
-    if (resCurso.rowCount === 0) continue;
+    if (resCurso.rowCount === 0) {
+      throw new HttpError(
+        400,
+        `No existe un curso con división ${asig.division} para ese módulo`,
+      );
+    }
 
     const cursoId = resCurso.rows[0].id;
 
-    // 2. Buscar la materia por nombre (o crearla y vincularla al módulo si no existía)
-    let resMateria = await client.query(
+    // 2. La materia debe pertenecer al módulo. No se crean materias desde
+    //    acá: una materia nueva en el módulo pasaría a ser obligatoria para
+    //    todos sus alumnos. Las materias se administran en Plan de Estudios.
+    const resMateria = await client.query(
       `SELECT ma.id
          FROM materia ma
          JOIN materia_modulo mm ON mm.materia_id = ma.id
@@ -169,32 +181,13 @@ const guardarAsignacionesDocente = async (client, docenteId, asignaciones) => {
         LIMIT 1`,
       [asig.moduloId, asig.materia],
     );
-
     if (resMateria.rowCount === 0) {
-      resMateria = await client.query(
-        `SELECT id FROM materia WHERE LOWER(TRIM(nombre)) = LOWER(TRIM($1)) LIMIT 1`,
-        [asig.materia],
+      throw new HttpError(
+        400,
+        `La materia "${asig.materia}" no pertenece a ese módulo`,
       );
     }
-
-    let materiaId;
-    if (resMateria.rowCount > 0) {
-      materiaId = resMateria.rows[0].id;
-    } else {
-      const nuevaMat = await client.query(
-        `INSERT INTO materia (nombre) VALUES ($1) RETURNING id`,
-        [asig.materia],
-      );
-      materiaId = nuevaMat.rows[0].id;
-    }
-
-    // Asegurar que la materia esté vinculada al módulo en materia_modulo
-    await client.query(
-      `INSERT INTO materia_modulo (materia_id, modulo_id)
-       VALUES ($1, $2)
-       ON CONFLICT (materia_id, modulo_id) DO NOTHING`,
-      [materiaId, asig.moduloId],
-    );
+    const materiaId = resMateria.rows[0].id;
 
     // Vincular al docente con la materia en ese curso
     await client.query(
@@ -241,24 +234,17 @@ export const crearDocente = async (datos, passwordHash) => {
     // 4. Guardar asignaciones en docente_curso_materia
     await guardarAsignacionesDocente(client, nuevoId, datos.asignaciones);
 
-    const usuarioCreado = await client.query(
-      `INSERT INTO usuarios (
-         nombre, apellido, email, contrahash, rol_id, persona_id
-       )
-       SELECT $1, $2, $3, $4, r.id, $5
-         FROM roles r
-        WHERE r.nombre = 'docente'
-       RETURNING id`,
-      [
-        datos.nombre,
-        datos.apellido,
-        datos.email,
-        passwordHash,
-        nuevoId,
-      ],
-    );
-    if (usuarioCreado.rowCount !== 1) {
-      throw new HttpError(500, "No está configurado el rol docente");
+    // 5. Usuario de acceso (se crea o se reutiliza uno que quedó libre)
+    const usuarioId = await vincularOCrearUsuario(client, {
+      rol: "docente",
+      email: datos.email,
+      nombre: datos.nombre,
+      apellido: datos.apellido,
+      hash: passwordHash,
+      personaId: nuevoId,
+    });
+    if (!usuarioId) {
+      throw new HttpError(409, "Ya existe un usuario registrado con ese correo");
     }
 
     await client.query("COMMIT");
@@ -308,6 +294,9 @@ export const actualizarDocente = async (id, datos) => {
 
     await guardarAsignacionesDocente(client, id, datos.asignaciones);
 
+    // El correo de inicio de sesión acompaña al de la persona.
+    await sincronizarEmailUsuario(client, id, datos.email);
+
     await client.query("COMMIT");
     return await buscarDocentePorId(id);
   } catch (err) {
@@ -323,11 +312,8 @@ export const eliminarDocente = async (id) => {
   try {
     await client.query("BEGIN");
 
-    // 1. Desvincular si algún usuario apuntaba a esta persona
-    await client.query(
-      "UPDATE usuarios SET persona_id = NULL WHERE persona_id = $1",
-      [id],
-    );
+    // 1. Su usuario queda sin vínculo y sin acceso al sistema
+    await desvincularUsuario(client, id);
 
     // 2. Eliminar relaciones del docente y de su registro de personal
     await client.query("DELETE FROM docente_curso_materia WHERE docente_id = $1", [
