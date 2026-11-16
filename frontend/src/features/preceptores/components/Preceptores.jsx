@@ -6,7 +6,6 @@ import { exportarExcel } from "../../../shared/utils/exportarExcel.js";
 import {
   getPreceptores,
   setPreceptor,
-  registrarUsuarioPreceptor,
   borrarPreceptor,
   getCursos,
   asignarCursos,
@@ -327,17 +326,14 @@ export function Preceptores() {
       setErrorGuardar("");
       setGuardando(true);
 
-      // Si es un alta nueva, registramos primero su usuario con rol "preceptor" en /api/auth/registro
-      if (editando === null) {
-        await registrarUsuarioPreceptor({
-          nombre: preceptorPreparado.nombre,
-          apellido: preceptorPreparado.apellido,
-          email: preceptorPreparado.email,
-          password: valores.password,
-        });
-      }
-
-      const guardado = await setPreceptor(preceptorPreparado);
+      // En un alta, la contraseña viaja junto con los datos: el backend crea
+      // el preceptor y su usuario de acceso en una sola operación. Si algo
+      // falla (por ejemplo, un DNI repetido) no queda un usuario suelto.
+      const guardado = await setPreceptor(
+        editando === null
+          ? { ...preceptorPreparado, password: valores.password }
+          : preceptorPreparado,
+      );
 
       setPreceptores((anteriores) =>
         editando !== null
