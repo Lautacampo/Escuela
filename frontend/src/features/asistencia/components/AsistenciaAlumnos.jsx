@@ -46,6 +46,7 @@ export function AsistenciaAlumnos({
                 alumnos.map((a, i) => {
                   const registro = registrosDia[a.id];
                   const total = totales[a.id] ?? 0;
+                  const valorFalta = Number(registro?.valorFalta ?? 0);
                   const libre = a.condicion === "Libre";
 
                   return (
@@ -56,20 +57,41 @@ export function AsistenciaAlumnos({
                       </td>
                       <td>{a.dni}</td>
                       <td>
-                        <select
-                          value={registro ? String(registro.valorFalta) : ""}
-                          disabled={guardando}
-                          onChange={(e) => onCambiar(a.id, e.target.value)}
+                        <div
+                          className="asistencia-opciones"
+                          role="group"
+                          aria-label={`Asistencia de ${a.apellido}, ${a.nombre}`}
                         >
-                          {!registro && (
-                            <option value="" disabled>
-                              Sin cargar
-                            </option>
-                          )}
-                          <option value="0">Presente</option>
-                          <option value="0.5">Media falta</option>
-                          <option value="1">Falta</option>
-                        </select>
+                          <span className="asistencia-estado-dia">
+                            {valorFalta === 0
+                              ? "Presente"
+                              : valorFalta === 0.5
+                                ? "Media falta"
+                                : "Falta"}
+                          </span>
+                          <label className="asistencia-opcion">
+                            <input
+                              type="checkbox"
+                              checked={valorFalta === 0.5}
+                              disabled={guardando}
+                              onChange={(e) =>
+                                onCambiar(a.id, e.target.checked ? 0.5 : 0)
+                              }
+                            />
+                            Media falta (0,5)
+                          </label>
+                          <label className="asistencia-opcion">
+                            <input
+                              type="checkbox"
+                              checked={valorFalta === 1}
+                              disabled={guardando}
+                              onChange={(e) =>
+                                onCambiar(a.id, e.target.checked ? 1 : 0)
+                              }
+                            />
+                            Falta (1)
+                          </label>
+                        </div>
                       </td>
                       <td>
                         {total} / {limite}

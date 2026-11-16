@@ -78,7 +78,7 @@ export const listarInasistenciasCriticas = async ({
           WHERE 1 = 1 ${whereExtra}
             ${filtroCursadaActual}
        ) sub
-      WHERE sub.faltas > $1
+      WHERE sub.faltas >= $1
       ORDER BY sub.faltas DESC, sub.curso ASC,
                sub.division ASC, sub.apellido ASC`,
     params,

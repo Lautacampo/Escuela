@@ -171,6 +171,48 @@
 	background: #f0f7f6;
 }
 
+.pagina-asistencia-division .asistencia-opciones {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px 14px;
+}
+
+.pagina-asistencia-division .asistencia-estado-dia {
+	flex-basis: 100%;
+	color: #526478;
+	font-size: 0.82rem;
+	font-weight: 700;
+}
+
+.pagina-asistencia-division .asistencia-opcion {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	color: #35475a;
+	font-size: 0.84rem;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.pagina-asistencia-division .asistencia-opcion input[type="checkbox"] {
+	width: 18px;
+	height: 18px;
+	margin: 0;
+	accent-color: #bf1b1b;
+	cursor: pointer;
+}
+
+.pagina-asistencia-division .asistencia-opcion input[type="checkbox"]:focus-visible {
+	outline: 3px solid rgba(191, 27, 27, 0.22);
+	outline-offset: 2px;
+}
+
+.pagina-asistencia-division .asistencia-opcion input[type="checkbox"]:disabled {
+	cursor: wait;
+}
+
 @media (max-width: 700px) {
 	.dashboard-main > .pagina-asistencia-division {
 		padding: 18px;

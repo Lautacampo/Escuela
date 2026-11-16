@@ -377,8 +377,8 @@ export function Reportes() {
               <h2>Alertas de inasistencias</h2>
               <p>
                 {moduloId
-                  ? `Alumnos que superaron las ${umbral} faltas en el módulo seleccionado.`
-                  : `Alumnos que superaron las ${umbral} faltas en su módulo más reciente.`}
+                  ? `Alumnos que alcanzaron o superaron las ${umbral} faltas en el módulo seleccionado.`
+                  : `Alumnos que alcanzaron o superaron las ${umbral} faltas en su módulo más reciente.`}
               </p>
             </div>
           </div>
@@ -439,7 +439,7 @@ export function Reportes() {
               {alertasVisibles.length === 0 && (
                 <tr>
                   <td colSpan={6} className="rep-vacio">
-                    No hay alumnos que superen el límite de inasistencias para
+                    No hay alumnos que alcancen el límite de inasistencias para
                     estos filtros.
                   </td>
                 </tr>
