@@ -117,6 +117,9 @@ export const obtenerGrilla = async (
       cursadaId: a.cursada_id,
       apellido: a.apellido,
       nombre: a.nombre,
+      condicion: a.condicion,
+      estadoAcademico: a.estado_academico,
+      motivoLibre: a.motivo_libre,
       calificaciones: Object.fromEntries(
         materias.map((m) => [
           m.id,
@@ -164,5 +167,36 @@ export const actualizar = async (
     throw new HttpError(403, "No puedes calificar esta materia");
   }
 
-  return repo.guardarEstado(materiaId, cursadaModuloId, estado);
+  // La cursada quedó como historial: el alumno ya está recursando el módulo.
+  if (cursada.reemplazada) {
+    throw new HttpError(
+      409,
+      "Esta cursada está cerrada: el alumno ya se reinscribió para recursar el módulo. Calificá la cursada vigente",
+    );
+  }
+
+  // Un módulo acreditado es definitivo: sus materias ya no se modifican.
+  if (cursada.estado_academico === "APROBADO") {
+    throw new HttpError(
+      409,
+      "El módulo ya está aprobado: no se pueden modificar las calificaciones de sus materias",
+    );
+  }
+
+  const calificacion = await repo.guardarEstado(
+    materiaId,
+    cursadaModuloId,
+    estado,
+  );
+
+  // Una materia desaprobada deja al alumno LIBRE en el módulo (debe
+  // recursarlo); si se corrige la nota, vuelve a su situación anterior.
+  // La base lo recalcula sola: acá solo se informa el resultado.
+  const situacion = await repo.buscarSituacionCursada(cursadaModuloId);
+  return {
+    ...calificacion,
+    condicion: situacion.condicion,
+    estadoAcademico: situacion.estado_academico,
+    motivoLibre: situacion.motivo_libre,
+  };
 };
