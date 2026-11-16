@@ -1,4 +1,8 @@
 import { pool } from "../../config/db.js";
+import { ReglaNegocio } from "../../utils/reglaNegocio.js";
+
+// Una cursada "abierta" todavía puede acreditarse (no está aprobada ni libre).
+const ESTADOS_ABIERTOS = ["EN_CURSO", "PENDIENTE"];
 
 const SELECT_ALUMNO = `
     SELECT p.id, p.nombre, p.apellido, p.dni, p.cuil, p.domicilio,
@@ -43,6 +47,7 @@ export const listarCursadas = async (alumnoIds) => {
         `
         SELECT cm.id, cm.alumno_id, cm.curso_id, cm.modulo_id, cm.condicion,
                cm.cantidad_faltas_acumuladas, cm.estado_academico, cm.activa,
+               cm.motivo_libre, m.periodo,
                m.numero_leyenda, c.anio_curso, c.division, cl.anio AS ciclo_anio
         FROM cursada_modulo cm
         JOIN modulo m ON m.id = cm.modulo_id
@@ -124,32 +129,51 @@ export const reactivarAlumno = async (id) => {
     return rowCount > 0;
 };
 
+export const listarEquivalencias = async (alumnoIds, db = pool) => {
+    const { rows } = await db.query(
+        `SELECT e.alumno_id, e.modulo_id, m.numero_leyenda,
+                to_char(e.fecha, 'YYYY-MM-DD') AS fecha, e.observacion
+           FROM equivalencia_modulo e
+           JOIN modulo m ON m.id = e.modulo_id
+          WHERE e.alumno_id = ANY($1::int[])
+          ORDER BY m.id`,
+        [alumnoIds]
+    );
+    return rows;
+};
+
+// Materias del módulo de cada cursada con su estado (sin fila = "En Curso").
+export const listarMateriasDeCursadas = async (cursadaIds) => {
+    const { rows } = await pool.query(
+        `SELECT cm.id AS cursada_modulo_id, ma.id, ma.nombre,
+                COALESCE(c.estado, 'En Curso') AS estado
+           FROM cursada_modulo cm
+           JOIN materia_modulo mm ON mm.modulo_id = cm.modulo_id
+           JOIN materia ma ON ma.id = mm.materia_id
+           LEFT JOIN calificacion c
+             ON c.cursada_modulo_id = cm.id AND c.materia_id = ma.id
+          WHERE cm.id = ANY($1::int[])
+          ORDER BY ma.nombre`,
+        [cursadaIds]
+    );
+    return rows;
+};
+
+export const buscarModulo = async (moduloId, db = pool) => {
+    const { rows } = await db.query(
+        `SELECT id, numero_leyenda AS nombre, anio_curso, periodo
+           FROM modulo WHERE id = $1`,
+        [moduloId]
+    );
+    return rows[0] ?? null;
+};
+
 export const cursoTieneModulo = async (cursoId, moduloId) => {
     const { rowCount } = await pool.query(
         "SELECT 1 FROM curso_modulo WHERE curso_id = $1 AND modulo_id = $2",
         [cursoId, moduloId]
     );
     return rowCount > 0;
-};
-
-export const yaAproboModulo = async (alumnoId, moduloId) => {
-    const { rowCount } = await pool.query(
-        `SELECT 1 FROM cursada_modulo
-        WHERE alumno_id = $1 AND modulo_id = $2 AND estado_academico = 'APROBADO'`,
-        [alumnoId, moduloId]
-    );
-    return rowCount > 0;
-};
-
-export const crearCursada = async (alumnoId, cursoId, moduloId) => {
-    const { rows } = await pool.query(
-        `INSERT INTO cursada_modulo
-                (alumno_id, curso_id, modulo_id, condicion, cantidad_faltas_acumuladas, estado_academico, activa)
-        VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', true)
-        RETURNING id`,
-        [alumnoId, cursoId, moduloId]
-    );
-    return rows[0].id;
 };
 
 export const buscarCursadaActiva = async (alumnoId) => {
@@ -164,103 +188,289 @@ export const buscarCursadaActiva = async (alumnoId) => {
     return rows[0] ?? null;
 };
 
-// Módulos correlativos del módulo indicado que el alumno todavía no aprobó.
-export const correlativosPendientes = async (alumnoId, moduloId) => {
-    const { rows } = await pool.query(
-        `SELECT m.id, m.numero_leyenda AS nombre
+/**
+ * Correlativos del módulo que el alumno todavía NO acreditó (ni aprobados ni
+ * por equivalencia), con la situación de su última cursada en cada uno:
+ *   estado = null        -> nunca lo cursó en la institución
+ *   estado = A_RECURSAR  -> quedó libre, debe recursarlo
+ *   estado = EN_CURSO / PENDIENTE -> todavía lo está acreditando
+ */
+export const correlativosPendientes = async (alumnoId, moduloId, db = pool) => {
+    const { rows } = await db.query(
+        `SELECT m.id, m.numero_leyenda AS nombre,
+                (SELECT cm.estado_academico
+                   FROM cursada_modulo cm
+                  WHERE cm.alumno_id = $2 AND cm.modulo_id = m.id
+                  ORDER BY cm.id DESC
+                  LIMIT 1) AS estado
            FROM modulo_correlativo mc
            JOIN modulo m ON m.id = mc.modulo_correlativo_id
           WHERE mc.modulo_id = $1
-            AND NOT EXISTS (
-                SELECT 1
-                  FROM cursada_modulo cm
-                 WHERE cm.alumno_id = $2
-                   AND cm.modulo_id = mc.modulo_correlativo_id
-                   AND cm.estado_academico = 'APROBADO'
-            )
+            AND NOT modulo_acreditado($2, m.id)
           ORDER BY m.id`,
         [moduloId, alumnoId]
     );
     return rows;
 };
 
+// Correlativos pendientes de varias cursadas a la vez (para la ficha).
+export const correlativosPendientesDeCursadas = async (cursadaIds) => {
+    const { rows } = await pool.query(
+        `SELECT cm.id AS cursada_modulo_id, m.id, m.numero_leyenda AS nombre
+           FROM cursada_modulo cm
+           JOIN modulo_correlativo mc ON mc.modulo_id = cm.modulo_id
+           JOIN modulo m ON m.id = mc.modulo_correlativo_id
+          WHERE cm.id = ANY($1::int[])
+            AND NOT modulo_acreditado(cm.alumno_id, m.id)
+          ORDER BY m.id`,
+        [cursadaIds]
+    );
+    return rows;
+};
+
 /**
- * Cambia la cursada activa del alumno.
+ * Registra módulos acreditados por equivalencia (dentro de una transacción).
  *
- * - Si el módulo no cambia, sólo se actualiza el curso (año/división).
- * - Si el módulo cambia y la cursada actual no tiene datos académicos
- *   (evaluaciones, asistencias o calificaciones), se corrige la misma fila.
- * - Si la cursada actual ya tiene datos, se marca como inactiva y se crea
- *   una nueva cursada activa, conservando el historial.
+ * Reglas:
+ * - Solo módulos que el alumno NUNCA cursó en la institución: si los cursó,
+ *   debe aprobarlos o recursarlos; la equivalencia no reemplaza una cursada.
+ * - Cada módulo necesita sus propios correlativos acreditados (o incluidos en
+ *   el mismo pedido): no puede acreditarse III por equivalencia sin I y II.
  */
-export const actualizarCursadaActiva = (alumnoId, { cursoId, moduloId }) =>
+const insertarEquivalencias = async (db, alumnoId, modulosIds, observacion) => {
+    const { rows: modulos } = await db.query(
+        `SELECT id, numero_leyenda AS nombre
+           FROM modulo
+          WHERE id = ANY($1::int[])
+          ORDER BY anio_curso, periodo, id`,
+        [modulosIds]
+    );
+    if (modulos.length !== new Set(modulosIds).size) {
+        throw new ReglaNegocio("EQUIVALENCIA_MODULO_INEXISTENTE");
+    }
+
+    for (const modulo of modulos) {
+        if (
+            (await db.query(
+                `SELECT 1 FROM equivalencia_modulo
+                  WHERE alumno_id = $1 AND modulo_id = $2`,
+                [alumnoId, modulo.id]
+            )).rowCount > 0
+        ) {
+            continue; // ya estaba registrada
+        }
+
+        const { rowCount: cursadas } = await db.query(
+            "SELECT 1 FROM cursada_modulo WHERE alumno_id = $1 AND modulo_id = $2",
+            [alumnoId, modulo.id]
+        );
+        if (cursadas > 0) {
+            throw new ReglaNegocio("EQUIVALENCIA_CON_CURSADA", { modulo: modulo.nombre });
+        }
+
+        const pendientes = await correlativosPendientes(alumnoId, modulo.id, db);
+        if (pendientes.length > 0) {
+            throw new ReglaNegocio("EQUIVALENCIA_SIN_CORRELATIVAS", {
+                modulo: modulo.nombre,
+                pendientes,
+            });
+        }
+
+        await db.query(
+            `INSERT INTO equivalencia_modulo (alumno_id, modulo_id, observacion)
+             VALUES ($1, $2, $3)`,
+            [alumnoId, modulo.id, observacion]
+        );
+    }
+};
+
+export const registrarEquivalencias = (alumnoId, modulosIds, observacion) =>
     enTransaccion(async (db) => {
+        await db.query("SELECT id FROM alumno WHERE id = $1 FOR UPDATE", [alumnoId]);
+        await insertarEquivalencias(db, alumnoId, modulosIds, observacion);
+    });
+
+/**
+ * Quita una equivalencia. No se permite si el alumno ya se apoyó en ella:
+ * tiene una cursada u otra equivalencia en un módulo que la exige como
+ * correlativa.
+ */
+export const quitarEquivalencia = (alumnoId, moduloId) =>
+    enTransaccion(async (db) => {
+        await db.query("SELECT id FROM alumno WHERE id = $1 FOR UPDATE", [alumnoId]);
+
+        const { rows: dependientes } = await db.query(
+            `SELECT DISTINCT m.id, m.numero_leyenda AS nombre
+               FROM modulo_correlativo mc
+               JOIN modulo m ON m.id = mc.modulo_id
+              WHERE mc.modulo_correlativo_id = $2
+                AND (EXISTS (SELECT 1 FROM cursada_modulo cm
+                              WHERE cm.alumno_id = $1 AND cm.modulo_id = mc.modulo_id)
+                  OR EXISTS (SELECT 1 FROM equivalencia_modulo e
+                              WHERE e.alumno_id = $1 AND e.modulo_id = mc.modulo_id))
+              ORDER BY m.id`,
+            [alumnoId, moduloId]
+        );
+        if (dependientes.length > 0) {
+            throw new ReglaNegocio("EQUIVALENCIA_EN_USO", { dependientes });
+        }
+
+        const { rowCount } = await db.query(
+            "DELETE FROM equivalencia_modulo WHERE alumno_id = $1 AND modulo_id = $2",
+            [alumnoId, moduloId]
+        );
+        if (rowCount === 0) throw new ReglaNegocio("EQUIVALENCIA_INEXISTENTE");
+    });
+
+/**
+ * Matricula al alumno en un módulo (alta o cambio de matrícula) manteniendo
+ * una única cursada activa. Todo ocurre en una transacción: si una regla no
+ * se cumple se lanza ReglaNegocio y no queda nada a medio guardar.
+ *
+ * Casos:
+ * - Mismo módulo y cursada todavía abierta  -> solo cambia el curso/división.
+ * - Módulo distinto, o mismo módulo en el que quedó LIBRE -> nueva inscripción:
+ *     1. registra las equivalencias de ingreso (si se enviaron);
+ *     2. rechaza si el módulo ya está acreditado;
+ *     3. rechaza si faltan correlativos (correlatividades);
+ *     4. si ya había una cursada abierta de ese módulo, la reactiva en lugar
+ *        de duplicarla;
+ *     5. si la cursada actual estaba vacía (error de carga) la corrige;
+ *     6. si no, la cursada actual pasa al historial y se crea la nueva. Si el
+ *        alumno estaba LIBRE en ese módulo, la nueva cursada es la recursada.
+ */
+export const guardarMatricula = (
+    alumnoId,
+    { cursoId, moduloId, equivalencias = [], observacion = null, soloAlta = false }
+) =>
+    enTransaccion(async (db) => {
+        // Serializa las matrículas simultáneas del mismo alumno.
+        await db.query("SELECT id FROM alumno WHERE id = $1 FOR UPDATE", [alumnoId]);
+
         const { rows } = await db.query(
             `SELECT cm.id, cm.curso_id, cm.modulo_id, cm.estado_academico,
-                    EXISTS (
-                        SELECT 1 FROM evaluacion_modulo e
-                         WHERE e.cursada_modulo_id = cm.id
-                    ) AS tiene_evaluaciones,
-                    EXISTS (
-                        SELECT 1 FROM asistencia a
-                         WHERE a.cursada_modulo_id = cm.id
-                    ) AS tiene_asistencias,
-                    EXISTS (
-                        SELECT 1 FROM calificacion c
-                         WHERE c.cursada_modulo_id = cm.id
-                    ) AS tiene_calificaciones
+                    (EXISTS (SELECT 1 FROM evaluacion_modulo e
+                              WHERE e.cursada_modulo_id = cm.id)
+                  OR EXISTS (SELECT 1 FROM asistencia a
+                              WHERE a.cursada_modulo_id = cm.id)
+                  OR EXISTS (SELECT 1 FROM calificacion c
+                              WHERE c.cursada_modulo_id = cm.id)) AS tiene_datos
                FROM cursada_modulo cm
               WHERE cm.alumno_id = $1 AND cm.activa
               ORDER BY cm.id DESC
               LIMIT 1
-              FOR UPDATE`,
+              FOR UPDATE OF cm`,
             [alumnoId]
         );
         const actual = rows[0] ?? null;
 
-        if (actual && Number(actual.modulo_id) === Number(moduloId)) {
-            if (Number(actual.curso_id) !== Number(cursoId)) {
+        if (soloAlta && actual) throw new ReglaNegocio("YA_TIENE_CURSADA_ACTIVA");
+
+        // Mismo módulo y cursada abierta: es un cambio de curso/división.
+        if (
+            actual &&
+            Number(actual.modulo_id) === Number(moduloId) &&
+            ESTADOS_ABIERTOS.includes(actual.estado_academico)
+        ) {
+            if (Number(actual.curso_id) === Number(cursoId)) {
+                return { cursadaModuloId: actual.id, tipo: "SIN_CAMBIOS" };
+            }
+            await db.query(
+                "UPDATE cursada_modulo SET curso_id = $2 WHERE id = $1",
+                [actual.id, cursoId]
+            );
+            return { cursadaModuloId: actual.id, tipo: "CAMBIO_DE_CURSO" };
+        }
+
+        // --- Nueva inscripción en el módulo ---
+        if (equivalencias.length > 0) {
+            await insertarEquivalencias(db, alumnoId, equivalencias, observacion);
+        }
+
+        const { rows: acreditado } = await db.query(
+            `SELECT EXISTS (SELECT 1 FROM equivalencia_modulo
+                             WHERE alumno_id = $1 AND modulo_id = $2) AS por_equivalencia,
+                    modulo_acreditado($1, $2) AS acreditado`,
+            [alumnoId, moduloId]
+        );
+        if (acreditado[0].acreditado) {
+            throw new ReglaNegocio("MODULO_ACREDITADO", {
+                porEquivalencia: acreditado[0].por_equivalencia,
+            });
+        }
+
+        const pendientes = await correlativosPendientes(alumnoId, moduloId, db);
+        if (pendientes.length > 0) {
+            throw new ReglaNegocio("CORRELATIVAS_PENDIENTES", { pendientes });
+        }
+
+        const actualVacia =
+            actual != null &&
+            actual.estado_academico === "EN_CURSO" &&
+            !actual.tiene_datos;
+
+        // ¿Ya existe una cursada abierta de ese módulo en el historial?
+        const { rows: abiertas } = await db.query(
+            `SELECT id FROM cursada_modulo
+              WHERE alumno_id = $1 AND modulo_id = $2
+                AND estado_academico = ANY($3::text[])
+                AND NOT activa
+              ORDER BY id DESC
+              LIMIT 1
+              FOR UPDATE`,
+            [alumnoId, moduloId, ESTADOS_ABIERTOS]
+        );
+
+        if (abiertas.length > 0) {
+            if (actualVacia) {
+                await db.query("DELETE FROM cursada_modulo WHERE id = $1", [actual.id]);
+            } else if (actual) {
                 await db.query(
-                    `UPDATE cursada_modulo SET curso_id = $2 WHERE id = $1`,
-                    [actual.id, cursoId]
+                    "UPDATE cursada_modulo SET activa = false WHERE id = $1",
+                    [actual.id]
                 );
             }
-            return { cursadaModuloId: actual.id, creada: false };
+            await db.query(
+                "UPDATE cursada_modulo SET activa = true, curso_id = $2 WHERE id = $1",
+                [abiertas[0].id, cursoId]
+            );
+            return { cursadaModuloId: abiertas[0].id, tipo: "REACTIVADA" };
         }
 
-        const esCorreccion =
-            actual != null &&
-            actual.estado_academico !== "APROBADO" &&
-            !actual.tiene_evaluaciones &&
-            !actual.tiene_asistencias &&
-            !actual.tiene_calificaciones;
-
-        if (esCorreccion) {
+        if (actualVacia) {
             await db.query(
-                `UPDATE cursada_modulo
-                    SET curso_id = $2, modulo_id = $3
-                  WHERE id = $1`,
+                "UPDATE cursada_modulo SET curso_id = $2, modulo_id = $3 WHERE id = $1",
                 [actual.id, cursoId, moduloId]
             );
-            return { cursadaModuloId: actual.id, creada: false };
+            return { cursadaModuloId: actual.id, tipo: "CORREGIDA" };
         }
+
+        const { rowCount: cursadasPrevias } = await db.query(
+            "SELECT 1 FROM cursada_modulo WHERE alumno_id = $1 AND modulo_id = $2",
+            [alumnoId, moduloId]
+        );
 
         if (actual) {
             await db.query(
-                `UPDATE cursada_modulo SET activa = false WHERE id = $1`,
+                "UPDATE cursada_modulo SET activa = false WHERE id = $1",
                 [actual.id]
             );
         }
 
+        // La situación inicial la fija el trigger cursada_modulo_nueva_recalcular.
         const { rows: nuevas } = await db.query(
             `INSERT INTO cursada_modulo
-                    (alumno_id, curso_id, modulo_id, condicion, cantidad_faltas_acumuladas, estado_academico, activa)
-            VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', true)
-            RETURNING id`,
+                    (alumno_id, curso_id, modulo_id, condicion,
+                     cantidad_faltas_acumuladas, estado_academico, activa)
+             VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', true)
+             RETURNING id`,
             [alumnoId, cursoId, moduloId]
         );
 
-        return { cursadaModuloId: nuevas[0].id, creada: true };
+        return {
+            cursadaModuloId: nuevas[0].id,
+            tipo: cursadasPrevias > 0 ? "RECURSADA" : "NUEVA",
+        };
     });
 
 /**
@@ -279,8 +489,8 @@ export const registrarEvaluacionModulo = (
 ) =>
     enTransaccion(async (db) => {
         const { rows } = await db.query(
-            `SELECT cm.id, cm.modulo_id,
-                    UPPER(TRIM(cm.estado_academico)) AS estado_academico,
+            `SELECT cm.id, cm.modulo_id, cm.alumno_id,
+                    cm.estado_academico, cm.condicion, cm.motivo_libre,
                     al.activo AS alumno_activo,
                     EXISTS (
                         SELECT 1
@@ -302,6 +512,30 @@ export const registrarEvaluacionModulo = (
         }
         if (cursada.estado_academico === "APROBADO" || cursada.tiene_aprobacion) {
             return { creada: false, motivo: "MODULO_APROBADO" };
+        }
+
+        // Escenarios de LIBRE (inasistencias, materia desaprobada o instancias
+        // agotadas): el alumno no rinde; debe recursar el módulo.
+        if (cursada.condicion === "LIBRE") {
+            return {
+                creada: false,
+                motivo: "ALUMNO_LIBRE",
+                motivoLibre: cursada.motivo_libre,
+            };
+        }
+
+        // Correlatividades al acreditar: los módulos previos deben estar aprobados.
+        const correlativos = await correlativosPendientes(
+            cursada.alumno_id,
+            cursada.modulo_id,
+            db
+        );
+        if (correlativos.length > 0) {
+            return {
+                creada: false,
+                motivo: "CORRELATIVAS_PENDIENTES",
+                pendientes: correlativos,
+            };
         }
 
         // Para evaluar el módulo todas sus materias deben estar aprobadas.
@@ -363,20 +597,20 @@ export const registrarEvaluacionModulo = (
             [cursadaId, fecha, nota, siguiente, tipoInstancia]
         );
 
-        const aprobado = Number(nota) >= 7;
-        if (aprobado) {
-            await db.query(
-                `UPDATE cursada_modulo
-                    SET estado_academico = 'APROBADO'
-                  WHERE id = $1`,
-                [cursadaId]
-            );
-        }
+        // El trigger evaluacion_modulo_recalcular_situacion ya dejó la cursada
+        // en su situación real: APROBADO, PENDIENTE o LIBRE (4.ª instancia).
+        const { rows: situacion } = await db.query(
+            `SELECT estado_academico, condicion, motivo_libre
+               FROM cursada_modulo WHERE id = $1`,
+            [cursadaId]
+        );
 
         return {
             creada: true,
             evaluacion: evaluaciones[0],
-            aprobado,
-            estadoAcademico: aprobado ? "APROBADO" : cursada.estado_academico,
+            aprobado: situacion[0].estado_academico === "APROBADO",
+            estadoAcademico: situacion[0].estado_academico,
+            condicion: situacion[0].condicion,
+            motivoLibre: situacion[0].motivo_libre,
         };
     });
