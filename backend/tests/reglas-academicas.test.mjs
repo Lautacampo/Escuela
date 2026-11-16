@@ -1,0 +1,832 @@
+/**
+ * Pruebas de las reglas académicas (correlatividades, condición LIBRE,
+ * recursadas y equivalencias) contra la API real.
+ *
+ * Requisitos:
+ *   1. Base LOCAL con database/schema.sql (incluye la migración 005).
+ *   2. Backend corriendo:           npm run dev
+ *   3. En otra terminal (backend/): npm run test:reglas
+ *
+ * Crea alumnos de prueba (apellido "ZZ-TEST") y no los borra: usar SOLO en una
+ * base local. El script se niega a correr contra un host que no sea localhost.
+ */
+import "dotenv/config";
+import test, { before, after } from "node:test";
+import assert from "node:assert/strict";
+import pg from "pg";
+
+const API = process.env.TEST_API_URL ?? `http://localhost:${process.env.PORT ?? 4000}/api`;
+const EMAIL = process.env.TEST_EMAIL ?? "director@escuela.com";
+const PASSWORD = process.env.TEST_PASSWORD ?? "1234";
+const CICLO = Number(process.env.TEST_CICLO ?? new Date().getFullYear());
+
+if (!["localhost", "127.0.0.1"].includes(new URL(API).hostname)) {
+  throw new Error("Estas pruebas escriben datos: solo se ejecutan contra localhost.");
+}
+if (process.env.DATABASE_URL) {
+  throw new Error("Hay un DATABASE_URL configurado (Neon). Usá una base local para las pruebas.");
+}
+
+let token;
+let cursos;
+const M = {}; // id de módulo por número romano: M.I, M.II, ...
+const db = new pg.Pool({
+  host: process.env.PGHOST ?? "localhost",
+  port: Number(process.env.PGPORT ?? 5432),
+  user: process.env.PGUSER ?? "postgres",
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
+  max: 2,
+});
+
+// ----------------------------------------------------------------- helpers
+async function api(method, ruta, body) {
+  const res = await fetch(`${API}${ruta}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const texto = await res.text();
+  return { status: res.status, body: texto ? JSON.parse(texto) : null };
+}
+
+async function ok(method, ruta, body, esperado = 200) {
+  const r = await api(method, ruta, body);
+  assert.equal(r.status, esperado, `${method} ${ruta} -> ${r.status} ${JSON.stringify(r.body)}`);
+  return r.body;
+}
+
+async function falla(method, ruta, body, esperado, patron) {
+  const r = await api(method, ruta, body);
+  assert.equal(r.status, esperado, `${method} ${ruta} debía fallar con ${esperado} y devolvió ${r.status} ${JSON.stringify(r.body)}`);
+  if (patron) assert.match(r.body.error, patron);
+  return r.body;
+}
+
+let secuencia = 0;
+function cuilDe(dni) {
+  const pesos = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  for (const prefijo of ["20", "27", "23", "24"]) {
+    const d = (prefijo + dni).split("").map(Number);
+    let dv = 11 - (pesos.reduce((a, p, i) => a + p * d[i], 0) % 11);
+    if (dv === 11) dv = 0;
+    if (dv < 10) return `${prefijo}-${dni}-${dv}`;
+  }
+  return `20-${dni}-0`;
+}
+
+function datosAlumno(extra = {}) {
+  secuencia += 1;
+  const dni = String(80000000 + Math.floor(Math.random() * 9000000) + secuencia);
+  return {
+    nombre: `Caso${secuencia}`,
+    apellido: "ZZ-TEST",
+    dni,
+    cuil: cuilDe(dni),
+    fechaNacimiento: "1990-05-10",
+    lugarNacimiento: "San Luis",
+    domicilio: "Calle Falsa 123",
+    telefono: "2664000000",
+    email: `caso${secuencia}@example.com`,
+    trabaja: false,
+    telefonoEmergencia: "2664111111",
+    cantidadHijos: 0,
+    ...extra,
+  };
+}
+
+const crearAlumno = async () => (await ok("POST", "/alumnos", datosAlumno(), 201)).id;
+const ficha = (id) => ok("GET", `/alumnos/${id}`);
+
+// Curso del ciclo vigente que dicta ese módulo (división A por defecto).
+function cursoDe(moduloId, division = "A") {
+  const curso = cursos.find(
+    (c) => c.division.trim() === division && c.modulos.some((m) => m.id === moduloId),
+  );
+  assert.ok(curso, `No hay curso división ${division} para el módulo ${moduloId}`);
+  return curso.id;
+}
+
+const matricula = (moduloId, extra = {}) => ({
+  idCurso: cursoDe(moduloId, extra.division),
+  idModulo: moduloId,
+  ...(extra.equivalencias && {
+    equivalencias: extra.equivalencias,
+    observacionEquivalencia: extra.observacion ?? "Res. 195 - analítico parcial de otra escuela",
+  }),
+});
+
+const alta = (id, moduloId, extra) => api("POST", `/alumnos/${id}/cursadas`, matricula(moduloId, extra));
+const cambiar = (id, moduloId, extra) => api("PUT", `/alumnos/${id}/cursadas`, matricula(moduloId, extra));
+
+async function cursadaActiva(id) {
+  const a = await ficha(id);
+  const c = a.trayectoria.find((x) => x.activa);
+  assert.ok(c, "El alumno no tiene cursada activa");
+  return c;
+}
+
+async function calificar(cursada, estado, cuantas = Infinity) {
+  let ultimo;
+  for (const materia of cursada.materias.slice(0, cuantas)) {
+    ultimo = await ok("PUT", "/calificaciones", {
+      cursadaModuloId: cursada.idCursada,
+      materiaId: materia.id,
+      estado,
+      anio: cursada.cicloLectivo,
+    });
+  }
+  return ultimo;
+}
+
+const evaluar = (cursadaId, nroInstancia, nota) =>
+  api("POST", "/alumnos/evaluaciones-modulo", {
+    idCursadaModulo: cursadaId,
+    fecha: `${CICLO}-11-1${nroInstancia}`,
+    nota,
+    nroInstancia,
+  });
+
+// Aprueba el módulo activo: todas las materias + evaluación con 8.
+async function aprobarActivo(id) {
+  const c = await cursadaActiva(id);
+  await calificar(c, "Aprobado");
+  const r = await evaluar(c.idCursada, c.evaluaciones.length + 1, 8);
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.equal(r.body.estadoAcademico, "APROBADO");
+  return c;
+}
+
+// Deja LIBRE el módulo activo desaprobando una materia.
+async function dejarLibreActivo(id) {
+  const c = await cursadaActiva(id);
+  const r = await calificar(c, "Desaprobado", 1);
+  assert.equal(r.condicion, "LIBRE");
+  return c;
+}
+
+async function faltar(cursadaId, cantidad, valor = 1, desdeDia = 1) {
+  let ultimo;
+  for (let i = 0; i < cantidad; i++) {
+    const dia = desdeDia + i;
+    const fecha = `${CICLO}-${String(3 + Math.floor((dia - 1) / 28)).padStart(2, "0")}-${String(((dia - 1) % 28) + 1).padStart(2, "0")}`;
+    ultimo = await ok("POST", "/asistencias", { cursadaModuloId: cursadaId, fecha, valorFalta: valor }, 201);
+  }
+  return ultimo;
+}
+
+const situacion = async (id, cursadaId) => {
+  const a = await ficha(id);
+  const c = a.trayectoria.find((x) => x.idCursada === cursadaId);
+  return { condicion: c.condicion, estado: c.estadoAcademico, motivo: c.motivoLibre, faltas: c.faltas, cursada: c, alumno: a };
+};
+
+// ------------------------------------------------------------------- setup
+before(async () => {
+  const login = await api("POST", "/auth/login", { email: EMAIL, password: PASSWORD });
+  assert.equal(login.status, 200, "No se pudo iniciar sesión como directivo");
+  token = login.body.token;
+
+  cursos = await ok("GET", "/cursos");
+  for (const curso of cursos) {
+    for (const m of curso.modulos) {
+      const romano = m.numeroLeyenda.replace(/^\s*m[oó]dulo\s*/i, "").trim().toUpperCase();
+      M[romano] = m.id;
+    }
+  }
+  for (const r of ["I", "II", "III", "IV", "V", "VI"]) {
+    assert.ok(M[r], `Falta el Módulo ${r} en los cursos del ciclo vigente`);
+  }
+});
+
+after(() => db.end());
+
+// ====================================================== A. ALTA / MATRÍCULA
+test("A1. Alta en Módulo I: queda REGULAR y EN_CURSO", async () => {
+  const id = await crearAlumno();
+  const r = await alta(id, M.I);
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const c = await cursadaActiva(id);
+  assert.deepEqual([c.condicion, c.estadoAcademico, c.motivoLibre], ["REGULAR", "EN_CURSO", null]);
+});
+
+test("A2. Alta directa en Módulo III sin equivalencias: bloqueada y no crea nada", async () => {
+  const id = await crearAlumno();
+  const r = await alta(id, M.III);
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /Correlatividad/);
+  assert.equal(r.body.codigo, "CORRELATIVAS_PENDIENTES");
+  assert.deepEqual(r.body.pendientes.map((p) => p.id), [M.I, M.II]);
+  assert.ok(r.body.pendientes.every((p) => p.admiteEquivalencia));
+  const a = await ficha(id);
+  assert.equal(a.trayectoria.length, 0);
+  assert.equal(a.equivalencias.length, 0);
+});
+
+test("A3. Equivalencia incompleta (solo Módulo I) para entrar a III: falla y hace rollback", async () => {
+  const id = await crearAlumno();
+  const r = await alta(id, M.III, { equivalencias: [M.I] });
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /Modulo II/);
+  const a = await ficha(id);
+  assert.equal(a.equivalencias.length, 0, "La equivalencia de I no debe quedar guardada");
+  assert.equal(a.trayectoria.length, 0);
+});
+
+test("A4. Equivalencia sin observación: 400", async () => {
+  const id = await crearAlumno();
+  const r = await alta(id, M.III, { equivalencias: [M.I, M.II], observacion: "  " });
+  assert.equal(r.status, 400);
+});
+
+test("A5. Ingreso por equivalencia a Módulo III (acredita I y II)", async () => {
+  const id = await crearAlumno();
+  const r = await alta(id, M.III, { equivalencias: [M.I, M.II] });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const a = await ficha(id);
+  assert.deepEqual(a.modulosAcreditados, [M.I, M.II]);
+  assert.equal(a.moduloId, M.III);
+});
+
+test("A6. Ingreso a Módulo V: exige la cadena completa I-II-III-IV", async () => {
+  const id = await crearAlumno();
+  const incompleta = await alta(id, M.V, { equivalencias: [M.III, M.IV] });
+  assert.equal(incompleta.status, 409);
+  assert.match(incompleta.body.error, /también deben estar acreditados/);
+  assert.equal((await ficha(id)).equivalencias.length, 0);
+
+  const completa = await alta(id, M.V, { equivalencias: [M.IV, M.I, M.III, M.II] });
+  assert.equal(completa.status, 201, JSON.stringify(completa.body));
+  assert.deepEqual((await ficha(id)).modulosAcreditados, [M.I, M.II, M.III, M.IV]);
+});
+
+test("A7. Ingreso a Módulo VI con I-IV por equivalencia (V no es correlativo de VI)", async () => {
+  const id = await crearAlumno();
+  const r = await alta(id, M.VI, { equivalencias: [M.I, M.II, M.III, M.IV] });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+});
+
+test("A8. Alta directa en Módulo II sin Módulo I: permitida (mismo año)", async () => {
+  const id = await crearAlumno();
+  assert.equal((await alta(id, M.II)).status, 201);
+});
+
+test("A9. Ingresa a IV por equivalencia de I y II; no pasa a 3.º sin III y IV", async () => {
+  const id = await crearAlumno();
+  assert.equal((await alta(id, M.IV, { equivalencias: [M.I, M.II] })).status, 201);
+  const r = await cambiar(id, M.V);
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /Modulo III \(sin cursar/);
+  assert.match(r.body.error, /Modulo IV \(todavía sin aprobar\)/);
+});
+
+test("A10. Módulo que no pertenece al curso: 400", async () => {
+  const id = await crearAlumno();
+  const r = await api("POST", `/alumnos/${id}/cursadas`, { idCurso: cursoDe(M.I), idModulo: M.III });
+  assert.equal(r.status, 400);
+});
+
+test("A11. Segunda alta con cursada activa: 409", async () => {
+  const id = await crearAlumno();
+  assert.equal((await alta(id, M.I)).status, 201);
+  assert.equal((await alta(id, M.II)).status, 409);
+});
+
+test("A12. Campos obligatorios del alumno: mensaje claro por cada uno", async () => {
+  for (const [campo, patron] of [
+    ["lugarNacimiento", /lugar de nacimiento es obligatorio/],
+    ["domicilio", /domicilio es obligatorio/],
+    ["telefonoEmergencia", /teléfono de emergencia es obligatorio/],
+    ["cuil", /CUIL es obligatorio/],
+  ]) {
+    await falla("POST", "/alumnos", datosAlumno({ [campo]: "  " }), 400, patron);
+  }
+});
+
+// ============================================================ B. PROGRESIÓN
+test("B1. Trayectoria completa I -> VI respetando correlatividades", async () => {
+  const id = await crearAlumno();
+  assert.equal((await alta(id, M.I)).status, 201);
+  for (const [actual, siguiente] of [["I", "II"], ["II", "III"], ["III", "IV"], ["IV", "V"], ["V", "VI"]]) {
+    await aprobarActivo(id);
+    const r = await cambiar(id, M[siguiente]);
+    assert.equal(r.status, 200, `${actual} -> ${siguiente}: ${JSON.stringify(r.body)}`);
+  }
+  await aprobarActivo(id);
+  const a = await ficha(id);
+  assert.deepEqual(a.modulosAcreditados, [M.I, M.II, M.III, M.IV, M.V, M.VI]);
+  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.VI), 409, /ya aprobó/);
+  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.I), 409, /ya aprobó/);
+});
+
+test("B2. No se saltea de año: de I (en curso) a III está bloqueado", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const r = await cambiar(id, M.III);
+  assert.equal(r.status, 409);
+  assert.equal((await cursadaActiva(id)).moduloId, M.I, "La matrícula no debe cambiar");
+});
+
+test("B3. Con I aprobado y II en curso no pasa a 2.º año", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  await aprobarActivo(id);
+  assert.equal((await cambiar(id, M.II)).status, 200);
+  const r = await cambiar(id, M.III);
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /Modulo II \(todavía sin aprobar\)/);
+  assert.doesNotMatch(r.body.error, /Modulo I \(/);
+  assert.equal((await cambiar(id, M.IV)).status, 409);
+});
+
+test("B4. IV antes que III está permitido, pero V exige ambos", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  await aprobarActivo(id);
+  await cambiar(id, M.II);
+  await aprobarActivo(id);
+  assert.equal((await cambiar(id, M.IV)).status, 200);
+  await aprobarActivo(id);
+  const r = await cambiar(id, M.V);
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /Modulo III/);
+  assert.equal((await cambiar(id, M.VI)).status, 409);
+  assert.equal((await cambiar(id, M.III)).status, 200);
+  await aprobarActivo(id);
+  assert.equal((await cambiar(id, M.V)).status, 200);
+});
+
+// ================================================================ C. LIBRE
+test("C1. Inasistencias: 25 faltas sigue REGULAR; al superarlas queda LIBRE", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const c = await cursadaActiva(id);
+
+  await faltar(c.idCursada, 25);
+  let s = await situacion(id, c.idCursada);
+  assert.deepEqual([s.condicion, s.estado, s.faltas], ["REGULAR", "EN_CURSO", 25]);
+
+  const media = await faltar(c.idCursada, 1, 0.5, 26);
+  assert.equal(media.condicion, "Libre");
+  assert.equal(media.motivoLibre, "INASISTENCIAS");
+  s = await situacion(id, c.idCursada);
+  assert.deepEqual([s.condicion, s.estado, s.motivo], ["LIBRE", "A_RECURSAR", "INASISTENCIAS"]);
+  assert.equal(s.alumno.condicion, "LIBRE");
+
+  // Libre por faltas: aunque tenga todas las materias aprobadas no rinde.
+  await calificar(s.cursada, "Aprobado");
+  const r = await evaluar(c.idCursada, 1, 9);
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /LIBRE.*inasistencias/);
+
+  // Si el preceptor corrige la falta mal cargada, recupera la regularidad.
+  await ok("PUT", `/asistencias/${media.id}`, { valorFalta: 0 });
+  s = await situacion(id, c.idCursada);
+  assert.deepEqual([s.condicion, s.estado, s.motivo], ["REGULAR", "EN_CURSO", null]);
+
+  // Y si se borra un registro, se vuelve a calcular.
+  await ok("PUT", `/asistencias/${media.id}`, { valorFalta: 1 });
+  assert.equal((await situacion(id, c.idCursada)).condicion, "LIBRE");
+  await ok("DELETE", `/asistencias/${media.id}`, undefined, 204);
+  assert.equal((await situacion(id, c.idCursada)).condicion, "REGULAR");
+});
+
+test("C2. Materia desaprobada: queda LIBRE y no puede rendir el módulo", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const c = await cursadaActiva(id);
+  await calificar(c, "Aprobado");
+  const materia = c.materias[2];
+
+  const r = await ok("PUT", "/calificaciones", {
+    cursadaModuloId: c.idCursada, materiaId: materia.id, estado: "Desaprobado", anio: c.cicloLectivo,
+  });
+  assert.deepEqual([r.condicion, r.estadoAcademico, r.motivoLibre], ["LIBRE", "A_RECURSAR", "MATERIA_DESAPROBADA"]);
+
+  const ev = await evaluar(c.idCursada, 1, 10);
+  assert.equal(ev.status, 409);
+  assert.match(ev.body.error, /LIBRE.*materia del módulo desaprobada/);
+  const f = (await situacion(id, c.idCursada)).cursada;
+  assert.equal(f.evaluable, false);
+  assert.equal(f.evaluaciones.length, 0);
+
+  // Corrección de una nota mal cargada: vuelve a REGULAR y puede rendir.
+  const corr = await ok("PUT", "/calificaciones", {
+    cursadaModuloId: c.idCursada, materiaId: materia.id, estado: "Aprobado", anio: c.cicloLectivo,
+  });
+  assert.deepEqual([corr.condicion, corr.estadoAcademico, corr.motivoLibre], ["REGULAR", "EN_CURSO", null]);
+  assert.equal((await evaluar(c.idCursada, 1, 7)).status, 201);
+});
+
+test("C3. Materias sin calificar: no rinde, pero NO queda libre", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const c = await cursadaActiva(id);
+  await calificar(c, "Aprobado", c.materias.length - 1);
+  const r = await evaluar(c.idCursada, 1, 8);
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /materias del módulo deben estar aprobadas/);
+  const s = await situacion(id, c.idCursada);
+  assert.deepEqual([s.condicion, s.estado], ["REGULAR", "EN_CURSO"]);
+});
+
+test("C4. Agota las 4 instancias: PENDIENTE en las 3 primeras y LIBRE en la 4.ª", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const c = await cursadaActiva(id);
+  await calificar(c, "Aprobado");
+
+  for (const [n, nota] of [[1, 4], [2, 6.99], [3, 0]]) {
+    const r = await evaluar(c.idCursada, n, nota);
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    assert.deepEqual([r.body.estadoAcademico, r.body.condicion], ["PENDIENTE", "REGULAR"]);
+  }
+  const cuarta = await evaluar(c.idCursada, 4, 6);
+  assert.equal(cuarta.status, 201);
+  assert.deepEqual(
+    [cuarta.body.estadoAcademico, cuarta.body.condicion, cuarta.body.motivoLibre, cuarta.body.aprobado],
+    ["A_RECURSAR", "LIBRE", "INSTANCIAS_AGOTADAS", false],
+  );
+  assert.equal((await evaluar(c.idCursada, 5, 10)).status, 400);
+  const otra = await evaluar(c.idCursada, 4, 10);
+  assert.equal(otra.status, 409);
+  assert.match(otra.body.error, /LIBRE.*4 instancias/);
+});
+
+test("C5. Aprueba justo en la 4.ª instancia con 7: APROBADO, no libre", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const c = await cursadaActiva(id);
+  await calificar(c, "Aprobado");
+  for (const n of [1, 2, 3]) assert.equal((await evaluar(c.idCursada, n, 6.5)).status, 201);
+  const r = await evaluar(c.idCursada, 4, 7);
+  assert.equal(r.status, 201);
+  assert.deepEqual([r.body.estadoAcademico, r.body.condicion, r.body.motivoLibre], ["APROBADO", "REGULAR", null]);
+});
+
+test("C6. Instancia salteada o repetida: 409 y no se guarda", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const c = await cursadaActiva(id);
+  await calificar(c, "Aprobado");
+  assert.equal((await evaluar(c.idCursada, 2, 8)).status, 409);
+  assert.equal((await evaluar(c.idCursada, 1, 5)).status, 201);
+  assert.equal((await evaluar(c.idCursada, 1, 8)).status, 409);
+  assert.equal((await situacion(id, c.idCursada)).cursada.evaluaciones.length, 1);
+});
+
+test("C7. Módulo aprobado es definitivo: ni notas ni faltas lo cambian", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const c = await aprobarActivo(id);
+  const r = await api("PUT", "/calificaciones", {
+    cursadaModuloId: c.idCursada, materiaId: c.materias[0].id, estado: "Desaprobado", anio: c.cicloLectivo,
+  });
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /ya está aprobado/);
+  await faltar(c.idCursada, 27);
+  const s = await situacion(id, c.idCursada);
+  assert.deepEqual([s.condicion, s.estado, s.motivo], ["REGULAR", "APROBADO", null]);
+  assert.equal((await evaluar(c.idCursada, 2, 9)).status, 409);
+});
+
+test("C8. Dos motivos a la vez: al corregir uno sigue LIBRE por el otro", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const c = await cursadaActiva(id);
+  await faltar(c.idCursada, 26);
+  await calificar(c, "Desaprobado", 1);
+  assert.equal((await situacion(id, c.idCursada)).motivo, "INASISTENCIAS");
+  await calificar(c, "Aprobado", 1);
+  let s = await situacion(id, c.idCursada);
+  assert.deepEqual([s.condicion, s.motivo], ["LIBRE", "INASISTENCIAS"]);
+  await calificar(c, "Desaprobado", 1);
+  const registros = await ok("GET", `/asistencias?cursadaModuloId=${c.idCursada}`);
+  await ok("DELETE", `/asistencias/${registros[0].id}`, undefined, 204);
+  s = await situacion(id, c.idCursada);
+  assert.deepEqual([s.condicion, s.motivo, s.faltas], ["LIBRE", "MATERIA_DESAPROBADA", 25]);
+});
+
+// ============================================================ D. RECURSADAS
+test("D1. Libre en I + aprueba II: no pasa a 2.º, recursa I y recién ahí pasa (caso reportado)", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const primera = await dejarLibreActivo(id);
+
+  // Puede seguir con el Módulo II en el segundo período.
+  assert.equal((await cambiar(id, M.II)).status, 200);
+  await aprobarActivo(id);
+
+  // No pasa de año: le falta el Módulo I.
+  for (const destino of [M.III, M.IV]) {
+    const r = await cambiar(id, destino);
+    assert.equal(r.status, 409);
+    assert.match(r.body.error, /Modulo I \(quedó libre: debe recursarlo\)/);
+    assert.equal(r.body.pendientes[0].admiteEquivalencia, false);
+  }
+
+  // La equivalencia no sirve para saltear un módulo que cursó y no aprobó.
+  await falla("POST", `/alumnos/${id}/equivalencias`,
+    { modulosIds: [M.I], observacion: "intento de saltear el módulo" }, 409, /ya lo cursó/);
+  const conEquivalencia = await cambiar(id, M.III, { equivalencias: [M.I] });
+  assert.equal(conEquivalencia.status, 409);
+
+  // Recursa el Módulo I: nueva cursada limpia; la anterior queda en el historial.
+  const r = await cambiar(id, M.I);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.matricula, "RECURSADA");
+  const a = await ficha(id);
+  const deI = a.trayectoria.filter((c) => c.moduloId === M.I);
+  assert.equal(deI.length, 2);
+  const [vieja, nueva] = deI;
+  assert.equal(vieja.idCursada, primera.idCursada);
+  assert.deepEqual([vieja.condicion, vieja.estadoAcademico, vieja.activa], ["LIBRE", "A_RECURSAR", false]);
+  assert.deepEqual([nueva.condicion, nueva.estadoAcademico, nueva.activa, nueva.faltas], ["REGULAR", "EN_CURSO", true, 0]);
+  assert.ok(nueva.materias.every((m) => m.estado === "En Curso"), "La recursada arranca sin notas");
+  assert.equal(a.condicion, "REGULAR");
+
+  // En la grilla y en la planilla del curso aparece una sola vez (la recursada).
+  const grilla = await ok("GET", `/calificaciones/modulos/${M.I}/divisiones/A?anio=${nueva.cicloLectivo}`);
+  const enGrilla = grilla.alumnos.filter((x) => [vieja.idCursada, nueva.idCursada].includes(x.cursadaId));
+  assert.deepEqual(enGrilla.map((x) => x.cursadaId), [nueva.idCursada]);
+  const planilla = await ok("GET", `/asistencias/modulos/${M.I}/divisiones/A?fecha=${CICLO}-04-01`);
+  assert.equal(planilla.alumnos.filter((x) => x.alumnoId === id).length, 1);
+
+  // Aprueba la recursada y ahora sí pasa a 2.º año.
+  await aprobarActivo(id);
+  assert.equal((await cambiar(id, M.III)).status, 200);
+});
+
+test("D2. Libre en III + aprueba IV: no pasa a 3.º hasta recursar y aprobar III", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.III, { equivalencias: [M.I, M.II] });
+  await dejarLibreActivo(id);
+  assert.equal((await cambiar(id, M.IV)).status, 200);
+  await aprobarActivo(id);
+  for (const destino of [M.V, M.VI]) {
+    const r = await cambiar(id, destino);
+    assert.equal(r.status, 409);
+    assert.match(r.body.error, /Modulo III \(quedó libre/);
+  }
+  const r = await cambiar(id, M.III);
+  assert.equal(r.body.matricula, "RECURSADA");
+  await aprobarActivo(id);
+  assert.equal((await cambiar(id, M.V)).status, 200);
+});
+
+test("D3. Libre y rematriculado en el MISMO módulo y curso: crea la recursada (no reutiliza la cursada libre)", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const libre = await cursadaActiva(id);
+  await faltar(libre.idCursada, 26);
+  const r = await cambiar(id, M.I);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.matricula, "RECURSADA");
+  const nueva = await cursadaActiva(id);
+  assert.notEqual(nueva.idCursada, libre.idCursada);
+  assert.deepEqual([nueva.condicion, nueva.faltas], ["REGULAR", 0]);
+  const s = await situacion(id, libre.idCursada);
+  assert.deepEqual([s.condicion, s.faltas, s.cursada.activa], ["LIBRE", 26, false]);
+});
+
+test("D4. Puede quedar libre otra vez en la recursada y volver a recursar", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  await dejarLibreActivo(id);
+  assert.equal((await cambiar(id, M.I)).body.matricula, "RECURSADA");
+  await dejarLibreActivo(id);
+  assert.equal((await cambiar(id, M.I)).body.matricula, "RECURSADA");
+  const a = await ficha(id);
+  assert.equal(a.trayectoria.filter((c) => c.moduloId === M.I).length, 3);
+  assert.equal(a.trayectoria.filter((c) => c.activa).length, 1);
+});
+
+test("D5. Módulo I PENDIENTE: sigue con II y rinde la instancia que le queda de I", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const cI = await cursadaActiva(id);
+  await calificar(cI, "Aprobado");
+  assert.equal((await evaluar(cI.idCursada, 1, 5)).body.estadoAcademico, "PENDIENTE");
+
+  assert.equal((await cambiar(id, M.II)).status, 200);
+  await aprobarActivo(id);
+  const bloqueo = await cambiar(id, M.III);
+  assert.equal(bloqueo.status, 409);
+  assert.match(bloqueo.body.error, /Modulo I \(todavía sin aprobar\)/);
+
+  // Mesa de febrero/marzo: rinde la 2.ª instancia del Módulo I (cursada no activa).
+  const pendiente = (await situacion(id, cI.idCursada)).cursada;
+  assert.deepEqual([pendiente.activa, pendiente.evaluable, pendiente.proximaInstancia], [false, true, 2]);
+  const r = await evaluar(cI.idCursada, 2, 8);
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.equal(r.body.estadoAcademico, "APROBADO");
+  assert.equal((await cambiar(id, M.III)).status, 200);
+});
+
+test("D6. Volver a un módulo con cursada abierta la reactiva (no la duplica)", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const cI = await cursadaActiva(id);
+  await faltar(cI.idCursada, 2);
+  assert.equal((await cambiar(id, M.II)).body.matricula, "NUEVA");
+  const r = await cambiar(id, M.I);
+  assert.equal(r.body.matricula, "REACTIVADA");
+  const a = await ficha(id);
+  assert.equal(a.trayectoria.length, 1, "La cursada vacía de II se descarta");
+  assert.deepEqual([a.trayectoria[0].idCursada, a.trayectoria[0].activa, a.trayectoria[0].faltas], [cI.idCursada, true, 2]);
+});
+
+test("D7. Corrección de una matrícula mal cargada y cambio de división", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const original = await cursadaActiva(id);
+
+  const corregida = await cambiar(id, M.II);
+  assert.equal(corregida.body.matricula, "CORREGIDA");
+  assert.equal((await cursadaActiva(id)).idCursada, original.idCursada);
+
+  const division = await cambiar(id, M.II, { division: "B" });
+  assert.equal(division.body.matricula, "CAMBIO_DE_CURSO");
+  const c = await cursadaActiva(id);
+  assert.deepEqual([c.idCursada, c.division.trim()], [original.idCursada, "B"]);
+
+  assert.equal((await cambiar(id, M.II, { division: "B" })).body.matricula, "SIN_CAMBIOS");
+  assert.equal((await ficha(id)).trayectoria.length, 1);
+});
+
+test("D8. La cursada libre ya recursada queda cerrada: no se le cambian notas ni faltas", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const vieja = await cursadaActiva(id);
+  const falta = await faltar(vieja.idCursada, 1);
+  await calificar(vieja, "Desaprobado", 1);
+  assert.equal((await cambiar(id, M.I)).body.matricula, "RECURSADA");
+
+  const nota = await api("PUT", "/calificaciones", {
+    cursadaModuloId: vieja.idCursada, materiaId: vieja.materias[0].id, estado: "Aprobado", anio: vieja.cicloLectivo,
+  });
+  assert.equal(nota.status, 409);
+  assert.match(nota.body.error, /cursada está cerrada/);
+  assert.equal((await api("POST", "/asistencias", { cursadaModuloId: vieja.idCursada, fecha: `${CICLO}-06-01`, valorFalta: 1 })).status, 409);
+  assert.equal((await api("PUT", `/asistencias/${falta.id}`, { valorFalta: 0 })).status, 409);
+  assert.equal((await api("DELETE", `/asistencias/${falta.id}`)).status, 409);
+  assert.equal((await evaluar(vieja.idCursada, 1, 9)).status, 409);
+
+  // Ni siquiera un cambio directo en la base la reabre.
+  await db.query("DELETE FROM calificacion WHERE cursada_modulo_id = $1", [vieja.idCursada]);
+  const s = await situacion(id, vieja.idCursada);
+  assert.deepEqual([s.condicion, s.estado, s.cursada.activa], ["LIBRE", "A_RECURSAR", false]);
+});
+
+// ========================================================= E. EQUIVALENCIAS
+test("E1. Alta y baja de una equivalencia", async () => {
+  const id = await crearAlumno();
+  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I] }, 400, /institución de origen/);
+  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [], observacion: "Tabla 3 Res. 195" }, 400);
+  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.III], observacion: "Tabla 3 Res. 195" }, 409, /también deben estar acreditados/);
+  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [9999], observacion: "Tabla 3 Res. 195" }, 400);
+
+  let a = await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I, M.II], observacion: "Tabla 3 Res. 195" }, 201);
+  assert.deepEqual(a.equivalencias.map((e) => e.moduloId), [M.I, M.II]);
+  // Repetirla no duplica ni falla.
+  a = await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I], observacion: "Tabla 3 Res. 195" }, 201);
+  assert.equal(a.equivalencias.length, 2);
+
+  a = await ok("DELETE", `/alumnos/${id}/equivalencias/${M.II}`);
+  assert.deepEqual(a.equivalencias.map((e) => e.moduloId), [M.I]);
+  await falla("DELETE", `/alumnos/${id}/equivalencias/${M.II}`, undefined, 404);
+});
+
+test("E2. No se puede quitar una equivalencia de la que depende una cursada", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.III, { equivalencias: [M.I, M.II] });
+  await falla("DELETE", `/alumnos/${id}/equivalencias/${M.I}`, undefined, 409, /correlativa de Modulo III/);
+  assert.equal((await ficha(id)).equivalencias.length, 2);
+});
+
+test("E3. No hay equivalencia para un módulo que el alumno está cursando o tiene acreditado", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I], observacion: "Tabla 3 Res. 195" }, 409, /ya lo cursó/);
+  // Matricular en un módulo ya acreditado por equivalencia tampoco se permite.
+  await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.II], observacion: "Tabla 3 Res. 195" }, 201);
+  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.II), 409, /acreditado Modulo II por equivalencia/);
+});
+
+// ======================================================= F. BAJA / PERMISOS
+test("F1. Alumno dado de baja: no se matricula, no se evalúa, no recibe equivalencias", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const c = await cursadaActiva(id);
+  await calificar(c, "Aprobado");
+  await ok("DELETE", `/alumnos/${id}`, undefined, 204);
+  assert.equal((await cambiar(id, M.II)).status, 409);
+  assert.equal((await evaluar(c.idCursada, 1, 8)).status, 409);
+  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.II], observacion: "Tabla 3 Res. 195" }, 409);
+});
+
+test("F2. Sin token no se puede matricular", async () => {
+  const guardado = token;
+  token = null;
+  try {
+    assert.equal((await api("PUT", "/alumnos/1/cursadas", { idCurso: 1, idModulo: 1 })).status, 401);
+  } finally {
+    token = guardado;
+  }
+});
+
+// ========================================================= G. CONCURRENCIA
+test("G1. Dos evaluaciones simultáneas de la misma instancia: se guarda una sola", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const c = await cursadaActiva(id);
+  await calificar(c, "Aprobado");
+  const [a, b] = await Promise.all([evaluar(c.idCursada, 1, 8), evaluar(c.idCursada, 1, 9)]);
+  assert.deepEqual([a.status, b.status].sort(), [201, 409]);
+  assert.equal((await situacion(id, c.idCursada)).cursada.evaluaciones.length, 1);
+});
+
+test("G2. Matrículas simultáneas: una sola cursada activa", async () => {
+  const id = await crearAlumno();
+  const respuestas = await Promise.all([alta(id, M.I), alta(id, M.I), alta(id, M.II), cambiar(id, M.I)]);
+  assert.ok(respuestas.some((r) => r.status < 300));
+  const a = await ficha(id);
+  assert.equal(a.trayectoria.filter((c) => c.activa).length, 1);
+  const abiertas = a.trayectoria.filter((c) => ["EN_CURSO", "PENDIENTE"].includes(c.estadoAcademico));
+  assert.equal(new Set(abiertas.map((c) => c.moduloId)).size, abiertas.length, "No puede haber dos cursadas abiertas del mismo módulo");
+});
+
+// ================================================ H. BARRERAS EN LA BASE
+test("H1. Trigger: un INSERT directo que viola correlatividades es rechazado", async () => {
+  const id = await crearAlumno();
+  await assert.rejects(
+    db.query(
+      `INSERT INTO cursada_modulo (alumno_id, curso_id, modulo_id, condicion, cantidad_faltas_acumuladas, estado_academico, activa)
+       VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', true)`,
+      [id, cursoDe(M.V), M.V],
+    ),
+    /Correlatividad: para cursar Modulo V/,
+  );
+  await alta(id, M.I);
+  const c = await cursadaActiva(id);
+  await assert.rejects(
+    db.query("UPDATE cursada_modulo SET modulo_id = $2, curso_id = $3 WHERE id = $1", [c.idCursada, M.III, cursoDe(M.III)]),
+    /Correlatividad/,
+  );
+});
+
+test("H2. Dato heredado sin correlativas: no se puede acreditar el módulo", async () => {
+  const id = await crearAlumno();
+  // Simula una cursada vieja cargada antes del control (saltea el trigger).
+  const cliente = await db.connect();
+  let cursadaId;
+  try {
+    await cliente.query("BEGIN");
+    await cliente.query("ALTER TABLE cursada_modulo DISABLE TRIGGER cursada_modulo_validar_correlativas");
+    cursadaId = (await cliente.query(
+      `INSERT INTO cursada_modulo (alumno_id, curso_id, modulo_id, condicion, cantidad_faltas_acumuladas, estado_academico, activa)
+       VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', true) RETURNING id`,
+      [id, cursoDe(M.III), M.III],
+    )).rows[0].id;
+    await cliente.query("ALTER TABLE cursada_modulo ENABLE TRIGGER cursada_modulo_validar_correlativas");
+    await cliente.query("COMMIT");
+  } finally {
+    cliente.release();
+  }
+  const c = (await situacion(id, cursadaId)).cursada;
+  assert.equal(c.evaluable, false);
+  assert.match(c.bloqueoEvaluacion, /Correlatividad/);
+  await calificar(c, "Aprobado");
+  const r = await evaluar(cursadaId, 1, 9);
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /Correlatividad: para acreditar/);
+  await assert.rejects(
+    db.query(
+      `INSERT INTO evaluacion_modulo (cursada_modulo_id, fecha, nota, nro_instancia, tipo_instancia)
+       VALUES ($1, CURRENT_DATE, 9, 1, 'COLEGIADA')`, [cursadaId]),
+    /Correlatividad: para acreditar/,
+  );
+  // Regularizado con las equivalencias, ya puede acreditar.
+  await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I, M.II], observacion: "Regularización manual" }, 201);
+  assert.equal((await evaluar(cursadaId, 1, 9)).status, 201);
+});
+
+test("H3. Trigger: la situación se recalcula aunque el cambio no pase por la API", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const c = await cursadaActiva(id);
+  await db.query(
+    "INSERT INTO calificacion (materia_id, cursada_modulo_id, estado) VALUES ($1, $2, 'Desaprobado')",
+    [c.materias[0].id, c.idCursada],
+  );
+  assert.equal((await situacion(id, c.idCursada)).motivo, "MATERIA_DESAPROBADA");
+  await db.query("DELETE FROM calificacion WHERE cursada_modulo_id = $1", [c.idCursada]);
+  assert.equal((await situacion(id, c.idCursada)).condicion, "REGULAR");
+  await assert.rejects(
+    db.query("UPDATE cursada_modulo SET condicion = 'Libre' WHERE id = $1", [c.idCursada]),
+    /cursada_modulo_condicion_check/,
+  );
+});
