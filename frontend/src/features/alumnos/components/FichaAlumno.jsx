@@ -1,11 +1,20 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
-import { getAlumnos } from "../../SoftwareII/AlumnoService-is";
+import {
+  getAlumno,
+  getCursos,
+  quitarEquivalencia,
+  registrarEquivalencias,
+} from "../../SoftwareII/AlumnoService-is";
 import { crearEvaluacionModulo } from "../../SoftwareII/EvaluacionesModuloService-is";
 import {
-  getGrilla,
-  getModulos,
-} from "../../calificaciones/services/CalificacionesServices";
+  DESCRIPCION_MOTIVO_LIBRE,
+  analizarMatricula,
+  catalogoDeModulos,
+  esLibre,
+  listar,
+  ultimaCursada,
+} from "../utils/correlatividades";
 
 const NOMBRE_CURSO = {
   1: "1° Año",
@@ -66,14 +75,25 @@ function formatearCondicion(condicion) {
   return `${texto[0].toUpperCase()}${texto.slice(1)}`;
 }
 
+const ETIQUETA_ESTADO = {
+  EN_CURSO: "En curso",
+  PENDIENTE: "Pendiente",
+  APROBADO: "Aprobado",
+  A_RECURSAR: "Libre · a recursar",
+};
+
 function formatearEstadoAcademico(estado) {
   if (!estado) return "Sin estado";
+  return ETIQUETA_ESTADO[String(estado).toUpperCase()] ?? estado;
+}
 
-  return String(estado)
-    .toLowerCase()
-    .split("_")
-    .map((parte) => `${parte[0].toUpperCase()}${parte.slice(1)}`)
-    .join(" ");
+// Cursadas que todavía pueden recibir una evaluación de módulo.
+const ESTADOS_ABIERTOS = ["EN_CURSO", "PENDIENTE"];
+
+function motivoLibre(cursada) {
+  return (
+    DESCRIPCION_MOTIVO_LIBRE[cursada?.motivoLibre] ?? "perdió la regularidad"
+  );
 }
 
 function obtenerResultadoEvaluacion(nota) {
@@ -84,40 +104,6 @@ function obtenerResultadoEvaluacion(nota) {
   return Number(nota) >= 7 ? "Aprobado" : "Desaprobado";
 }
 
-function normalizarClave(valor) {
-  return String(valor ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-}
-
-function obtenerCursadaParaCalificar(alumno) {
-  const trayectoria = Array.isArray(alumno?.trayectoria)
-    ? alumno.trayectoria
-    : [];
-  const cursadaPorId = trayectoria.find(
-    (cursada) =>
-      alumno.cursadaModuloId != null &&
-      String(cursada.idCursada ?? cursada.cursadaModuloId) ===
-        String(alumno.cursadaModuloId),
-  );
-  const cursadaPendiente = [...trayectoria]
-    .reverse()
-    .find(
-      (cursada) =>
-        String(cursada.estadoAcademico ?? "").toUpperCase() !== "APROBADO",
-    );
-  return cursadaPorId ?? cursadaPendiente ?? trayectoria.at(-1);
-}
-
-function formatearEstadoMateria(estado) {
-  const normalizado = normalizarClave(estado).replace(/_/g, " ");
-  if (!normalizado || normalizado === "en curso") return "Sin calificar";
-  return normalizado.charAt(0).toUpperCase() + normalizado.slice(1);
-}
-
 export function FichaAlumno() {
   const { id } = useParams();
   const location = useLocation();
@@ -125,11 +111,9 @@ export function FichaAlumno() {
   const [alumno, setAlumno] = useState(location.state?.alumno ?? null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [verificacionMaterias, setVerificacionMaterias] = useState({
-    estado: "cargando",
-    pendientes: [],
-    error: "",
-  });
+  const [cursos, setCursos] = useState([]);
+  // Cursada elegida para calificar (por defecto, la activa).
+  const [cursadaElegida, setCursadaElegida] = useState(null);
   const [evaluacion, setEvaluacion] = useState({
     fecha: fechaActual(),
     nota: "",
@@ -137,38 +121,28 @@ export function FichaAlumno() {
   const [guardandoEvaluacion, setGuardandoEvaluacion] = useState(false);
   const [errorEvaluacion, setErrorEvaluacion] = useState("");
   const [evaluacionGuardada, setEvaluacionGuardada] = useState(null);
+  const [equivalencia, setEquivalencia] = useState({
+    moduloId: "",
+    observacion: "",
+  });
+  const [guardandoEquivalencia, setGuardandoEquivalencia] = useState(false);
+  const [errorEquivalencia, setErrorEquivalencia] = useState("");
 
   useEffect(() => {
     let activa = true;
 
     async function cargarAlumno() {
       try {
-        const alumnos = await getAlumnos();
-        const alumnoDesdeApi = alumnos.find(
-          (registro) => String(registro.id) === String(id),
-        );
-
-        if (!alumnoDesdeApi) {
-          throw new Error("No se encontró el alumno solicitado.");
-        }
+        // GET /alumnos/:id trae, por cada cursada, sus materias, los
+        // correlativos pendientes y si admite una evaluación de módulo.
+        const [alumnoDesdeApi, cursosDesdeApi] = await Promise.all([
+          getAlumno(id),
+          getCursos().catch(() => []),
+        ]);
 
         if (activa) {
-          setAlumno((anterior) => ({
-            ...anterior,
-            ...alumnoDesdeApi,
-            curso:
-              alumnoDesdeApi.curso ??
-              alumnoDesdeApi.anioCurso ??
-              anterior?.curso,
-            moduloActual:
-              alumnoDesdeApi.moduloActual ??
-              alumnoDesdeApi.modulo ??
-              anterior?.moduloActual,
-            faltas:
-              alumnoDesdeApi.faltas ??
-              alumnoDesdeApi.faltasAcumuladas ??
-              anterior?.faltas,
-          }));
+          setAlumno(alumnoDesdeApi);
+          setCursos(cursosDesdeApi);
         }
       } catch (e) {
         if (activa) {
@@ -188,163 +162,34 @@ export function FichaAlumno() {
     };
   }, [id]);
 
-  useEffect(() => {
-    if (!alumno) return undefined;
-
-    let activa = true;
-
-    async function verificarMaterias() {
-      const cursada = obtenerCursadaParaCalificar(alumno);
-      const cursadaId =
-        alumno.cursadaModuloId ??
-        cursada?.idCursada ??
-        cursada?.cursadaModuloId;
-      try {
-        const moduloNombre = normalizarClave(
-          cursada?.modulo ?? alumno.moduloActual ?? alumno.modulo,
-        );
-        const anio = cursada?.anioCurso ?? alumno.curso ?? alumno.anioCurso;
-        const division = cursada?.division ?? alumno.division;
-        // Es el año calendario de la matrícula (2026, 2027...),
-        // distinto del año del curso (1°, 2° o 3°).
-        const cicloLectivo = Number(
-          cursada?.cicloLectivo ?? alumno.cicloLectivo,
-        );
-
-        if (cursadaId == null || !moduloNombre || anio == null || !division) {
-          throw new Error(
-            "Faltan datos de la cursada para consultar las materias.",
-          );
-        }
-        if (
-          !Number.isInteger(cicloLectivo) ||
-          cicloLectivo < 2000 ||
-          cicloLectivo > 2100
-        ) {
-          throw new Error(
-            "No se encontró el ciclo lectivo de esta cursada. Actualizá el backend para que incluya cicloLectivo.",
-          );
-        }
-
-        const grupos = await getModulos(cicloLectivo);
-        const modulosDelAnio = grupos
-          .filter((grupo) => String(grupo.anio) === String(anio))
-          .flatMap((grupo) => grupo.modulos ?? []);
-        const idModulo = cursada?.moduloId ?? alumno.moduloId;
-        const modulo =
-          modulosDelAnio.find(
-            (item) => idModulo != null && String(item.id) === String(idModulo),
-          ) ??
-          modulosDelAnio.find(
-            (item) => normalizarClave(item.nombre) === moduloNombre,
-          );
-
-        if (!modulo) {
-          throw new Error(
-            `No se encontró ${cursada?.modulo ?? alumno.moduloActual} en ${anio}° año.`,
-          );
-        }
-
-        const grilla = await getGrilla(modulo.id, division, cicloLectivo);
-        if (!grilla.materias?.length) {
-          throw new Error(
-            "Este módulo no tiene materias configuradas para su verificación.",
-          );
-        }
-        const alumnoGrilla = grilla.alumnos.find(
-          (item) => String(item.id) === String(cursadaId),
-        );
-
-        if (!alumnoGrilla) {
-          throw new Error(
-            "No se encontró la cursada del alumno en la grilla de calificaciones.",
-          );
-        }
-
-        const pendientes = grilla.materias
-          .filter(
-            (materia) =>
-              normalizarClave(alumnoGrilla.estados[materia.id]) !== "aprobado",
-          )
-          .map((materia) => ({
-            id: materia.id,
-            nombre: materia.nombre,
-            estado: formatearEstadoMateria(alumnoGrilla.estados[materia.id]),
-          }));
-
-        if (activa) {
-          setVerificacionMaterias({
-            cursadaId: String(cursadaId),
-            estado: pendientes.length > 0 ? "bloqueado" : "aprobado",
-            pendientes,
-            error: "",
-          });
-        }
-      } catch (e) {
-        if (activa) {
-          setVerificacionMaterias({
-            cursadaId: String(cursadaId ?? ""),
-            estado: "error",
-            pendientes: [],
-            error: e.message,
-          });
-        }
-      }
-    }
-
-    verificarMaterias();
-    return () => {
-      activa = false;
-    };
-  }, [alumno]);
-
   async function guardarEvaluacion(e) {
     e.preventDefault();
     setErrorEvaluacion("");
     setEvaluacionGuardada(null);
 
-    if (verificacionActual.estado !== "aprobado") {
+    if (!cursadaParaCalificar?.evaluable) {
       setErrorEvaluacion(
-        verificacionActual.estado === "bloqueado"
-          ? "No se puede calificar el módulo hasta aprobar todas las materias."
-          : "No se pudo verificar que todas las materias estén aprobadas.",
-      );
-      return;
-    }
-
-    if (idCursadaModulo === undefined || idCursadaModulo === null) {
-      setErrorEvaluacion(
-        "No se encontró el ID de la cursada para registrar la evaluación.",
+        cursadaParaCalificar?.bloqueoEvaluacion ??
+          "Esta cursada no admite una evaluación de módulo.",
       );
       return;
     }
 
     const payload = {
-      idCursadaModulo: Number(idCursadaModulo),
+      idCursadaModulo: Number(cursadaParaCalificar.idCursada),
       fecha: evaluacion.fecha,
       nota: Number(evaluacion.nota),
-      nroInstancia: proximaInstancia,
-      tipoInstancia: obtenerTipoInstancia(proximaInstancia),
+      nroInstancia: cursadaParaCalificar.proximaInstancia,
+      tipoInstancia: obtenerTipoInstancia(cursadaParaCalificar.proximaInstancia),
     };
 
     if (
+      evaluacion.nota === "" ||
       !Number.isFinite(payload.nota) ||
       payload.nota < 0 ||
       payload.nota > 10
     ) {
       setErrorEvaluacion("La nota debe ser un número entre 0 y 10.");
-      return;
-    }
-
-    if (moduloAprobado) {
-      setErrorEvaluacion(
-        "El módulo ya está aprobado; no admite otra instancia.",
-      );
-      return;
-    }
-
-    if (!Number.isInteger(payload.nroInstancia) || payload.nroInstancia > 4) {
-      setErrorEvaluacion("El módulo ya alcanzó el máximo de 4 instancias.");
       return;
     }
 
@@ -354,24 +199,12 @@ export function FichaAlumno() {
       setEvaluacionGuardada({
         ...payload,
         ...respuesta,
-        nota: respuesta?.nota ?? payload.nota,
-        fecha: respuesta?.fecha ?? payload.fecha,
-        nroInstancia: respuesta?.nroInstancia ?? payload.nroInstancia,
-        tipoInstancia: respuesta?.tipoInstancia ?? payload.tipoInstancia,
+        modulo: cursadaParaCalificar.modulo,
       });
+      setEvaluacion({ fecha: fechaActual(), nota: "" });
 
       try {
-        const alumnos = await getAlumnos();
-        const alumnoActualizado = alumnos.find(
-          (registro) => String(registro.id) === String(id),
-        );
-
-        if (alumnoActualizado) {
-          setAlumno((anterior) => ({
-            ...anterior,
-            ...alumnoActualizado,
-          }));
-        }
+        setAlumno(await getAlumno(id));
       } catch (errorActualizacion) {
         setErrorEvaluacion(
           `La nota se guardó, pero no se pudo actualizar la trayectoria: ${errorActualizacion.message}`,
@@ -381,6 +214,55 @@ export function FichaAlumno() {
       setErrorEvaluacion(e.message);
     } finally {
       setGuardandoEvaluacion(false);
+    }
+  }
+
+  async function guardarEquivalencia(e) {
+    e.preventDefault();
+    setErrorEquivalencia("");
+
+    if (!equivalencia.moduloId) {
+      setErrorEquivalencia("Seleccioná el módulo a acreditar.");
+      return;
+    }
+    if (equivalencia.observacion.trim().length < 5) {
+      setErrorEquivalencia(
+        "Indicá la institución de origen o la norma que respalda la equivalencia.",
+      );
+      return;
+    }
+
+    try {
+      setGuardandoEquivalencia(true);
+      setAlumno(
+        await registrarEquivalencias(
+          id,
+          [Number(equivalencia.moduloId)],
+          equivalencia.observacion.trim(),
+        ),
+      );
+      setEquivalencia({ moduloId: "", observacion: "" });
+    } catch (e) {
+      setErrorEquivalencia(e.message);
+    } finally {
+      setGuardandoEquivalencia(false);
+    }
+  }
+
+  async function eliminarEquivalencia(item) {
+    const confirmar = window.confirm(
+      `¿Quitar la equivalencia de ${item.modulo}?`,
+    );
+    if (!confirmar) return;
+
+    setErrorEquivalencia("");
+    try {
+      setGuardandoEquivalencia(true);
+      setAlumno(await quitarEquivalencia(id, item.moduloId));
+    } catch (e) {
+      setErrorEquivalencia(e.message);
+    } finally {
+      setGuardandoEquivalencia(false);
     }
   }
 
@@ -429,34 +311,40 @@ export function FichaAlumno() {
   const trayectoria = Array.isArray(alumno.trayectoria)
     ? alumno.trayectoria
     : [];
-  const cursadaParaCalificar = obtenerCursadaParaCalificar(alumno);
-  const idCursadaModulo =
-    alumno.cursadaModuloId ??
-    cursadaParaCalificar?.idCursada ??
-    cursadaParaCalificar?.cursadaModuloId;
-  const evaluacionesActuales =
-    cursadaParaCalificar?.evaluaciones ??
-    cursadaParaCalificar?.instancias ??
-    [];
-  const proximaInstancia =
-    evaluacionesActuales.reduce(
-      (maximo, instancia) =>
-        Math.max(
-          maximo,
-          Number(instancia.nroInstancia ?? instancia.numero) || 0,
-        ),
-      0,
-    ) + 1;
-  const moduloAprobado =
-    String(cursadaParaCalificar?.estadoAcademico ?? "").toUpperCase() ===
-      "APROBADO" ||
-    evaluacionesActuales.some((instancia) => Number(instancia.nota) >= 7);
-  const moduloActual =
-    alumno.moduloActual ?? alumno.modulo ?? cursadaParaCalificar?.modulo;
-  const verificacionActual =
-    verificacionMaterias.cursadaId === String(idCursadaModulo ?? "")
-      ? verificacionMaterias
-      : { estado: "cargando", pendientes: [], error: "" };
+  const equivalencias = Array.isArray(alumno.equivalencias)
+    ? alumno.equivalencias
+    : [];
+  const cursadaActiva = trayectoria.find((cursada) => cursada.activa);
+  // Se puede calificar la cursada activa y también una anterior que siga
+  // abierta (ej.: Módulo I pendiente mientras ya cursa el Módulo II).
+  const cursadasCalificables = trayectoria.filter(
+    (cursada) =>
+      cursada.activa || ESTADOS_ABIERTOS.includes(cursada.estadoAcademico),
+  );
+  const cursadaParaCalificar =
+    cursadasCalificables.find(
+      (cursada) => String(cursada.idCursada) === String(cursadaElegida),
+    ) ??
+    cursadaActiva ??
+    cursadasCalificables[0] ??
+    null;
+  const moduloActual = alumno.moduloActual ?? cursadaActiva?.modulo;
+  const alumnoLibre = esLibre(alumno.condicion);
+
+  // Módulos que admiten equivalencia: nunca cursados, sin acreditar y con sus
+  // propios correlativos ya acreditados.
+  const catalogo = catalogoDeModulos(cursos);
+  const modulosParaEquivalencia = Object.values(catalogo)
+    .sort((a, b) => a.id - b.id)
+    .filter((modulo) => {
+      if (ultimaCursada(alumno, modulo.id)) return false;
+      const analisis = analizarMatricula(alumno, modulo.id, catalogo);
+      return (
+        !analisis.yaAcreditado &&
+        analisis.bloqueantes.length === 0 &&
+        analisis.porEquivalencia.length === 0
+      );
+    });
   const faltasActuales = alumno.faltas ?? alumno.faltasAcumuladas;
   const condicionActual = formatearCondicion(alumno.condicion);
   const datosAcademicos =
@@ -468,7 +356,16 @@ export function FichaAlumno() {
             NOMBRE_CURSO[String(cursada.anioCurso)] ??
             (cursada.anioCurso ? `${cursada.anioCurso}° Año` : "-"),
           estado: formatearEstadoAcademico(cursada.estadoAcademico),
-          nota: cursada.notaFinal ?? cursada.nota ?? null,
+          cicloLectivo: cursada.cicloLectivo,
+          periodoDictado: cursada.periodoDictado,
+          division: cursada.division,
+          activa: cursada.activa,
+          motivoLibre: esLibre(cursada.condicion) ? motivoLibre(cursada) : null,
+          // Nota con la que acreditó el módulo (si lo aprobó).
+          nota:
+            (cursada.evaluaciones ?? []).find(
+              (evaluacion) => Number(evaluacion.nota) >= 7,
+            )?.nota ?? null,
           faltas: cursada.faltas ?? cursada.cantidadFaltasAcumuladas ?? null,
           condicion: formatearCondicion(cursada.condicion),
           instancias: (cursada.evaluaciones ?? cursada.instancias ?? []).map(
@@ -500,6 +397,7 @@ export function FichaAlumno() {
   const modulosAprobados = datosAcademicos.filter(
     (modulo) => modulo.estado.toLowerCase() === "aprobado",
   ).length;
+  const modulosAcreditados = modulosAprobados + equivalencias.length;
   const totalFaltas = datosAcademicos.reduce(
     (total, modulo) => total + (Number(modulo.faltas) || 0),
     0,
@@ -576,8 +474,12 @@ export function FichaAlumno() {
           </span>
 
           <div>
-            <span>Módulos aprobados</span>
-            <strong>{modulosAprobados}</strong>
+            <span>Módulos acreditados</span>
+            <strong>
+              {modulosAcreditados} de 6
+              {equivalencias.length > 0 &&
+                ` (${equivalencias.length} por equivalencia)`}
+            </strong>
           </div>
         </div>
 
@@ -604,11 +506,7 @@ export function FichaAlumno() {
           <div>
             <span>Condición actual</span>
 
-            <strong
-              className={
-                alumno.condicion === "Libre" ? "texto-libre" : "texto-regular"
-              }
-            >
+            <strong className={alumnoLibre ? "texto-libre" : "texto-regular"}>
               {condicionActual}
             </strong>
           </div>
@@ -696,60 +594,111 @@ export function FichaAlumno() {
 
           <div>
             <span>Condición</span>
-            <strong
-              className={
-                condicionActual === "Libre" ? "texto-libre" : "texto-regular"
-              }
-            >
+            <strong className={alumnoLibre ? "texto-libre" : "texto-regular"}>
               {condicionActual}
             </strong>
           </div>
         </div>
+
+        {alumnoLibre && (
+          <div className="ficha-advertencia ficha-libre" role="status">
+            <i className="fa-solid fa-triangle-exclamation"></i>
+            <div>
+              <strong>Alumno LIBRE en {moduloActual}</strong>
+              <p>
+                El alumno {motivoLibre(alumno)}. No puede rendir la evaluación
+                del módulo y debe recursarlo en su próximo dictado
+                {cursadaActiva?.periodoDictado
+                  ? ` (${cursadaActiva.periodoDictado})`
+                  : ""}
+                . Para inscribirlo de nuevo: Editar datos → Editar matrícula →
+                elegir {moduloActual}.
+              </p>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="ficha-seccion">
         <div className="ficha-seccion-titulo">
           <i className="fa-solid fa-pen-to-square"></i>
           <div>
-            <h2>Calificar módulo actual</h2>
-            <p>Registrar una nota para {moduloActual || "el módulo actual"}.</p>
+            <h2>Calificar módulo</h2>
+            <p>
+              Registrar una instancia de acreditación para{" "}
+              {cursadaParaCalificar?.modulo ?? "el módulo"}.
+            </p>
           </div>
         </div>
 
-        {idCursadaModulo === undefined || idCursadaModulo === null ? (
-          <div className="ficha-advertencia" role="alert">
-            <i className="fa-solid fa-circle-exclamation"></i>
-            <div>
-              <strong>No se puede identificar la cursada</strong>
-              <p>
-                La respuesta del alumno no incluye un ID de cursada para asociar
-                la evaluación al módulo correcto.
-              </p>
-            </div>
-          </div>
-        ) : moduloAprobado ? (
-          <div className="ficha-evaluacion-guardada" role="status">
-            <i className="fa-solid fa-circle-check"></i>
-            Este módulo ya está aprobado.
-          </div>
-        ) : verificacionActual.estado === "cargando" ? (
+        {cursadasCalificables.length > 1 && (
+          <label className="ficha-selector-cursada">
+            <span>Módulo a calificar</span>
+            <select
+              className="input-gestion"
+              value={cursadaParaCalificar?.idCursada ?? ""}
+              onChange={(e) => {
+                setCursadaElegida(e.target.value);
+                setErrorEvaluacion("");
+                setEvaluacionGuardada(null);
+              }}
+            >
+              {cursadasCalificables.map((cursada) => (
+                <option key={cursada.idCursada} value={cursada.idCursada}>
+                  {cursada.modulo} · ciclo {cursada.cicloLectivo} ·{" "}
+                  {formatearEstadoAcademico(cursada.estadoAcademico)}
+                  {cursada.activa ? " (cursada actual)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {!cursadaParaCalificar ? (
           <div className="ficha-advertencia" role="status">
             <i className="fa-solid fa-circle-info"></i>
-            <p>Verificando las calificaciones de las materias...</p>
-          </div>
-        ) : verificacionActual.estado === "error" ? (
-          <div className="ficha-advertencia" role="alert">
-            <i className="fa-solid fa-circle-exclamation"></i>
             <div>
-              <strong>No se pudieron verificar las materias</strong>
-              <p>{verificacionActual.error}</p>
+              <strong>Sin cursada para calificar</strong>
               <p>
-                La calificación del módulo está bloqueada hasta poder verificar
-                sus materias.
+                El alumno no tiene una matrícula vigente. Creala desde
+                &quot;Editar datos&quot;.
               </p>
             </div>
           </div>
-        ) : verificacionActual.estado === "bloqueado" ? (
+        ) : cursadaParaCalificar.estadoAcademico === "APROBADO" ? (
+          <div className="ficha-evaluacion-guardada" role="status">
+            <i className="fa-solid fa-circle-check"></i>
+            {cursadaParaCalificar.modulo} ya está aprobado.
+          </div>
+        ) : esLibre(cursadaParaCalificar.condicion) ? (
+          <div className="ficha-advertencia ficha-libre" role="status">
+            <i className="fa-solid fa-triangle-exclamation"></i>
+            <div>
+              <strong>Alumno LIBRE: no puede rendir este módulo</strong>
+              <p>
+                El alumno {motivoLibre(cursadaParaCalificar)}. Debe recursar{" "}
+                {cursadaParaCalificar.modulo}.
+              </p>
+            </div>
+          </div>
+        ) : cursadaParaCalificar.correlativosPendientes?.length > 0 ? (
+          <div className="ficha-advertencia" role="status">
+            <i className="fa-solid fa-circle-exclamation"></i>
+            <div>
+              <strong>Correlatividades pendientes</strong>
+              <p>
+                Para acreditar {cursadaParaCalificar.modulo} el alumno debe
+                tener aprobados{" "}
+                {listar(
+                  cursadaParaCalificar.correlativosPendientes.map(
+                    (modulo) => modulo.nombre,
+                  ),
+                )}
+                .
+              </p>
+            </div>
+          </div>
+        ) : cursadaParaCalificar.materiasPendientes?.length > 0 ? (
           <div
             className="ficha-advertencia ficha-materias-pendientes"
             role="status"
@@ -759,26 +708,29 @@ export function FichaAlumno() {
               <strong>Materias pendientes de aprobación</strong>
               <p>Para calificar este módulo, primero se deben aprobar:</p>
               <ul>
-                {verificacionActual.pendientes.map((materia) => (
+                {cursadaParaCalificar.materiasPendientes.map((materia) => (
                   <li key={materia.id}>
-                    <strong>{materia.nombre}</strong>: {materia.estado}
+                    <strong>{materia.nombre}</strong>:{" "}
+                    {materia.estado === "En Curso"
+                      ? "Sin calificar"
+                      : materia.estado}
                   </li>
                 ))}
               </ul>
             </div>
           </div>
-        ) : proximaInstancia > 4 ? (
+        ) : !cursadaParaCalificar.evaluable ? (
           <div className="ficha-advertencia" role="status">
             <i className="fa-solid fa-circle-exclamation"></i>
             <div>
-              <strong>Se alcanzó el máximo de instancias</strong>
-              <p>El módulo permite hasta 4 instancias de evaluación.</p>
+              <strong>No se puede registrar la evaluación</strong>
+              <p>{cursadaParaCalificar.bloqueoEvaluacion}</p>
             </div>
           </div>
         ) : (
           <form className="ficha-evaluacion-form" onSubmit={guardarEvaluacion}>
             <label>
-              <span>Nota (0 a 10)</span>
+              <span>Nota (0 a 10) *</span>
               <input
                 className="input-gestion"
                 type="number"
@@ -798,7 +750,7 @@ export function FichaAlumno() {
             </label>
 
             <label>
-              <span>Fecha</span>
+              <span>Fecha *</span>
               <input
                 className="input-gestion"
                 type="date"
@@ -815,12 +767,12 @@ export function FichaAlumno() {
             </label>
 
             <label>
-              <span>Próxima instancia</span>
+              <span>Instancia (de 4)</span>
               <input
                 className="input-gestion"
                 type="number"
                 name="nroInstancia"
-                value={proximaInstancia}
+                value={cursadaParaCalificar.proximaInstancia}
                 readOnly
               />
             </label>
@@ -830,10 +782,19 @@ export function FichaAlumno() {
               <input
                 className="input-gestion"
                 type="text"
-                value={obtenerTipoInstancia(proximaInstancia)}
+                value={obtenerTipoInstancia(
+                  cursadaParaCalificar.proximaInstancia,
+                )}
                 readOnly
               />
             </label>
+
+            {cursadaParaCalificar.proximaInstancia === 4 && (
+              <p className="ficha-aviso-ultima-instancia">
+                Es la última instancia: si no aprueba (nota menor a 7) el
+                alumno queda LIBRE y debe recursar el módulo.
+              </p>
+            )}
 
             <button
               className="btn-primario-gestion"
@@ -862,9 +823,15 @@ export function FichaAlumno() {
               <strong>Evaluación registrada correctamente</strong>
               <p>
                 Se guardó la nota <strong>{evaluacionGuardada.nota}</strong>{" "}
-                para la instancia {evaluacionGuardada.nroInstancia} (
+                de {evaluacionGuardada.modulo}, instancia{" "}
+                {evaluacionGuardada.nroInstancia} (
                 {evaluacionGuardada.tipoInstancia}), con fecha{" "}
-                {formatearFecha(evaluacionGuardada.fecha)}.
+                {formatearFecha(evaluacionGuardada.fecha)}.{" "}
+                {evaluacionGuardada.aprobado
+                  ? "El módulo quedó APROBADO."
+                  : esLibre(evaluacionGuardada.condicion)
+                    ? "El alumno agotó las 4 instancias: queda LIBRE y debe recursar el módulo."
+                    : "El módulo queda pendiente: todavía tiene instancias disponibles."}
               </p>
             </div>
           </div>
@@ -916,9 +883,21 @@ export function FichaAlumno() {
                   <div className="modulo-contenido">
                     <div className="modulo-cabecera">
                       <div>
-                        <span className="modulo-año">{modulo.año}</span>
+                        <span className="modulo-año">
+                          {modulo.año}
+                          {modulo.division ? ` · División ${modulo.division}` : ""}
+                          {modulo.cicloLectivo
+                            ? ` · Ciclo ${modulo.cicloLectivo}`
+                            : ""}
+                          {modulo.periodoDictado
+                            ? ` · ${modulo.periodoDictado}`
+                            : ""}
+                        </span>
 
-                        <h3>{modulo.modulo}</h3>
+                        <h3>
+                          {modulo.modulo}
+                          {modulo.activa ? " (cursada actual)" : ""}
+                        </h3>
                       </div>
 
                       <EstadoModulo estado={modulo.estado} />
@@ -945,6 +924,14 @@ export function FichaAlumno() {
                         <strong>{modulo.instancias?.length ?? "-"}</strong>
                       </div>
                     </div>
+
+                    {modulo.motivoLibre && (
+                      <p className="modulo-motivo-libre">
+                        <i className="fa-solid fa-triangle-exclamation"></i>{" "}
+                        Quedó libre porque {modulo.motivoLibre}. Debe recursar
+                        el módulo.
+                      </p>
+                    )}
 
                     {modulo.instancias?.length > 0 && (
                       <div className="instancias-acreditacion">
@@ -993,6 +980,122 @@ export function FichaAlumno() {
 
       <section className="ficha-seccion">
         <div className="ficha-seccion-titulo">
+          <i className="fa-solid fa-right-left"></i>
+          <div>
+            <h2>Equivalencias</h2>
+            <p>
+              Módulos acreditados en otra institución (Res. N.º 195-ME-2024).
+              Cuentan como aprobados para las correlatividades.
+            </p>
+          </div>
+        </div>
+
+        {equivalencias.length === 0 ? (
+          <p className="ficha-sin-equivalencias">
+            El alumno no tiene módulos acreditados por equivalencia.
+          </p>
+        ) : (
+          <div className="tabla-responsive">
+            <table className="tabla-gestion">
+              <thead>
+                <tr>
+                  <th>Módulo</th>
+                  <th>Fecha de registro</th>
+                  <th>Origen / norma</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {equivalencias.map((item) => (
+                  <tr key={item.moduloId}>
+                    <td>
+                      <strong>{item.modulo}</strong>
+                    </td>
+                    <td>{formatearFecha(item.fecha)}</td>
+                    <td>{item.observacion}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn-secundario"
+                        disabled={guardandoEquivalencia}
+                        onClick={() => eliminarEquivalencia(item)}
+                      >
+                        Quitar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {modulosParaEquivalencia.length > 0 && (
+          <form
+            className="ficha-evaluacion-form ficha-equivalencia-form"
+            onSubmit={guardarEquivalencia}
+          >
+            <label>
+              <span>Módulo a acreditar *</span>
+              <select
+                className="input-gestion"
+                value={equivalencia.moduloId}
+                onChange={(e) =>
+                  setEquivalencia((anterior) => ({
+                    ...anterior,
+                    moduloId: e.target.value,
+                  }))
+                }
+              >
+                <option value="">Seleccione un módulo</option>
+                {modulosParaEquivalencia.map((modulo) => (
+                  <option key={modulo.id} value={modulo.id}>
+                    {modulo.numeroLeyenda}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="ficha-equivalencia-observacion">
+              <span>Institución de origen / norma *</span>
+              <input
+                className="input-gestion"
+                type="text"
+                maxLength={300}
+                placeholder="Ej.: 1.º año completo en Escuela N.º 12 — Res. 195, Tabla 3"
+                value={equivalencia.observacion}
+                onChange={(e) =>
+                  setEquivalencia((anterior) => ({
+                    ...anterior,
+                    observacion: e.target.value,
+                  }))
+                }
+              />
+            </label>
+
+            <button
+              className="btn-primario-gestion"
+              type="submit"
+              disabled={guardandoEquivalencia}
+            >
+              {guardandoEquivalencia ? "Guardando..." : "Registrar equivalencia"}
+            </button>
+          </form>
+        )}
+
+        {errorEquivalencia && (
+          <div
+            className="ficha-advertencia ficha-evaluacion-mensaje"
+            role="alert"
+          >
+            <i className="fa-solid fa-circle-exclamation"></i>
+            <p>{errorEquivalencia}</p>
+          </div>
+        )}
+      </section>
+
+      <section className="ficha-seccion">
+        <div className="ficha-seccion-titulo">
           <i className="fa-solid fa-calendar-check"></i>
 
           <div>
@@ -1008,7 +1111,7 @@ export function FichaAlumno() {
                 <th>Módulo</th>
                 <th>Faltas</th>
                 <th>Límite</th>
-                <th>Condición</th>
+                <th>Por asistencia</th>
               </tr>
             </thead>
 
@@ -1029,14 +1132,17 @@ export function FichaAlumno() {
                     <td>25</td>
 
                     <td>
+                      {/* Acá solo se informa la situación por asistencia. */}
                       <span
                         className={
-                          modulo.condicion === "Libre"
+                          Number(modulo.faltas) > 25
                             ? "condicion-libre"
                             : "condicion-regular"
                         }
                       >
-                        {modulo.condicion}
+                        {Number(modulo.faltas) > 25
+                          ? "Libre por inasistencias"
+                          : "Regular"}
                       </span>
                     </td>
                   </tr>
@@ -1054,9 +1160,11 @@ export function FichaAlumno() {
           <strong>Información académica</strong>
 
           <p>
-            Las situaciones relacionadas con correlatividades, acreditaciones
-            pendientes o condiciones académicas especiales deberán ser evaluadas
-            por un directivo.
+            Correlatividades: para cursar o acreditar los módulos de 2.º año
+            (III y IV) hay que tener aprobados los módulos I y II; para los de
+            3.º año (V y VI), los módulos III y IV. Un alumno queda LIBRE y debe
+            recursar el módulo si supera las 25 inasistencias, si desaprueba una
+            materia del módulo o si agota las 4 instancias de acreditación.
           </p>
         </div>
       </div>
@@ -1078,7 +1186,7 @@ function EstadoModulo({ estado }) {
 
   if (estado === "Aprobado") {
     clase += " estado-aprobado";
-  } else if (estado === "Desaprobado") {
+  } else if (estado === "Desaprobado" || estado === ETIQUETA_ESTADO.A_RECURSAR) {
     clase += " estado-desaprobado";
   } else if (estado === "Pendiente") {
     clase += " estado-pendiente";
