@@ -26,6 +26,14 @@ export const eliminarPlanEstudio = async (req, res, next) => {
   }
 };
 
+export const reactivarPlanEstudio = async (req, res, next) => {
+  try {
+    res.json(await service.reactivarPlanEstudio(req.params.id));
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const listarMaterias = async (req, res, next) => {
   try {
     res.json(await service.listarMaterias());
