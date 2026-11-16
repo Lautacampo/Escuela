@@ -1,5 +1,6 @@
 import { HttpError } from "../../utils/httpError.js";
 import { ReglaNegocio } from "../../utils/reglaNegocio.js";
+import { esFechaISOValida, hoyISO } from "../../utils/fechas.js";
 import * as repo from "./alumnos.repository.js";
 
 // Campos de texto obligatorios (NOT NULL en persona/alumno) y su etiqueta.
@@ -45,8 +46,11 @@ const validar = (body) => {
 
   d.telefono = String(body.telefono ?? "").trim() || null;
   d.fechaNacimiento = body.fechaNacimiento;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(d.fechaNacimiento ?? "")) {
-    throw new HttpError(400, "La fecha de nacimiento debe ser AAAA-MM-DD");
+  if (!esFechaISOValida(d.fechaNacimiento)) {
+    throw new HttpError(400, "La fecha de nacimiento debe ser una fecha válida (AAAA-MM-DD)");
+  }
+  if (d.fechaNacimiento > hoyISO() || d.fechaNacimiento < "1900-01-01") {
+    throw new HttpError(400, "La fecha de nacimiento no puede ser futura ni anterior a 1900");
   }
 
   d.trabaja = Boolean(body.trabaja);
@@ -390,17 +394,13 @@ const validarEquivalencias = (equivalencias, observacion, { obligatorias }) => {
     throw new HttpError(400, "Indicá al menos un módulo a acreditar por equivalencia");
   }
 
+  // La observación (institución de origen, norma) es opcional. La columna es
+  // NOT NULL, así que sin dato se guarda vacía.
   const texto = String(observacion ?? "").trim();
-  if (ids.length > 0 && texto.length < 5) {
-    throw new HttpError(
-      400,
-      "Para registrar una equivalencia indicá la institución de origen o la norma que la respalda",
-    );
-  }
   if (texto.length > 300) {
     throw new HttpError(400, "La observación de la equivalencia admite hasta 300 caracteres");
   }
-  return { ids, observacion: texto || null };
+  return { ids, observacion: texto };
 };
 
 /**
@@ -495,19 +495,6 @@ const TIPO_POR_INSTANCIA = {
   2: "CALENDARIO",
   3: "CALENDARIO",
   4: "ESPECIAL",
-};
-
-const esFechaISOValida = (valor) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false;
-
-  const [anio, mes, dia] = valor.split("-").map(Number);
-  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
-
-  return (
-    fecha.getUTCFullYear() === anio &&
-    fecha.getUTCMonth() === mes - 1 &&
-    fecha.getUTCDate() === dia
-  );
 };
 
 /**
