@@ -31,7 +31,6 @@ import { CalificacionesPage } from "./features/calificaciones/pages/Calificacion
 import { DivisionCalificacionesPage } from "./features/calificaciones/pages/DivisionCalificacionesPage";
 import { PlanEstudiosPage } from "./features/planestudios/pages/PlanEstudiosPage";
 import { ReportesPage } from "./features/reportes/pages/ReportesPage";
-import { MateriaPage } from "./features/SoftwareII/materia/pages/MateriaPage";
 
 export const router = createBrowserRouter([
   // ---------- VISTA PÚBLICA ----------
@@ -72,7 +71,6 @@ export const router = createBrowserRouter([
       { path: "docentes", element: <DocentesPages />, loader: controlSesion([DIRECTIVO]) },
       { path: "preceptores", element: <PreceptoresPage />, loader: controlSesion([DIRECTIVO]) },
       { path: "plan-estudios", element: <PlanEstudiosPage />, loader: controlSesion([DIRECTIVO]) },
-      { path: "materia", element: <MateriaPage />, loader: controlSesion([DIRECTIVO]) },
       { path: "reportes", element: <ReportesPage />, loader: controlSesion([DIRECTIVO]) },
       //directio y preceptor
       { path: "asistencia", element: <AsistenciaPage />, loader: controlSesion([DIRECTIVO, PRECEPTOR]) },
