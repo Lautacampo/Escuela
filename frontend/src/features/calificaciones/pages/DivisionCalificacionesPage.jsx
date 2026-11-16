@@ -37,6 +37,18 @@ export function DivisionCalificacionesPage() {
     const anterior = grilla;
     setErrorGuardar(null);
 
+    // Desaprobar una materia deja al alumno LIBRE en el módulo.
+    const alumno = grilla.alumnos.find((a) => a.id === cursadaId);
+    if (
+      estado === "desaprobado" &&
+      alumno?.condicion !== "LIBRE" &&
+      !window.confirm(
+        `Al desaprobar una materia, ${alumno.apellido}, ${alumno.nombre} queda LIBRE en el módulo: no podrá rendir la evaluación del módulo y deberá recursarlo.\n\n¿Confirmás la calificación?`,
+      )
+    ) {
+      return;
+    }
+
     setGrilla({
       ...grilla,
       alumnos: grilla.alumnos.map((a) =>
@@ -47,7 +59,21 @@ export function DivisionCalificacionesPage() {
     });
 
     try {
-      await setCalificacion(cursadaId, materiaId, estado, anio);
+      const guardada = await setCalificacion(cursadaId, materiaId, estado, anio);
+      // El backend devuelve la situación recalculada (REGULAR / LIBRE).
+      setGrilla((actual) => ({
+        ...actual,
+        alumnos: actual.alumnos.map((a) =>
+          a.id === cursadaId
+            ? {
+                ...a,
+                condicion: guardada.condicion,
+                estadoAcademico: guardada.estadoAcademico,
+                motivoLibre: guardada.motivoLibre,
+              }
+            : a,
+        ),
+      }));
     } catch (e) {
       setGrilla(anterior); // se vuelve como se veia antes  si la API rechaza el cambio
       setErrorGuardar(e.message);
