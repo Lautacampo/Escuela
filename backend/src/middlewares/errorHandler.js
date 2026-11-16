@@ -2,6 +2,10 @@ export const errorHandler = (err, req, res, next) => {
   if (err.status) {
     return res.status(err.status).json({ error: err.message, ...err.detalle });
   }
+  // Reglas académicas rechazadas por un trigger de la base (RAISE EXCEPTION).
+  if (err.code === "P0001") {
+    return res.status(409).json({ error: err.message });
+  }
   if (err.code === "23505") {
     return res.status(409).json({ error: "Ya existe un registro con ese dato (DNI, CUIL o correo)" });
   }
