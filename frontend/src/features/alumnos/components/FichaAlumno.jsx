@@ -225,12 +225,6 @@ export function FichaAlumno() {
       setErrorEquivalencia("Seleccioná el módulo a acreditar.");
       return;
     }
-    if (equivalencia.observacion.trim().length < 5) {
-      setErrorEquivalencia(
-        "Indicá la institución de origen o la norma que respalda la equivalencia.",
-      );
-      return;
-    }
 
     try {
       setGuardandoEquivalencia(true);
@@ -1001,7 +995,7 @@ export function FichaAlumno() {
                 <tr>
                   <th>Módulo</th>
                   <th>Fecha de registro</th>
-                  <th>Origen / norma</th>
+                  <th>Observación</th>
                   <th></th>
                 </tr>
               </thead>
@@ -1012,7 +1006,7 @@ export function FichaAlumno() {
                       <strong>{item.modulo}</strong>
                     </td>
                     <td>{formatearFecha(item.fecha)}</td>
-                    <td>{item.observacion}</td>
+                    <td>{item.observacion || "—"}</td>
                     <td>
                       <button
                         type="button"
@@ -1057,12 +1051,12 @@ export function FichaAlumno() {
             </label>
 
             <label className="ficha-equivalencia-observacion">
-              <span>Institución de origen / norma *</span>
+              <span>Observación (opcional)</span>
               <input
                 className="input-gestion"
                 type="text"
                 maxLength={300}
-                placeholder="Ej.: 1.º año completo en Escuela N.º 12 — Res. 195, Tabla 3"
+                placeholder="Ej.: escuela de origen"
                 value={equivalencia.observacion}
                 onChange={(e) =>
                   setEquivalencia((anterior) => ({
