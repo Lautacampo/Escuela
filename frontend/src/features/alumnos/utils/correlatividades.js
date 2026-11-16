@@ -148,8 +148,5 @@ export function validarIngreso(valor) {
   if (!valor.confirma) {
     return "Confirmá que el alumno acredita esos módulos por equivalencia o elegí otro módulo.";
   }
-  if (valor.observacion.trim().length < 5) {
-    return "Indicá la institución de origen o la norma que respalda la equivalencia.";
-  }
   return "";
 }
