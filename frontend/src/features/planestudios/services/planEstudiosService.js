@@ -13,6 +13,12 @@ export const eliminarPlanEstudio = (id) =>
     method: "DELETE",
   });
 
+// Vuelve a poner vigente un plan inactivo.
+export const reactivarPlanEstudio = (id) =>
+  apiFetch(`/plan-estudio/${id}/reactivar`, {
+    method: "PATCH",
+  });
+
 export const getMateriasPlan = () => apiFetch("/materias");
 
 export const crearMateriaPlan = (datos) =>
