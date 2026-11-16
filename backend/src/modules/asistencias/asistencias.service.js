@@ -11,6 +11,16 @@ function fechaHoyISO() {
   return `${hoy.getFullYear()}-${mes}-${dia}`;
 }
 
+// Una cursada reemplazada por una recursada es historial: no se modifica.
+const exigirCursadaVigente = (registro) => {
+  if (registro.reemplazada) {
+    throw new HttpError(
+      409,
+      "Esta cursada está cerrada: el alumno ya se reinscribió para recursar el módulo",
+    );
+  }
+};
+
 const resolverPreceptorId = async (usuario) => {
   if (usuario.rol !== "preceptor") return null;
   const id = await repo.buscarPreceptorIdDeUsuario(usuario.id);
@@ -106,6 +116,8 @@ export const obtenerPlanilla = async (
       dni: a.dni,
       faltasAcumuladas: Number(a.faltas_acumuladas),
       condicion: a.condicion,
+      motivoLibre: a.motivo_libre,
+      estadoAcademico: a.estado_academico,
       asistenciaHoy: a.asistencia_id
         ? {
             id: a.asistencia_id,
@@ -165,6 +177,8 @@ export const registrar = async (
     );
   }
 
+  exigirCursadaVigente(cursada);
+
   return repo.guardarAsistencia(cursadaModuloId, fecha, numValor);
 };
 
@@ -197,6 +211,8 @@ export const actualizar = async (usuario, id, { valorFalta, fecha }) => {
     );
   }
 
+  exigirCursadaVigente(existente);
+
   return repo.actualizarAsistenciaPorId(
     id,
     existente.cursada_modulo_id,
@@ -225,6 +241,8 @@ export const eliminar = async (usuario, id) => {
       "No tienes permiso para eliminar asistencias de este curso",
     );
   }
+
+  exigirCursadaVigente(existente);
 
   await repo.eliminarAsistenciaPorId(id, existente.cursada_modulo_id);
 };
