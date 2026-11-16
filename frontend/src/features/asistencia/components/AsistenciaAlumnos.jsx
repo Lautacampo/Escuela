@@ -29,12 +29,12 @@ export function AsistenciaAlumnos({
           <table className="tabla-gestion">
             <thead>
               <tr>
-                <th>N°</th>
-                <th>Alumno</th>
-                <th>DNI</th>
-                <th>Asistencia del día</th>
-                <th>Faltas acumuladas</th>
-                <th>Situación</th>
+                <th scope="col">N°</th>
+                <th scope="col">Alumno</th>
+                <th scope="col">DNI</th>
+                <th scope="col">Asistencia del día</th>
+                <th scope="col">Faltas acumuladas</th>
+                <th scope="col">Situación</th>
               </tr>
             </thead>
             <tbody>
@@ -51,12 +51,12 @@ export function AsistenciaAlumnos({
 
                   return (
                     <tr key={a.id} className={libre ? "fila-libre" : ""}>
-                      <td>{i + 1}</td>
-                      <td>
+                      <td data-label="N°">{i + 1}</td>
+                      <td data-label="Alumno">
                         {a.apellido}, {a.nombre}
                       </td>
-                      <td>{a.dni}</td>
-                      <td>
+                      <td data-label="DNI">{a.dni}</td>
+                      <td data-label="Asistencia del día">
                         <div
                           className="asistencia-opciones"
                           role="group"
@@ -93,10 +93,10 @@ export function AsistenciaAlumnos({
                           </label>
                         </div>
                       </td>
-                      <td>
+                      <td data-label="Faltas acumuladas">
                         {total} / {limite}
                       </td>
-                      <td>
+                      <td data-label="Situación">
                         <span className={libre ? "estado-dp" : "estado-ap"}>
                           {libre ? "Libre" : "Regular"}
                         </span>

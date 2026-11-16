@@ -127,7 +127,8 @@
 /* Botones con estilo tipo 'chip' interactivo */
 .divisionbtn {
   display: inline-flex;
-  min-height: 34px;
+  min-height: 44px;
+  min-width: 44px;
   align-items: center;
   justify-content: center;
   padding: 6px 14px;
@@ -219,7 +220,7 @@
 }
 
 .pagina-calificaciones-modulos--docente .divisionbtn {
-  min-height: 32px;
+  min-height: 44px;
   padding: 4px 10px;
   border-color: #c4deed;
   border-radius: 9px;
@@ -235,9 +236,9 @@
   color: #ffffff;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .dashboard-main > .pagina-calificaciones-modulos {
-    padding: 18px;
+    padding: 16px;
   }
 
   .modulosdivision {
@@ -249,6 +250,10 @@
     padding: 16px 18px;
   }
 
+  .divisiones .divisionbtn {
+    flex: 1 1 96px;
+  }
+
   .pagina-calificaciones-modulos--docente .modulo {
     padding: 0 16px 14px;
   }
@@ -257,6 +262,22 @@
     margin-right: -16px;
     margin-left: -16px;
     padding: 12px 16px 10px;
+  }
+}
+
+@media (hover: none) {
+  .modulo:hover,
+  .pagina-calificaciones-modulos--docente .modulo:hover,
+  .divisionbtn:hover,
+  .pagina-calificaciones-modulos--docente .divisionbtn:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modulo,
+  .divisionbtn {
+    transition: none;
   }
 }
 /* Selector del ciclo lectivo: se mantiene al regresar de una división. */
@@ -330,5 +351,17 @@
   font-weight: 400;
   line-height: 1.6;
   margin: 16px 0;
+}
+
+@media (max-width: 700px) {
+  .calif-ciclo-encabezado {
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .calif-ciclo-selector select {
+    width: 100%;
+    min-height: 44px;
+  }
 }
 

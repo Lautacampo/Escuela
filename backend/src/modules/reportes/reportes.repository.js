@@ -3,7 +3,7 @@ import { pool } from "../../config/db.js";
 // #41 - GET /api/reportes/inasistencias
 // Lista los alumnos que alcanzaron o superaron el límite de faltas (por defecto 25)
 // Reporta faltas por cursada de módulo, sin sumarlas entre módulos.
-// Sin filtro de módulo, muestra solo la cursada más reciente del alumno
+// Sin filtro de módulo, muestra la cursada más reciente por alumno y módulo
 // dentro del ciclo seleccionado. Con módulo, permite consultar su historial.
 export const listarInasistenciasCriticas = async ({
   minFaltas = 25,
@@ -34,8 +34,7 @@ export const listarInasistenciasCriticas = async ({
 
   const whereExtra = filtros.length ? `AND ${filtros.join(" AND ")}` : "";
 
-  // Un ID de cursada posterior representa una inscripción más reciente.
-  // Este criterio respeta el funcionamiento actual del proyecto.
+  // Un ID posterior del mismo alumno y módulo representa una inscripción más reciente.
   const filtroCursadaActual =
     moduloId === null
       ? `AND NOT EXISTS (
@@ -43,6 +42,7 @@ export const listarInasistenciasCriticas = async ({
            FROM cursada_modulo cm_nueva
            JOIN curso c_nuevo ON c_nuevo.id = cm_nueva.curso_id
           WHERE cm_nueva.alumno_id = cm.alumno_id
+            AND cm_nueva.modulo_id = cm.modulo_id
             AND c_nuevo.ciclo_lectivo_id = c.ciclo_lectivo_id
             AND cm_nueva.id > cm.id
        )`

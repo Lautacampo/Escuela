@@ -331,7 +331,7 @@ export function Reportes() {
             value={moduloId}
             onChange={(e) => setModuloId(e.target.value)}
           >
-            <option value="">Todos: módulo más reciente</option>
+            <option value="">Todos los módulos</option>
             {modulosVisibles.map((modulo) => (
               <option key={modulo.id} value={modulo.id}>
                 {modulo.nombre}
@@ -378,7 +378,7 @@ export function Reportes() {
               <p>
                 {moduloId
                   ? `Alumnos que alcanzaron o superaron las ${umbral} faltas en el módulo seleccionado.`
-                  : `Alumnos que alcanzaron o superaron las ${umbral} faltas en su módulo más reciente.`}
+                  : `Alumnos que alcanzaron o superaron las ${umbral} faltas en cada módulo.`}
               </p>
             </div>
           </div>
@@ -391,7 +391,7 @@ export function Reportes() {
         <p className="rep-periodo">
           {moduloId
             ? `Historial de inasistencias del módulo seleccionado en el ciclo lectivo ${anioSeleccionado}.`
-            : `Alertas de la cursada más reciente de cada alumno en el ciclo lectivo ${anioSeleccionado}.`}
+            : `Alertas de la cursada más reciente de cada alumno por módulo en el ciclo lectivo ${anioSeleccionado}.`}
         </p>
 
         <div

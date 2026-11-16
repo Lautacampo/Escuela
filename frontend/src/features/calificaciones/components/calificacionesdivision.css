@@ -83,6 +83,8 @@
 
 .pagina-calificaciones-division .tabla-responsive {
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   border: 0;
   border-radius: 0;
 }
@@ -147,7 +149,7 @@
 .pagina-calificaciones-division .select-estado {
   width: 100%;
   min-width: 138px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 7px 32px 7px 11px;
   border: 1px solid #d9e1e7;
   border-radius: 6px;
@@ -194,15 +196,109 @@
 }
 
 @media (max-width: 700px) {
+  .dashboard-main > .pagina-calificaciones-division {
+    padding: 18px;
+  }
+
   .pagina-calificaciones-division .contenedor-tabla {
     padding: 0;
   }
 
   .pagina-calificaciones-division > h2 {
     font-size: 1.3rem;
+    overflow-wrap: anywhere;
   }
 
   .pagina-calificaciones-division > h1 {
     font-size: 1.5rem;
+  }
+
+  .pagina-calificaciones-division .tabla-responsive {
+    overflow: visible;
+  }
+
+  .pagina-calificaciones-division .tabla-gestion {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .pagina-calificaciones-division .tabla-gestion thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .pagina-calificaciones-division .tabla-gestion tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .pagina-calificaciones-division .tabla-gestion tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid #e0e7ed;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(32, 52, 73, 0.06);
+  }
+
+  .pagina-calificaciones-division .tabla-gestion tbody tr:nth-child(even),
+  .pagina-calificaciones-division .tabla-gestion tbody tr:hover {
+    background: #fff;
+  }
+
+  .pagina-calificaciones-division .tabla-gestion td {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
+    padding: 11px 12px;
+    border-bottom: 1px solid #e9eef2;
+  }
+
+  .pagina-calificaciones-division .tabla-gestion td[data-label]::before {
+    content: attr(data-label);
+    color: #526478;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  .pagina-calificaciones-division .tabla-gestion td:first-child {
+    position: static;
+    grid-column: 1 / -1;
+    background: #f1f5f8;
+    box-shadow: none;
+    white-space: normal;
+  }
+
+  .pagina-calificaciones-division .tabla-gestion tbody tr:nth-child(even) td:first-child,
+  .pagina-calificaciones-division .tabla-gestion tbody tr:hover td:first-child {
+    background: #f1f5f8;
+  }
+
+  .pagina-calificaciones-division .tabla-gestion tbody tr td:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .pagina-calificaciones-division .select-estado {
+    min-width: 0;
+    padding-right: 28px;
+  }
+}
+
+@media (max-width: 380px) {
+  .pagina-calificaciones-division .tabla-gestion tbody tr {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -103,7 +103,8 @@
 
 .division-btn {
 	display: inline-flex;
-	min-height: 34px;
+	min-height: 44px;
+	min-width: 44px;
 	align-items: center;
 	justify-content: center;
 	padding: 6px 14px;
@@ -136,9 +137,9 @@
 	outline-offset: 2px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
 	.dashboard-main > .pagina-asistencia-modulos {
-		padding: 18px;
+		padding: 16px;
 	}
 
 	.pagina-asistencia-modulos .modulosdivision {
@@ -148,5 +149,23 @@
 
 	.modulotarjeta {
 		padding: 16px 18px;
+	}
+
+	.modulotarjeta .division-btn {
+		flex: 1 1 96px;
+	}
+}
+
+@media (hover: none) {
+	.modulotarjeta:hover,
+	.division-btn:hover {
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.modulotarjeta,
+	.division-btn {
+		transition: none;
 	}
 }
