@@ -3,6 +3,7 @@ import {
   getPlanEstudioActual,
   crearPlanEstudio,
   eliminarPlanEstudio,
+  reactivarPlanEstudio,
   getMateriasPlan,
   crearMateriaPlan,
   getCicloLectivo,
@@ -238,6 +239,28 @@ export function PlanEstudios() {
     }
   };
 
+  // Un plan inactivo puede volver a estar vigente. Como solo hay un plan
+  // vigente a la vez, el que lo esté en ese momento pasa a inactivo.
+  const reactivarPlan = async (plan) => {
+    const confirmar = window.confirm(
+      planActual
+        ? `¿Desea reactivar el plan "${plan.titulo}"?\n\nPasará a estado VIGENTE y el plan vigente actual ("${planActual.titulo}") pasará a estado INACTIVO.`
+        : `¿Desea reactivar el plan "${plan.titulo}"?\n\nPasará a estado VIGENTE.`,
+    );
+    if (!confirmar) return;
+
+    try {
+      setError("");
+      const res = await reactivarPlanEstudio(plan.id);
+      setAviso(res.mensaje);
+      setPlanSeleccionadoId("actual");
+      await cargarDatos();
+    } catch (err) {
+      setAviso("");
+      setError(err.message);
+    }
+  };
+
   if (cargando) return <p>Cargando plan de estudios...</p>;
 
   return (
@@ -423,6 +446,19 @@ export function PlanEstudios() {
                   onClick={() => setPlanSeleccionadoId(String(plan.id))}
                 >
                   Ver estructura
+                </button>
+                <button
+                  type="button"
+                  className="pe-boton pe-principal"
+                  style={{
+                    minHeight: "30px",
+                    padding: "4px 10px",
+                    marginLeft: "8px",
+                  }}
+                  onClick={() => reactivarPlan(plan)}
+                >
+                  <i className="fa-solid fa-rotate-left" aria-hidden="true" />{" "}
+                  Reactivar
                 </button>
               </li>
             ))}
