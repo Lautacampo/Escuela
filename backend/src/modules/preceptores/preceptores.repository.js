@@ -1,5 +1,10 @@
 import { pool } from "../../config/db.js";
 import { HttpError } from "../../utils/httpError.js";
+import {
+  desvincularUsuario,
+  sincronizarEmailUsuario,
+  vincularOCrearUsuario,
+} from "../auth/auth.repository.js";
 
 const SELECTgeneral = `
   SELECT  prece.id,  perso.nombre, perso.apellido,  perso.dni,  perso.cuil,  perso.domicilio,  perso.telefono,  perso.email,  pl.titulo,  pl.antiguedad,
@@ -36,7 +41,7 @@ export const buscarPorId = async (id) => {
   return rows[0] ?? null;
 };
 
-export const crearPreceptor = async (datos) => {
+export const crearPreceptor = async (datos, passwordHash = null) => {
   const cliente = await pool.connect();
   try {
     await cliente.query("BEGIN");
@@ -72,21 +77,22 @@ export const crearPreceptor = async (datos) => {
 
     await cliente.query(`INSERT INTO preceptor(id) VALUES($1)`, [nuevoId]);
 
-    const usuarioVinculado = await cliente.query(
-      `UPDATE usuarios u
-             SET persona_id = $1
-             FROM roles r
-             WHERE u.rol_id = r.id
-               AND r.nombre = 'preceptor'
-               AND u.email = $2
-               AND u.persona_id IS NULL
-             RETURNING u.id`,
-      [nuevoId, datos.email],
-    );
-    if (usuarioVinculado.rowCount !== 1) {
+    // Usuario de acceso: se crea (si vino contraseña) o se vincula uno de
+    // preceptor ya registrado con ese correo y todavía sin persona.
+    const usuarioId = await vincularOCrearUsuario(cliente, {
+      rol: "preceptor",
+      email: datos.email,
+      nombre: datos.nombre,
+      apellido: datos.apellido,
+      hash: passwordHash,
+      personaId: nuevoId,
+    });
+    if (!usuarioId) {
       throw new HttpError(
         409,
-        "No se encontró un usuario de preceptor disponible para vincular con ese correo",
+        passwordHash
+          ? "Ya existe un usuario registrado con ese correo"
+          : "No se encontró un usuario de preceptor disponible para vincular con ese correo",
       );
     }
 
@@ -134,6 +140,9 @@ export const modificarPreceptor = async (id, datos) => {
       [datos.titulo, datos.antiguedad, id],
     );
 
+    // El correo de inicio de sesión acompaña al de la persona.
+    await sincronizarEmailUsuario(client, id, datos.email);
+
     await client.query("COMMIT");
     return { id, ...datos };
   } catch (error) {
@@ -153,10 +162,8 @@ export const eliminarPreceptor = async (id) => {
       "UPDATE curso SET preceptor_id = NULL WHERE preceptor_id = $1",
       [id],
     );
-    await cliente.query(
-      "UPDATE usuarios SET persona_id = NULL WHERE persona_id = $1",
-      [id],
-    );
+    // Su usuario queda sin vínculo y sin acceso al sistema.
+    await desvincularUsuario(cliente, id);
 
     //borrar va desde prece a persona por las claves foraneas
 
