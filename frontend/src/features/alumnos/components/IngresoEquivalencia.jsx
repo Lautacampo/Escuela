@@ -37,14 +37,14 @@ export function IngresoEquivalencia({
 
       <div className="form-group">
         <label htmlFor={`${idBase}-observacion`}>
-          Institución de origen / norma que respalda la equivalencia *
+          Observación (opcional)
         </label>
         <input
           type="text"
           id={`${idBase}-observacion`}
           className={`input-gestion ${error ? "input-error" : ""}`}
           maxLength={300}
-          placeholder="Ej.: 2.º año completo en Escuela N.º 12 — Res. 195, Tabla 3"
+          placeholder="Ej.: escuela de origen"
           value={valor.observacion}
           onChange={(e) => onCambiar({ ...valor, observacion: e.target.value })}
           disabled={!valor.confirma}
