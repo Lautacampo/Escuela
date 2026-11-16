@@ -10,27 +10,6 @@ import {
   setDocente,
 } from "../services/DocentesServices.js";
 
-const MATERIAS = [
-  "Biología",
-  "Criminalística",
-  "Derecho",
-  "Economía",
-  "Educación Cívica",
-  "Filosofía",
-  "Física",
-  "Historia",
-  "Identificación Humana",
-  "Inglés",
-  "Lengua",
-  "Literatura",
-  "Matemáticas",
-  "Psicología",
-  "Química",
-  "Sociología",
-  "Toxicomanía",
-  "Tránsito Público",
-];
-
 const DOCENTE_INICIAL = {
   nombre: "",
   apellido: "",
@@ -156,9 +135,13 @@ export function Docentes() {
     ...new Set(Object.values(divisionesPorCurso).flat()),
   ].sort();
 
+  // Materias que se dictan en un módulo según el plan de estudios vigente.
+  const materiasDeModulo = (moduloId) =>
+    modulos.find((modulo) => String(modulo.id) === String(moduloId))
+      ?.materias ?? [];
+
   const materiasDisponibles = [
     ...new Set([
-      ...MATERIAS,
       ...modulos.flatMap((modulo) => modulo.materias ?? []),
       ...docentes.flatMap((docente) =>
         (docente.asignaciones ?? []).map((asignacion) => asignacion.materia),
@@ -378,7 +361,16 @@ export function Docentes() {
         posicion !== indice
           ? asignacion
           : campo === "moduloId"
-            ? { ...asignacion, moduloId: valor, division: "" }
+            ? {
+                ...asignacion,
+                moduloId: valor,
+                division: "",
+                // La materia se conserva solo si también se dicta en el
+                // módulo recién elegido.
+                materia: materiasDeModulo(valor).includes(asignacion.materia)
+                  ? asignacion.materia
+                  : "",
+              }
             : { ...asignacion, [campo]: valor },
       ),
     }));
@@ -445,9 +437,9 @@ export function Docentes() {
         );
 
         return (
-          !MATERIAS.includes(materia) ||
           !modulo ||
-          !(modulo.divisiones ?? []).includes(division)
+          !(modulo.divisiones ?? []).includes(division) ||
+          !(modulo.materias ?? []).includes(materia)
         );
       },
     );
@@ -458,7 +450,7 @@ export function Docentes() {
 
     if (asignacionIncompleta) {
       nuevosErrores.asignaciones =
-        "Complete materia, curso y división en cada fila, o quite la fila vacía.";
+        "Complete curso, división y materia en cada fila, o quite la fila vacía.";
     } else if (new Set(claves).size !== claves.length) {
       nuevosErrores.asignaciones =
         "No puede repetir la misma materia en el mismo curso y división.";
@@ -823,11 +815,6 @@ export function Docentes() {
             {valores.asignaciones.map((asignacion, indice) => (
               <div className="personal-fila-asignacion" key={indice}>
                 {[
-                  {
-                    campo: "materia", 
-                    etiqueta: "Materia", 
-                    opciones: MATERIAS
-                  },
                   { 
                     campo: "moduloId", 
                     etiqueta: "Curso / Módulo", 
@@ -839,6 +826,12 @@ export function Docentes() {
                     opciones: modulos.find(
                       (modulo) => String(modulo.id) === String(asignacion.moduloId)
                     )?.divisiones ?? [],
+                  },
+                  {
+                    // Solo las materias que se dictan en el módulo elegido.
+                    campo: "materia",
+                    etiqueta: "Materia",
+                    opciones: materiasDeModulo(asignacion.moduloId),
                   },
                 ].map(({ campo, etiqueta, opciones }) => (
                   <div className="form-group" key={campo}>
@@ -857,7 +850,7 @@ export function Docentes() {
                             )
                           }
                           className="input-gestion"
-                          disabled={campo === "division" && !asignacion.moduloId}
+                          disabled={campo !== "moduloId" && !asignacion.moduloId}
                         >
                           <option value="">Seleccionar</option>
 
