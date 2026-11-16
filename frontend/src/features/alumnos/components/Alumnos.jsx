@@ -11,8 +11,8 @@ import {
   matricularAlumno,
   actualizarMatricula,
   borrarAlumno,
-} from "../../SoftwareII/AlumnoService-is";
-import { getAsistencias } from "../services/AlumnosServices";
+  getAsistencias,
+} from "../services/AlumnosServices";
 import { IngresoEquivalencia } from "./IngresoEquivalencia";
 import {
   DESCRIPCION_MOTIVO_LIBRE,
