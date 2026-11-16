@@ -236,10 +236,21 @@ test("A3. Equivalencia incompleta (solo Módulo I) para entrar a III: falla y ha
   assert.equal(a.trayectoria.length, 0);
 });
 
-test("A4. Equivalencia sin observación: 400", async () => {
+test("A4. La observación de la equivalencia es opcional", async () => {
   const id = await crearAlumno();
-  const r = await alta(id, M.III, { equivalencias: [M.I, M.II], observacion: "  " });
-  assert.equal(r.status, 400);
+  const r = await api("POST", `/alumnos/${id}/cursadas`, {
+    idCurso: cursoDe(M.III), idModulo: M.III, equivalencias: [M.I, M.II],
+  });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const a = await ficha(id);
+  assert.deepEqual(a.equivalencias.map((e) => [e.moduloId, e.observacion]), [[M.I, ""], [M.II, ""]]);
+
+  // Si se escribe, se guarda; más de 300 caracteres se rechaza.
+  const otro = await crearAlumno();
+  const largo = await alta(otro, M.III, { equivalencias: [M.I, M.II], observacion: "x".repeat(301) });
+  assert.equal(largo.status, 400);
+  assert.equal((await alta(otro, M.III, { equivalencias: [M.I, M.II], observacion: "  Escuela N.º 12  " })).status, 201);
+  assert.equal((await ficha(otro)).equivalencias[0].observacion, "Escuela N.º 12");
 });
 
 test("A5. Ingreso por equivalencia a Módulo III (acredita I y II)", async () => {
@@ -684,12 +695,15 @@ test("D8. La cursada libre ya recursada queda cerrada: no se le cambian notas ni
 // ========================================================= E. EQUIVALENCIAS
 test("E1. Alta y baja de una equivalencia", async () => {
   const id = await crearAlumno();
-  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I] }, 400, /institución de origen/);
   await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [], observacion: "Tabla 3 Res. 195" }, 400);
+  await falla("POST", `/alumnos/${id}/equivalencias`, {}, 400);
   await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.III], observacion: "Tabla 3 Res. 195" }, 409, /también deben estar acreditados/);
   await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [9999], observacion: "Tabla 3 Res. 195" }, 400);
 
-  let a = await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I, M.II], observacion: "Tabla 3 Res. 195" }, 201);
+  // Sin observación también se registra.
+  let a = await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I] }, 201);
+  assert.deepEqual(a.equivalencias.map((e) => [e.moduloId, e.observacion]), [[M.I, ""]]);
+  a = await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I, M.II], observacion: "Tabla 3 Res. 195" }, 201);
   assert.deepEqual(a.equivalencias.map((e) => e.moduloId), [M.I, M.II]);
   // Repetirla no duplica ni falla.
   a = await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I], observacion: "Tabla 3 Res. 195" }, 201);
