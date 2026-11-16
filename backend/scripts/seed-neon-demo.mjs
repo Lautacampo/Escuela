@@ -4,7 +4,9 @@
  * Requiere npm install, backend/.env con DATABASE_URL de Neon, pg y bcryptjs.
  * NO contiene datos personales reales, contraseñas fijas ni elimina registros.
  * Usa la estructura de neon_estructura_tomas_baras.sql (incluye alumno.activo,
- * cursada_modulo.activa y docente_curso_materia). Ejecutar ANTES la migración 02_migracion_neon.sql.
+ * cursada_modulo.activa y docente_curso_materia). Ejecutar ANTES las migraciones, incluida
+ * database/migrations/005_correlatividades_condicion_equivalencias.sql: la condición
+ * (REGULAR/LIBRE) y el estado académico de cada cursada los calculan sus triggers.
  */
 import 'dotenv/config';
 import { randomBytes } from 'node:crypto';
@@ -118,7 +120,10 @@ try {
       );
     }
   }
-  for (const [modIdx, requisitoIdx] of [[2,0], [2,1], [3,2], [4,2], [4,3], [5,4]]) {
+  // Correlatividades (Res. 195): para cursar un módulo de 2.º o 3.er año hay
+  // que tener aprobados los DOS módulos del año anterior. Dentro del mismo año
+  // no hay correlatividad (IV no exige III; VI no exige V).
+  for (const [modIdx, requisitoIdx] of [[2,0], [2,1], [3,0], [3,1], [4,2], [4,3], [5,2], [5,3]]) {
     await asociar(
       `INSERT INTO modulo_correlativo (modulo_id, modulo_correlativo_id)
        VALUES ($1, $2) ON CONFLICT (modulo_id, modulo_correlativo_id) DO NOTHING`,
@@ -291,6 +296,17 @@ try {
       i%3 === 0
     );
     const primerIdx = 2*(anio-1), segundoIdx=primerIdx+1;
+    // Los alumnos demo de 2.º y 3.er año ingresaron por equivalencia: tienen
+    // acreditados los módulos de los años anteriores (exigido por el trigger
+    // de correlatividades de la migración 005).
+    for (let previo = 0; previo < primerIdx; previo++) {
+      await asociar(
+        `INSERT INTO equivalencia_modulo (alumno_id, modulo_id, observacion)
+         VALUES ($1, $2, 'Dato de demostración: ingreso por equivalencia')
+         ON CONFLICT (alumno_id, modulo_id) DO NOTHING`,
+        [estudianteId, modulos[previo]]
+      );
+    }
     // Solo uno agota las 4 instancias y otro queda PENDIENTE.
     const estadoPrimero = i === 4 ? 'A_RECURSAR' : (i === 7 ? 'PENDIENTE' : 'APROBADO');
     const estados = [{modIdx:primerIdx, estado:estadoPrimero}];
@@ -299,15 +315,21 @@ try {
     if (estadoPrimero === 'A_RECURSAR') estados.push({modIdx:primerIdx, estado:'EN_CURSO'});
 
     for (const [pos, item] of estados.entries()) {
-      const esLibre = i === 3 && item.modIdx === primerIdx;
+      // Un alumno demo supera las 25 faltas en el módulo que está cursando.
+      const esLibre = i === 3 && item.estado === 'EN_CURSO';
       // Solo la última cursada del alumno queda activa (índice cursada_modulo_activa_uk).
       const esActual = pos === estados.length - 1;
-      const esRecursada = item.estado === 'A_RECURSAR';
+      // Cursadas anteriores del mismo módulo en esta lista (0 = primera vez,
+      // 1 = recursada). Se busca por orden y no por estado, porque el estado
+      // lo recalcula la base y puede cambiar entre una corrida y otra.
+      const cursadasPrevias = estados
+        .slice(0, pos)
+        .filter((previa) => previa.modIdx === item.modIdx).length;
       const cursadaId = await asegurar(
         `SELECT id FROM cursada_modulo
          WHERE alumno_id=$1 AND modulo_id=$2 AND curso_id=$3
-           AND (estado_academico = 'A_RECURSAR') = $4 LIMIT 1`,
-        [estudianteId, modulos[item.modIdx], cursoId, esRecursada],
+         ORDER BY id OFFSET $4 LIMIT 1`,
+        [estudianteId, modulos[item.modIdx], cursoId, cursadasPrevias],
         `INSERT INTO cursada_modulo
          (alumno_id,modulo_id,curso_id,condicion,cantidad_faltas_acumuladas,estado_academico,activa)
          VALUES ($1,$2,$3,$4,0,$5,$6) RETURNING id`,
@@ -345,15 +367,19 @@ try {
         [cursadaId]
       );
       await asociar(
-        `UPDATE cursada_modulo SET cantidad_faltas_acumuladas=$1, condicion=$2 WHERE id=$3`,
-        [Number(total.rows[0].faltas), Number(total.rows[0].faltas)>25?'LIBRE':'REGULAR',cursadaId]
+        `UPDATE cursada_modulo SET cantidad_faltas_acumuladas=CEIL($1::numeric)::int WHERE id=$2`,
+        [Number(total.rows[0].faltas), cursadaId]
       );
+      // La condición (REGULAR/LIBRE) la calcula la base: no se fuerza desde acá.
+      await client.query('SELECT recalcular_situacion_cursada($1)', [cursadaId]);
 
       // Calificaciones de materia: estado textual (NO nota individual).
       for (const [k, nombreMateria] of grupos[item.modIdx].entries()) {
-        const estado = item.estado==='APROBADO' ? 'Aprobado'
-          : item.estado==='EN_CURSO' ? (k%4===0?'Desaprobado':'En Curso')
-          : (k%3===0?'Desaprobado':'En Curso');
+        // Quien rindió el módulo (aprobado, pendiente o instancias agotadas)
+        // tenía todas las materias aprobadas: es requisito para rendir.
+        // Un único alumno demo (i === 10) queda LIBRE por materia desaprobada.
+        const estado = item.estado !== 'EN_CURSO' ? 'Aprobado'
+          : (i === 10 && k === 0 ? 'Desaprobado' : 'En Curso');
         await asociar(
           `INSERT INTO calificacion (materia_id,cursada_modulo_id,estado)
            VALUES ($1,$2,$3) ON CONFLICT (cursada_modulo_id,materia_id) DO NOTHING`,
