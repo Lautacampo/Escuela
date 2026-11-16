@@ -1,8 +1,8 @@
 import { HttpError } from "../../utils/httpError.js";
 import * as repo from "./asistencias.repository.js";
+import { esFechaISOValida } from "../../utils/fechas.js";
 
 const VALORES_FALTA_VALIDOS = [0, 0.5, 1];
-const REGEX_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
 function fechaHoyISO() {
   const hoy = new Date();
@@ -85,7 +85,7 @@ export const obtenerPlanilla = async (
   }
 
   const fecha = fechaQuery ?? fechaHoyISO();
-  if (!REGEX_FECHA.test(fecha)) {
+  if (!esFechaISOValida(fecha)) {
     throw new HttpError(400, "Formato de fecha inválido (use YYYY-MM-DD)");
   }
 
@@ -137,7 +137,7 @@ export const listar = async (usuario, query = {}) => {
   if (cursadaModuloId !== null && !Number.isInteger(cursadaModuloId)) {
     throw new HttpError(400, "cursadaModuloId inválido");
   }
-  if (fecha !== null && !REGEX_FECHA.test(fecha)) {
+  if (fecha !== null && !esFechaISOValida(fecha)) {
     throw new HttpError(400, "Formato de fecha inválido (use YYYY-MM-DD)");
   }
 
@@ -151,8 +151,7 @@ export const registrar = async (
   const numValor = Number(valorFalta);
   if (
     !Number.isInteger(cursadaModuloId) ||
-    !fecha ||
-    !REGEX_FECHA.test(fecha) ||
+    !esFechaISOValida(fecha) ||
     !VALORES_FALTA_VALIDOS.includes(numValor)
   ) {
     throw new HttpError(
@@ -191,7 +190,7 @@ export const actualizar = async (usuario, id, { valorFalta, fecha }) => {
   if (!VALORES_FALTA_VALIDOS.includes(numValor)) {
     throw new HttpError(400, "valorFalta inválido (debe ser 0, 0.5 o 1)");
   }
-  if (fecha !== undefined && !REGEX_FECHA.test(fecha)) {
+  if (fecha !== undefined && !esFechaISOValida(fecha)) {
     throw new HttpError(400, "Formato de fecha inválido (use YYYY-MM-DD)");
   }
 
@@ -213,12 +212,23 @@ export const actualizar = async (usuario, id, { valorFalta, fecha }) => {
 
   exigirCursadaVigente(existente);
 
-  return repo.actualizarAsistenciaPorId(
-    id,
-    existente.cursada_modulo_id,
-    numValor,
-    fecha ?? existente.fecha_iso,
-  );
+  try {
+    return await repo.actualizarAsistenciaPorId(
+      id,
+      existente.cursada_modulo_id,
+      numValor,
+      fecha ?? existente.fecha_iso,
+    );
+  } catch (err) {
+    // Mover el registro a una fecha que ya tiene asistencia cargada.
+    if (err.constraint === "asistencia_cursada_fecha_uk") {
+      throw new HttpError(
+        409,
+        "El alumno ya tiene una asistencia cargada en esa fecha",
+      );
+    }
+    throw err;
+  }
 };
 
 export const eliminar = async (usuario, id) => {
