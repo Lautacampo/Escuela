@@ -1,24 +1,79 @@
-    import { apiFetch } from "../../../shared/services/api.js";
+import { apiFetch } from "../../../shared/services/api.js";
 
-    export async function getAsistencias(){
-        return apiFetch("/asistencias");
-    }
+export async function getAsistencias() {
+  return apiFetch("/asistencias");
+}
 
-    export async function getAlumnos(incluirInactivos = false){
-        return apiFetch(
-            incluirInactivos ? "/alumnos?incluirInactivos=true" : "/alumnos"
-        );
-    }
+export async function getAlumnos(incluirInactivos = false) {
+  return apiFetch(
+    incluirInactivos ? "/alumnos?incluirInactivos=true" : "/alumnos"
+  );
+}
 
-    export async function setAlumno(alumno) {
-        return apiFetch(alumno.id ? `/alumnos/${alumno.id}` : "/alumnos", {
-            method: alumno.id ? "PUT" : "POST",
-            body: JSON.stringify(alumno)
-        });
-    }
+// Ficha completa: trayectoria, equivalencias y, por cada cursada, sus
+// materias y si admite una evaluación de módulo.
+export async function getAlumno(id) {
+  return apiFetch(`/alumnos/${id}`);
+}
 
-    export async function borrarAlumno(id) {
-        // Baja lógica: el backend conserva el historial y marca al alumno
-        // como inactivo. Ya no hace falta borrar asistencias ni notas.
-        await apiFetch(`/alumnos/${id}`, { method: "DELETE" });
-    }
+// Cursos del ciclo vigente con sus módulos y las correlativas de cada uno.
+export async function getCursos() {
+  return apiFetch("/cursos");
+}
+
+export async function setAlumno(alumno) {
+  return apiFetch(alumno.id ? `/alumnos/${alumno.id}` : "/alumnos", {
+    method: alumno.id ? "PUT" : "POST",
+    body: JSON.stringify(alumno),
+  });
+}
+
+export async function borrarAlumno(id) {
+  // Baja lógica: el backend conserva el historial y marca al alumno
+  // como inactivo. Ya no hace falta borrar asistencias ni notas.
+  await apiFetch(`/alumnos/${id}`, { method: "DELETE" });
+}
+
+// `ingreso` es opcional: { equivalencias: [idModulo...], observacion } para
+// un alumno que empieza en un módulo avanzado acreditando los anteriores.
+function cuerpoMatricula(idCurso, idModulo, ingreso) {
+  return JSON.stringify({
+    idCurso,
+    idModulo,
+    ...(ingreso?.equivalencias?.length
+      ? {
+          equivalencias: ingreso.equivalencias,
+          observacionEquivalencia: ingreso.observacion,
+        }
+      : {}),
+  });
+}
+
+// Primera matrícula del alumno.
+export async function matricularAlumno(idAlumno, idCurso, idModulo, ingreso) {
+  return apiFetch(`/alumnos/${idAlumno}/cursadas`, {
+    method: "POST",
+    body: cuerpoMatricula(idCurso, idModulo, ingreso),
+  });
+}
+
+// Cambio de curso, división o módulo. También inscribe para recursar.
+export async function actualizarMatricula(idAlumno, idCurso, idModulo, ingreso) {
+  return apiFetch(`/alumnos/${idAlumno}/cursadas`, {
+    method: "PUT",
+    body: cuerpoMatricula(idCurso, idModulo, ingreso),
+  });
+}
+
+export async function registrarEquivalencias(idAlumno, modulosIds, observacion) {
+  return apiFetch(`/alumnos/${idAlumno}/equivalencias`, {
+    method: "POST",
+    body: JSON.stringify({ modulosIds, observacion }),
+  });
+}
+
+export async function quitarEquivalencia(idAlumno, idModulo) {
+  return apiFetch(`/alumnos/${idAlumno}/equivalencias/${idModulo}`, {
+    method: "DELETE",
+  });
+}
