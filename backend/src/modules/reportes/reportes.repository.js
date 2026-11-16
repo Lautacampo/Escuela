@@ -72,10 +72,12 @@ export const listarInasistenciasCriticas = async ({
                 cm.condicion
            FROM cursada_modulo cm
            JOIN persona p ON p.id = cm.alumno_id
+           JOIN alumno al ON al.id = cm.alumno_id
            JOIN curso c ON c.id = cm.curso_id
            JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
            JOIN modulo m ON m.id = cm.modulo_id
-          WHERE 1 = 1 ${whereExtra}
+          -- Los alumnos dados de baja no generan alertas.
+          WHERE al.activo ${whereExtra}
             ${filtroCursadaActual}
        ) sub
       WHERE sub.faltas >= $1
