@@ -16,6 +16,9 @@ router.post("/plan-estudio", ctrl.crearPlanEstudio);
 // #37 - Elimina (baja lógica -> estado Inactivo) un plan de estudio
 router.delete("/plan-estudio/:id", ctrl.eliminarPlanEstudio);
 
+// Reactiva un plan inactivo (vuelve a estado Vigente)
+router.patch("/plan-estudio/:id/reactivar", ctrl.reactivarPlanEstudio);
+
 // #38 y #39 - Materias para el plan de estudio
 router.get("/materias", ctrl.listarMaterias);
 router.post("/materias", ctrl.crearMateria);
