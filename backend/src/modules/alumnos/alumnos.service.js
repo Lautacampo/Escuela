@@ -1,20 +1,34 @@
 import { HttpError } from "../../utils/httpError.js";
+import { ReglaNegocio } from "../../utils/reglaNegocio.js";
 import * as repo from "./alumnos.repository.js";
 
-export const REQUERIDOS = [
-  "nombre",
-  "apellido",
-  "cuil",
-  "domicilio",
-  "lugarNacimiento",
-  "telefonoEmergencia",
-];
+// Campos de texto obligatorios (NOT NULL en persona/alumno) y su etiqueta.
+const ETIQUETAS_REQUERIDOS = {
+  nombre: "El nombre",
+  apellido: "El apellido",
+  cuil: "El CUIL",
+  domicilio: "El domicilio",
+  lugarNacimiento: "El lugar de nacimiento",
+  telefonoEmergencia: "El teléfono de emergencia",
+};
+
+export const REQUERIDOS = Object.keys(ETIQUETAS_REQUERIDOS);
+
+const DESCRIPCION_MOTIVO_LIBRE = {
+  INASISTENCIAS: "superó el límite de 25 inasistencias",
+  MATERIA_DESAPROBADA: "tiene una materia del módulo desaprobada",
+  INSTANCIAS_AGOTADAS: "agotó las 4 instancias de acreditación sin aprobar",
+};
+
+const NOMBRE_PERIODO = { 1: "marzo a julio", 2: "agosto a diciembre" };
 
 const validar = (body) => {
   const d = {};
   for (const campo of REQUERIDOS) {
     d[campo] = String(body[campo] ?? "").trim();
-    if (!d[campo]) throw new HttpError(400, `Falta el campo ${campo}`);
+    if (!d[campo]) {
+      throw new HttpError(400, `${ETIQUETAS_REQUERIDOS[campo]} es obligatorio`);
+    }
   }
 
   d.dni = String(body.dni ?? "")
@@ -49,6 +63,10 @@ const traducirError = (err) => {
     return new HttpError(409, "Ya existe una persona con ese DNI");
   if (err.constraint === "persona_cuil_key")
     return new HttpError(409, "Ya existe una persona con ese CUIL");
+  if (err.constraint === "equivalencia_modulo_alumno_modulo_uk")
+    return new HttpError(409, "Esa equivalencia ya está registrada");
+  if (err.constraint === "cursada_modulo_abierta_uk")
+    return new HttpError(409, "El alumno ya tiene una cursada abierta de ese módulo");
   if (err.constraint === "cursada_en_curso_unica")
     return new HttpError(409, "El alumno ya está cursando ese módulo");
   if (err.constraint === "cursada_modulo_activa_uk")
@@ -59,39 +77,135 @@ const traducirError = (err) => {
   return err;
 };
 
-const armar = async (filas) => {
+// Describe en palabras la situación del alumno en un correlativo pendiente.
+const describirPendiente = (p) => {
+  if (p.estado === "A_RECURSAR") return `${p.nombre} (quedó libre: debe recursarlo)`;
+  if (p.estado === "EN_CURSO" || p.estado === "PENDIENTE")
+    return `${p.nombre} (todavía sin aprobar)`;
+  return `${p.nombre} (sin cursar ni acreditar por equivalencia)`;
+};
+
+/**
+ * Indica si una cursada puede recibir una nueva evaluación de módulo y, si no,
+ * por qué. Es la misma secuencia de reglas que aplica evaluarModulo.
+ */
+const analizarEvaluacion = (cursada, materias, correlativos) => {
+  const instancias = cursada.evaluaciones.length;
+  const materiasPendientes = materias
+    .filter((m) => m.estado !== "Aprobado")
+    .map((m) => ({ id: m.id, nombre: m.nombre, estado: m.estado }));
+
+  let bloqueo = null;
+  if (cursada.estadoAcademico === "APROBADO") {
+    bloqueo = "El módulo ya está aprobado.";
+  } else if (cursada.condicion === "LIBRE") {
+    bloqueo = `El alumno está LIBRE en este módulo porque ${
+      DESCRIPCION_MOTIVO_LIBRE[cursada.motivoLibre] ?? "perdió la regularidad"
+    }. Debe recursarlo.`;
+  } else if (correlativos.length > 0) {
+    bloqueo = `Correlatividad: para acreditar ${cursada.modulo} debe tener aprobados ${correlativos
+      .map((c) => c.nombre)
+      .join(" y ")}.`;
+  } else if (materiasPendientes.length > 0) {
+    bloqueo = "Todas las materias del módulo deben estar aprobadas.";
+  } else if (instancias >= 4) {
+    bloqueo = "El módulo ya alcanzó el máximo de 4 instancias.";
+  }
+
+  return {
+    evaluable: bloqueo === null,
+    bloqueoEvaluacion: bloqueo,
+    proximaInstancia: instancias < 4 ? instancias + 1 : null,
+    materias: materias.map((m) => ({ id: m.id, nombre: m.nombre, estado: m.estado })),
+    materiasPendientes,
+    correlativosPendientes: correlativos.map((c) => ({ id: c.id, nombre: c.nombre })),
+  };
+};
+
+/**
+ * Arma la respuesta de alumnos con su trayectoria y equivalencias.
+ * Con `detalle` se agrega, por cursada, lo necesario para la ficha:
+ * materias, correlativos pendientes y si admite una evaluación de módulo.
+ */
+const armar = async (filas, { detalle = false } = {}) => {
   if (filas.length === 0) return [];
 
-  const cursadas = await repo.listarCursadas(filas.map((f) => f.id));
-  const evaluaciones = cursadas.length
-    ? await repo.listarEvaluaciones(cursadas.map((c) => c.id))
+  const ids = filas.map((f) => f.id);
+  const cursadas = await repo.listarCursadas(ids);
+  const cursadaIds = cursadas.map((c) => c.id);
+  const equivalencias = await repo.listarEquivalencias(ids);
+  const evaluaciones = cursadaIds.length
+    ? await repo.listarEvaluaciones(cursadaIds)
     : [];
+  const materias =
+    detalle && cursadaIds.length
+      ? await repo.listarMateriasDeCursadas(cursadaIds)
+      : [];
+  const correlativos =
+    detalle && cursadaIds.length
+      ? await repo.correlativosPendientesDeCursadas(cursadaIds)
+      : [];
 
   return filas.map((f) => {
     const trayectoria = cursadas
       .filter((c) => c.alumno_id === f.id)
-      .map((c) => ({
-        idCursada: c.id,
-        cursoId: c.curso_id,
-        moduloId: c.modulo_id,
-        modulo: c.numero_leyenda,
-        anioCurso: c.anio_curso,
-        cicloLectivo: c.ciclo_anio,
-        division: c.division,
-        estadoAcademico: c.estado_academico,
-        condicion: c.condicion,
-        activa: c.activa,
-        faltas: c.cantidad_faltas_acumuladas,
-        evaluaciones: evaluaciones
-          .filter((e) => e.cursada_modulo_id === c.id)
-          .map((e) => ({
-            id: e.id,
-            fecha: e.fecha,
-            nota: e.nota === null ? null : Number(e.nota),
-            nroInstancia: e.nro_instancia,
-            tipoInstancia: e.tipo_instancia,
-          })),
+      .map((c) => {
+        const cursada = {
+          idCursada: c.id,
+          cursoId: c.curso_id,
+          moduloId: c.modulo_id,
+          modulo: c.numero_leyenda,
+          periodo: c.periodo,
+          periodoDictado: NOMBRE_PERIODO[c.periodo] ?? null,
+          anioCurso: c.anio_curso,
+          cicloLectivo: c.ciclo_anio,
+          division: c.division,
+          estadoAcademico: c.estado_academico,
+          condicion: c.condicion,
+          motivoLibre: c.motivo_libre,
+          descripcionMotivoLibre: DESCRIPCION_MOTIVO_LIBRE[c.motivo_libre] ?? null,
+          activa: c.activa,
+          faltas: c.cantidad_faltas_acumuladas,
+          evaluaciones: evaluaciones
+            .filter((e) => e.cursada_modulo_id === c.id)
+            .map((e) => ({
+              id: e.id,
+              fecha: e.fecha,
+              nota: e.nota === null ? null : Number(e.nota),
+              nroInstancia: e.nro_instancia,
+              tipoInstancia: e.tipo_instancia,
+            })),
+        };
+
+        if (!detalle) return cursada;
+        return {
+          ...cursada,
+          ...analizarEvaluacion(
+            cursada,
+            materias.filter((m) => m.cursada_modulo_id === c.id),
+            correlativos.filter((k) => k.cursada_modulo_id === c.id),
+          ),
+        };
+      });
+
+    const equivalenciasAlumno = equivalencias
+      .filter((e) => e.alumno_id === f.id)
+      .map((e) => ({
+        moduloId: e.modulo_id,
+        modulo: e.numero_leyenda,
+        fecha: e.fecha,
+        observacion: e.observacion,
       }));
+
+    // Módulos acreditados: aprobados en la escuela o reconocidos por equivalencia.
+    const modulosAcreditados = [
+      ...new Set([
+        ...trayectoria
+          .filter((c) => c.estadoAcademico === "APROBADO")
+          .map((c) => c.moduloId),
+        ...equivalenciasAlumno.map((e) => e.moduloId),
+      ]),
+    ].sort((a, b) => a - b);
 
     const actual =
       trayectoria.find((c) => c.activa) ??
@@ -124,6 +238,11 @@ const armar = async (filas) => {
       moduloActual: actual?.modulo ?? null,
       faltas: actual?.faltas ?? null,
       condicion: actual?.condicion ?? null,
+      estadoAcademico: actual?.estadoAcademico ?? null,
+      motivoLibre: actual?.motivoLibre ?? null,
+      descripcionMotivoLibre: actual?.descripcionMotivoLibre ?? null,
+      modulosAcreditados,
+      equivalencias: equivalenciasAlumno,
       trayectoria,
     };
   });
@@ -146,7 +265,7 @@ export const listar = async ({ incluirInactivos = false } = {}) =>
   armar(await repo.listarAlumnos({ incluirInactivos }));
 
 export const obtener = async (id) =>
-  (await armar([await buscarOFallar(id)]))[0];
+  (await armar([await buscarOFallar(id)], { detalle: true }))[0];
 
 export const crear = async (body) => {
   const datos = validar(body);
@@ -194,76 +313,177 @@ export const reactivar = async (id) => {
   return obtener(id);
 };
 
-export const matricular = async (id, { idCurso, idModulo }) => {
-  await buscarActivoOFallar(id);
-  if (!Number.isInteger(idCurso) || !Number.isInteger(idModulo)) {
-    throw new HttpError(400, "Curso o módulo inválido");
-  }
-  if (!(await repo.cursoTieneModulo(idCurso, idModulo))) {
-    throw new HttpError(400, "El módulo no pertenece a ese curso");
-  }
-  if (await repo.buscarCursadaActiva(id)) {
-    throw new HttpError(
-      409,
-      "El alumno ya tiene una cursada activa. Editá su matrícula para cambiarla",
-    );
-  }
-  if (await repo.yaAproboModulo(id, idModulo)) {
-    throw new HttpError(409, "El alumno ya aprobó ese módulo");
-  }
-  try {
-    return { cursadaModuloId: await repo.crearCursada(id, idCurso, idModulo) };
-  } catch (err) {
-    throw traducirError(err);
+// Traduce las reglas de negocio de matrícula/equivalencias a errores HTTP.
+const traducirRegla = (err, modulo = null) => {
+  if (!(err instanceof ReglaNegocio)) return traducirError(err);
+  const d = err.datos;
+  const nombreModulo = modulo?.nombre ?? "ese módulo";
+
+  switch (err.motivo) {
+    case "YA_TIENE_CURSADA_ACTIVA":
+      return new HttpError(
+        409,
+        "El alumno ya tiene una cursada activa. Editá su matrícula para cambiarla",
+      );
+    case "MODULO_ACREDITADO":
+      return new HttpError(
+        409,
+        d.porEquivalencia
+          ? `El alumno ya tiene acreditado ${nombreModulo} por equivalencia`
+          : `El alumno ya aprobó ${nombreModulo}`,
+      );
+    case "CORRELATIVAS_PENDIENTES": {
+      const error = new HttpError(
+        409,
+        `Correlatividad: para cursar ${nombreModulo} el alumno debe tener aprobados ${d.pendientes
+          .map(describirPendiente)
+          .join(" y ")}`,
+      );
+      // El frontend usa este detalle para ofrecer el ingreso por equivalencia.
+      error.detalle = {
+        codigo: "CORRELATIVAS_PENDIENTES",
+        pendientes: d.pendientes.map((p) => ({
+          id: p.id,
+          nombre: p.nombre,
+          estado: p.estado,
+          admiteEquivalencia: p.estado === null,
+        })),
+      };
+      return error;
+    }
+    case "EQUIVALENCIA_MODULO_INEXISTENTE":
+      return new HttpError(400, "Alguno de los módulos de equivalencia no existe");
+    case "EQUIVALENCIA_CON_CURSADA":
+      return new HttpError(
+        409,
+        `No corresponde equivalencia para ${d.modulo}: el alumno ya lo cursó en la institución y debe aprobarlo o recursarlo`,
+      );
+    case "EQUIVALENCIA_SIN_CORRELATIVAS":
+      return new HttpError(
+        409,
+        `Para acreditar ${d.modulo} por equivalencia también deben estar acreditados ${d.pendientes
+          .map((p) => p.nombre)
+          .join(" y ")}`,
+      );
+    case "EQUIVALENCIA_EN_USO":
+      return new HttpError(
+        409,
+        `No se puede quitar la equivalencia: el alumno la necesita como correlativa de ${d.dependientes
+          .map((m) => m.nombre)
+          .join(" y ")}`,
+      );
+    case "EQUIVALENCIA_INEXISTENTE":
+      return new HttpError(404, "El alumno no tiene esa equivalencia");
+    default:
+      return err;
   }
 };
 
+// Valida el pedido de equivalencias: lista de módulos + observación obligatoria.
+const validarEquivalencias = (equivalencias, observacion, { obligatorias }) => {
+  const lista = equivalencias ?? [];
+  if (!Array.isArray(lista) || !lista.every(Number.isInteger)) {
+    throw new HttpError(400, "Las equivalencias deben ser una lista de módulos");
+  }
+  const ids = [...new Set(lista)];
+  if (obligatorias && ids.length === 0) {
+    throw new HttpError(400, "Indicá al menos un módulo a acreditar por equivalencia");
+  }
+
+  const texto = String(observacion ?? "").trim();
+  if (ids.length > 0 && texto.length < 5) {
+    throw new HttpError(
+      400,
+      "Para registrar una equivalencia indicá la institución de origen o la norma que la respalda",
+    );
+  }
+  if (texto.length > 300) {
+    throw new HttpError(400, "La observación de la equivalencia admite hasta 300 caracteres");
+  }
+  return { ids, observacion: texto || null };
+};
+
 /**
- * PUT /alumnos/:id/cursadas
- * Modifica la matrícula del alumno (curso, división y módulo) manteniendo
- * una única cursada activa. Si se cambia de módulo se validan primero las
- * correlatividades configuradas en modulo_correlativo.
+ * Lógica común de POST y PUT /alumnos/:id/cursadas.
+ * Las correlatividades se validan SIEMPRE, también en el alta: un alumno solo
+ * puede empezar en un módulo avanzado si acredita los anteriores por
+ * equivalencia (campo `equivalencias` + `observacionEquivalencia`).
  */
-export const actualizarCursada = async (id, { idCurso, idModulo }) => {
+const guardarMatricula = async (id, body, { soloAlta }) => {
   await buscarActivoOFallar(id);
 
+  const { idCurso, idModulo } = body;
   if (!Number.isInteger(idCurso) || !Number.isInteger(idModulo)) {
     throw new HttpError(400, "Curso o módulo inválido");
   }
+
+  const modulo = await repo.buscarModulo(idModulo);
+  if (!modulo) throw new HttpError(404, "El módulo no existe");
 
   if (!(await repo.cursoTieneModulo(idCurso, idModulo))) {
     throw new HttpError(400, "El módulo no pertenece a ese curso");
   }
 
-  const cursadaActual = await repo.buscarCursadaActiva(id);
-  const cambiaModulo =
-    !cursadaActual || Number(cursadaActual.modulo_id) !== Number(idModulo);
-
-  if (cambiaModulo) {
-    if (await repo.yaAproboModulo(id, idModulo)) {
-      throw new HttpError(409, "El alumno ya aprobó ese módulo");
-    }
-
-    const pendientes = await repo.correlativosPendientes(id, idModulo);
-
-    if (pendientes.length > 0) {
-      const nombres = pendientes.map((modulo) => modulo.nombre).join(", ");
-      throw new HttpError(
-        409,
-        `Para cursar ese módulo debe aprobar antes: ${nombres}`,
-      );
-    }
-  }
+  const equivalencias = validarEquivalencias(
+    body.equivalencias,
+    body.observacionEquivalencia,
+    { obligatorias: false },
+  );
 
   try {
-    await repo.actualizarCursadaActiva(id, {
+    return await repo.guardarMatricula(id, {
       cursoId: idCurso,
       moduloId: idModulo,
+      equivalencias: equivalencias.ids,
+      observacion: equivalencias.observacion,
+      soloAlta,
     });
   } catch (err) {
-    throw traducirError(err);
+    throw traducirRegla(err, modulo);
   }
+};
 
+/** POST /alumnos/:id/cursadas — primera matrícula del alumno. */
+export const matricular = async (id, body = {}) => {
+  const resultado = await guardarMatricula(id, body, { soloAlta: true });
+  return { cursadaModuloId: resultado.cursadaModuloId, tipo: resultado.tipo };
+};
+
+/**
+ * PUT /alumnos/:id/cursadas — cambia la matrícula (curso, división o módulo)
+ * manteniendo una única cursada activa. También es la vía para recursar un
+ * módulo en el que el alumno quedó LIBRE.
+ */
+export const actualizarCursada = async (id, body = {}) => {
+  const resultado = await guardarMatricula(id, body, { soloAlta: false });
+  return { ...(await obtener(id)), matricula: resultado.tipo };
+};
+
+/** POST /alumnos/:id/equivalencias */
+export const registrarEquivalencias = async (id, body = {}) => {
+  await buscarActivoOFallar(id);
+  const { ids, observacion } = validarEquivalencias(
+    body.modulosIds,
+    body.observacion,
+    { obligatorias: true },
+  );
+  try {
+    await repo.registrarEquivalencias(id, ids, observacion);
+  } catch (err) {
+    throw traducirRegla(err);
+  }
+  return obtener(id);
+};
+
+/** DELETE /alumnos/:id/equivalencias/:moduloId */
+export const quitarEquivalencia = async (id, moduloId) => {
+  await buscarActivoOFallar(id);
+  if (!Number.isInteger(moduloId)) throw new HttpError(400, "Módulo inválido");
+  try {
+    await repo.quitarEquivalencia(id, moduloId);
+  } catch (err) {
+    throw traducirRegla(err);
+  }
   return obtener(id);
 };
 
@@ -297,6 +517,9 @@ const esFechaISOValida = (valor) => {
  * Requisitos:
  * - La cursada debe existir y pertenecer a un alumno activo.
  * - El módulo no puede estar aprobado ni superar las 4 instancias.
+ * - El alumno no puede estar LIBRE en el módulo (inasistencias, materia
+ *   desaprobada o instancias agotadas): debe recursarlo.
+ * - Correlatividades: los módulos previos deben estar aprobados.
  * - Todas las materias del módulo deben estar calificadas como Aprobado.
  * - La instancia enviada debe ser la próxima (MAX + 1), para evitar
  *   duplicados o saltos si la ficha quedó desactualizada.
@@ -359,6 +582,20 @@ export const evaluarModulo = async (body = {}) => {
         409,
         "El módulo ya está aprobado y no admite otra instancia",
       );
+    case "ALUMNO_LIBRE":
+      throw new HttpError(
+        409,
+        `El alumno está LIBRE en este módulo porque ${
+          DESCRIPCION_MOTIVO_LIBRE[resultado.motivoLibre] ?? "perdió la regularidad"
+        }. Debe recursarlo; no puede rendir la evaluación`,
+      );
+    case "CORRELATIVAS_PENDIENTES":
+      throw new HttpError(
+        409,
+        `Correlatividad: para acreditar este módulo el alumno debe tener aprobados ${resultado.pendientes
+          .map(describirPendiente)
+          .join(" y ")}`,
+      );
     case "MATERIAS_PENDIENTES":
       throw new HttpError(
         409,
@@ -388,6 +625,11 @@ export const evaluarModulo = async (body = {}) => {
     nroInstancia: evaluacion.nro_instancia,
     tipoInstancia: evaluacion.tipo_instancia,
     estadoAcademico: resultado.estadoAcademico,
+    condicion: resultado.condicion,
+    motivoLibre: resultado.motivoLibre,
+    descripcionMotivoLibre:
+      DESCRIPCION_MOTIVO_LIBRE[resultado.motivoLibre] ?? null,
     aprobado: resultado.aprobado,
   };
 };
+
