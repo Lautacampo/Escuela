@@ -4,30 +4,13 @@ export async function getPreceptores() {
   return apiFetch("/preceptores");
 }
 
+// En un alta puede incluir `password`: el backend crea también el usuario
+// de acceso del preceptor.
 export async function setPreceptor(preceptor) {
   const { id, ...datos } = preceptor;
   return apiFetch(id ? `/preceptores/${id}` : `/preceptores`, {
     method: id ? "PUT" : "POST",
     body: JSON.stringify(datos),
-  });
-}
-
-// Llama a POST /api/auth/registro con el mail y contraseña del preceptor recién creado
-export async function registrarUsuarioPreceptor({
-  nombre,
-  apellido,
-  email,
-  password,
-}) {
-  return apiFetch("/auth/registro", {
-    method: "POST",
-    body: JSON.stringify({
-      nombre,
-      apellido,
-      email,
-      password,
-      rol: "preceptor",
-    }),
   });
 }
 
