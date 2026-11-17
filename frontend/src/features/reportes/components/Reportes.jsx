@@ -262,14 +262,14 @@ export function Reportes() {
               <h2>Alertas de inasistencias</h2>
               <p>
                 {moduloId
-                  ? `Alumnos que alcanzaron o superaron las ${umbral} faltas en el módulo seleccionado.`
-                  : `Alumnos que alcanzaron o superaron las ${umbral} faltas en cada módulo.`}
+                  ? `Alumnos libres por superar las ${umbral} faltas en el módulo seleccionado.`
+                  : `Alumnos libres por superar las ${umbral} faltas en un módulo que no tienen aprobado.`}
               </p>
             </div>
           </div>
 
           <span className="rep-etiqueta rep-etiqueta-alerta">
-            Umbral: {umbral} faltas
+            Límite: {umbral} faltas
           </span>
         </div>
 
@@ -289,11 +289,12 @@ export function Reportes() {
             <thead>
               <tr>
                 <th scope="col">Alumno</th>
+                <th scope="col">Plan de estudios</th>
                 <th scope="col">Curso</th>
                 <th scope="col">División</th>
                 <th scope="col">Módulo</th>
                 <th scope="col">Faltas acumuladas</th>
-                <th scope="col">Alerta</th>
+                <th scope="col">Situación</th>
               </tr>
             </thead>
 
@@ -303,6 +304,7 @@ export function Reportes() {
                   <td>
                     <strong>{alumno.nombre}</strong>
                   </td>
+                  <td>{alumno.planEstudio ?? "-"}</td>
                   <td>{alumno.curso}º año</td>
                   <td>{alumno.division}</td>
                   <td>{alumno.modulo}</td>
@@ -315,7 +317,7 @@ export function Reportes() {
                         className="fa-solid fa-circle-exclamation"
                         aria-hidden="true"
                       />
-                      Umbral alcanzado ({alumno.condicion})
+                      Libre por inasistencias
                     </span>
                   </td>
                 </tr>
@@ -323,9 +325,8 @@ export function Reportes() {
 
               {alertasVisibles.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="rep-vacio">
-                    No hay alumnos que alcancen el límite de inasistencias para
-                    estos filtros.
+                  <td colSpan={7} className="rep-vacio">
+                    No hay alumnos libres por inasistencias para estos filtros.
                   </td>
                 </tr>
               )}
