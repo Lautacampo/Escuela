@@ -447,6 +447,15 @@ export function FichaAlumno() {
                 </>
               )}
             </p>
+
+            <p>
+              Plan de estudios:{" "}
+              <strong>{alumno.planEstudio?.titulo ?? "Sin asignar"}</strong>
+              {alumno.planEstudio &&
+                ` · ${alumno.planEstudio.resolucion}${
+                  alumno.planEstudio.vigente ? "" : " (plan inactivo)"
+                }`}
+            </p>
           </div>
         </div>
 
@@ -627,6 +636,11 @@ export function FichaAlumno() {
             <strong className={alumnoLibre ? "texto-libre" : "texto-regular"}>
               {condicionActual}
             </strong>
+          </div>
+
+          <div>
+            <span>Plan de estudios</span>
+            <strong>{alumno.planEstudio?.titulo ?? "Sin asignar"}</strong>
           </div>
         </div>
 
