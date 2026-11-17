@@ -28,13 +28,46 @@ const enTransaccion = async (fn) => {
     }
 };
 
-export const listarAlumnos = async ({ incluirInactivos = false } = {}) => {
-    const filtro = incluirInactivos ? "" : "WHERE a.activo";
+// Egresado: tiene acreditados todos los módulos del plan y aprobó al menos uno
+// en la institución. Se calcula a partir de la trayectoria; no se guarda.
+const ES_EGRESADO = (alumno) => `(
+    EXISTS (SELECT 1 FROM modulo)
+    AND NOT EXISTS (SELECT 1 FROM modulo m
+                     WHERE NOT modulo_acreditado(${alumno}, m.id))
+    AND EXISTS (SELECT 1 FROM cursada_modulo cm
+                 WHERE cm.alumno_id = ${alumno}
+                   AND cm.estado_academico = 'APROBADO'))`;
+
+/**
+ * Padrón de alumnos.
+ * - Por defecto: alumnos activos que todavía no egresaron.
+ * - soloEgresados: únicamente los egresados.
+ */
+export const listarAlumnos = async ({
+    incluirInactivos = false,
+    soloEgresados = false,
+} = {}) => {
+    const filtro = soloEgresados
+        ? `WHERE ${ES_EGRESADO("a.id")}`
+        : `WHERE NOT ${ES_EGRESADO("a.id")}${incluirInactivos ? "" : " AND a.activo"}`;
     const { rows } = await pool.query(
         `${SELECT_ALUMNO} ${filtro} ORDER BY p.apellido, p.nombre`
     );
     return rows;
 }
+
+export const esEgresado = async (alumnoId) => {
+    const { rows } = await pool.query(
+        `SELECT ${ES_EGRESADO("$1::int")} AS egresado`,
+        [alumnoId]
+    );
+    return rows[0].egresado;
+};
+
+export const listarIdsModulos = async () => {
+    const { rows } = await pool.query("SELECT id FROM modulo ORDER BY id");
+    return rows.map((r) => r.id);
+};
 
 export const buscarAlumno = async (id) => {
     const { rows } = await pool.query(
