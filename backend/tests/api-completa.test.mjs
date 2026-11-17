@@ -219,6 +219,10 @@ test("ALUMNOS 1. Alta, consulta, modificación, baja lógica y reactivación", a
   assert.ok(!activos.some((a) => a.id === creado.id), "Dado de baja no aparece en el padrón");
   const todos = await espera(200, "GET", "/alumnos?incluirInactivos=true");
   assert.equal(todos.find((a) => a.id === creado.id)?.activo, false);
+  assert.ok(todos.every((a) => a.egresado === false), "El padrón no incluye egresados");
+  const egresados = await espera(200, "GET", "/alumnos?egresados=true");
+  assert.ok(egresados.every((a) => a.egresado === true));
+  assert.ok(!egresados.some((a) => a.id === creado.id));
   await espera(409, "PUT", `/alumnos/${creado.id}`, datos);
   await espera(204, "DELETE", `/alumnos/${creado.id}`); // idempotente
 
