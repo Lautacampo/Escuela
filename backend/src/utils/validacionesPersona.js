@@ -1,0 +1,42 @@
+export const normalizarDni = (dni) => String(dni ?? "").replace(/\D/g, "");
+
+export const esDniValido = (dni) => {
+  const valor = String(dni ?? "").trim();
+  if (!/^[\d\s.-]+$/.test(valor)) return false;
+
+  const digitos = normalizarDni(valor);
+  return /^\d{7,8}$/.test(digitos) && Number(digitos) >= 1000000;
+};
+
+export const esCuilValido = (cuil, dni) => {
+  const valor = String(cuil ?? "").trim();
+  if (!/^[\d\s.-]+$/.test(valor)) return false;
+
+  const cuilDigitos = valor.replace(/\D/g, "");
+  const dniDigitos = normalizarDni(dni);
+  if (
+    cuilDigitos.length !== 11 ||
+    dniDigitos.length < 7 ||
+    dniDigitos.length > 8 ||
+    cuilDigitos.slice(2, 10) !== dniDigitos.padStart(8, "0")
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+export const normalizarCuil = (cuil) => {
+  const digitos = String(cuil ?? "").replace(/\D/g, "");
+  if (digitos.length !== 11) return String(cuil ?? "").trim();
+  return `${digitos.slice(0, 2)}-${digitos.slice(2, 10)}-${digitos[10]}`;
+};
+
+export const esTelefonoValido = (telefono, obligatorio = false) => {
+  const valor = String(telefono ?? "").trim();
+  if (!valor) return !obligatorio;
+  if (!/^[+\d\s().-]+$/.test(valor)) return false;
+
+  const cantidadDigitos = valor.replace(/\D/g, "").length;
+  return cantidadDigitos >= 8 && cantidadDigitos <= 15;
+};
