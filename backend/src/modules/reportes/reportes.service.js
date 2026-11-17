@@ -1,6 +1,8 @@
 import * as repo from "./reportes.repository.js";
 import { HttpError } from "../../utils/httpError.js";
 
+const LIMITE_FALTAS = 25;
+
 function anioFiltro(query) {
   if (query.anio === undefined || query.anio === "") {
     return null;
@@ -26,11 +28,12 @@ function cursoFiltro(query) {
 }
 
 export const obtenerReporteInasistencias = async (query = {}) => {
+  // Filtro opcional: además de estar libre, tener al menos esa cantidad de faltas.
   const minFaltas =
     query.minFaltas !== undefined && query.minFaltas !== ""
       ? Number(query.minFaltas)
-      : 25;
-  if (!Number.isFinite(minFaltas) || minFaltas < 0) {
+      : null;
+  if (minFaltas !== null && (!Number.isFinite(minFaltas) || minFaltas < 0)) {
     throw new HttpError(400, "El mínimo de faltas debe ser un número mayor o igual a 0");
   }
 
@@ -58,7 +61,8 @@ export const obtenerReporteInasistencias = async (query = {}) => {
   });
 
   return {
-    umbralFaltas: minFaltas,
+    // Límite de faltas: al superarlo el alumno queda libre.
+    umbralFaltas: LIMITE_FALTAS,
     totalAlertas: alertas.length,
     alertas,
   };
