@@ -1,70 +1,39 @@
 import { useEffect, useState } from "react";
 import {
   getPlanEstudioActual,
-  crearPlanEstudio,
   eliminarPlanEstudio,
   reactivarPlanEstudio,
-  getMateriasPlan,
-  crearMateriaPlan,
   getCicloLectivo,
 } from "../services/planEstudiosService.js";
 
-const MODULOS_BASE = [
-  { moduloId: 1, nombre: "Módulo I", anio: 1 },
-  { moduloId: 2, nombre: "Módulo II", anio: 1 },
-  { moduloId: 3, nombre: "Módulo III", anio: 2 },
-  { moduloId: 4, nombre: "Módulo IV", anio: 2 },
-  { moduloId: 5, nombre: "Módulo V", anio: 3 },
-  { moduloId: 6, nombre: "Módulo VI", anio: 3 },
-];
+// Los planes nuevos los carga el soporte técnico: la estructura curricular
+// cambia de un plan a otro y afecta materias, docentes y calificaciones.
+const EMAIL_SOPORTE = "soporte3tomasbaras@gmail.com";
 
 export function PlanEstudios() {
   const [planActual, setPlanActual] = useState(null);
   const [planesInactivos, setPlanesInactivos] = useState([]);
   const [planSeleccionadoId, setPlanSeleccionadoId] = useState("actual");
-  const [materiasDisponibles, setMateriasDisponibles] = useState([]);
   const [cicloActivo, setCicloActivo] = useState(null);
   const [filtroAnio, setFiltroAnio] = useState("");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
 
-  // Modal de Crear Plan
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [guardando, setGuardando] = useState(false);
-  const [errorModal, setErrorModal] = useState("");
-  const [nuevoPlan, setNuevoPlan] = useState({
-    titulo: "",
-    resolucion: "",
-    orientacion: "Ciencias Sociales",
-    anioInicio: 2026,
-  });
-  const [seleccionPorModulo, setSeleccionPorModulo] = useState({
-    1: [],
-    2: [],
-    3: [],
-    4: [],
-    5: [],
-    6: [],
-  });
-
-  // Alta rápida de materia dentro del modal
-  const [nuevaMateriaNombre, setNuevaMateriaNombre] = useState("");
-  const [creandoMateria, setCreandoMateria] = useState(false);
+  // Aviso de "Crear plan nuevo": deriva al soporte técnico.
+  const [mostrarAvisoSoporte, setMostrarAvisoSoporte] = useState(false);
 
   const cargarDatos = async () => {
     try {
       setCargando(true);
       setError("");
-      const [datosPlanes, listaMat, datosCiclo] = await Promise.all([
+      const [datosPlanes, datosCiclo] = await Promise.all([
         getPlanEstudioActual(),
-        getMateriasPlan(),
         getCicloLectivo(),
       ]);
 
       setPlanActual(datosPlanes.planActual);
       setPlanesInactivos(datosPlanes.planesInactivos ?? []);
-      setMateriasDisponibles(listaMat ?? []);
       setCicloActivo(datosCiclo?.cicloActivo ?? null);
     } catch (err) {
       setError(err.message);
@@ -139,89 +108,6 @@ export function PlanEstudios() {
     URL.revokeObjectURL(url);
   };
 
-  // Abre el modal precargando las materias del plan actual para facilitar la creación
-  const abrirModalNuevoPlan = () => {
-    setErrorModal("");
-    setNuevoPlan({
-      titulo: "",
-      resolucion: "",
-      orientacion: "Ciencias Sociales",
-      anioInicio: cicloActivo?.anio ?? 2026,
-    });
-
-    const preseleccion = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
-    if (planActual?.anios) {
-      for (const a of planActual.anios) {
-        for (const m of a.modulos) {
-          preseleccion[m.id] = (m.materias ?? []).map((mat) => mat.id);
-        }
-      }
-    }
-    setSeleccionPorModulo(preseleccion);
-    setMostrarModal(true);
-  };
-
-  const alternarMateriaEnModulo = (moduloId, materiaId) => {
-    setSeleccionPorModulo((prev) => {
-      const actual = prev[moduloId] ?? [];
-      const existe = actual.includes(materiaId);
-      return {
-        ...prev,
-        [moduloId]: existe
-          ? actual.filter((id) => id !== materiaId)
-          : [...actual, materiaId],
-      };
-    });
-  };
-
-  const agregarNuevaMateria = async () => {
-    if (!nuevaMateriaNombre.trim()) return;
-    try {
-      setCreandoMateria(true);
-      setErrorModal("");
-      const creada = await crearMateriaPlan({
-        nombre: nuevaMateriaNombre.trim(),
-      });
-      setMateriasDisponibles((prev) =>
-        [...prev, creada].sort((a, b) => a.nombre.localeCompare(b.nombre)),
-      );
-      setNuevaMateriaNombre("");
-    } catch (err) {
-      setErrorModal(err.message);
-    } finally {
-      setCreandoMateria(false);
-    }
-  };
-
-  const guardarNuevoPlan = async (e) => {
-    e.preventDefault();
-    try {
-      setGuardando(true);
-      setErrorModal("");
-
-      const modulosPayload = MODULOS_BASE.map((m) => ({
-        moduloId: m.moduloId,
-        materiasIds: seleccionPorModulo[m.moduloId] ?? [],
-      }));
-
-      await crearPlanEstudio({
-        ...nuevoPlan,
-        modulos: modulosPayload,
-      });
-
-      setMostrarModal(false);
-      setPlanSeleccionadoId("actual");
-      setAviso(
-        "Nuevo plan de estudios creado como Vigente. El plan anterior pasó automáticamente a estado Inactivo.",
-      );
-      await cargarDatos();
-    } catch (err) {
-      setErrorModal(err.message);
-    } finally {
-      setGuardando(false);
-    }
-  };
-
   const darDeBajaPlanActual = async () => {
     if (!planActual) return;
     const confirmar = window.confirm(
@@ -289,7 +175,7 @@ export function PlanEstudios() {
           <button
             type="button"
             className="pe-boton pe-principal"
-            onClick={abrirModalNuevoPlan}
+            onClick={() => setMostrarAvisoSoporte(true)}
           >
             <i className="fa-solid fa-plus" aria-hidden="true" />
             Crear plan nuevo
@@ -466,171 +352,63 @@ export function PlanEstudios() {
         </div>
       )}
 
-      {/* MODAL PARA CREAR NUEVO PLAN DE ESTUDIOS Y REGISTRAR MATERIAS */}
-      {mostrarModal && (
+      {/* AVISO: los planes nuevos se cargan a través del soporte técnico */}
+      {mostrarAvisoSoporte && (
         <div
           className="modal-alumno-overlay"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setMostrarModal(false);
+            if (e.target === e.currentTarget) setMostrarAvisoSoporte(false);
           }}
         >
-          <div className="modal-alumno" style={{ maxWidth: "880px" }}>
+          <div
+            className="modal-alumno"
+            style={{ maxWidth: "560px" }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-aviso-soporte"
+          >
             <div className="modal-alumno-header">
               <div>
-                <h2>Crear Nuevo Plan de Estudios</h2>
-                <p>
-                  Al guardar este plan como Vigente, el plan anterior pasará a
-                  estado Inactivo (baja lógica).
-                </p>
+                <h2 id="titulo-aviso-soporte">Crear un nuevo plan de estudios</h2>
+                <p>Los planes nuevos los registra el soporte técnico.</p>
               </div>
               <button
                 type="button"
                 className="btn-cerrar-modal"
-                onClick={() => setMostrarModal(false)}
+                aria-label="Cerrar"
+                onClick={() => setMostrarAvisoSoporte(false)}
               >
                 <i className="fa-solid fa-xmark" aria-hidden="true" />
               </button>
             </div>
 
-            <form className="form-gestion" onSubmit={guardarNuevoPlan}>
-              <div className="pe-campos">
-                <label className="pe-campo">
-                  Título del Plan *
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej: Bachiller en Ciencias Sociales 2027"
-                    value={nuevoPlan.titulo}
-                    onChange={(e) =>
-                      setNuevoPlan({ ...nuevoPlan, titulo: e.target.value })
-                    }
-                  />
-                </label>
+            <div className="form-gestion">
+              <p>
+                Para informar un nuevo plan de estudios, comuníquese con el
+                soporte técnico indicando la resolución o decreto y las
+                materias de cada módulo:
+              </p>
+              <p style={{ margin: "16px 0", fontSize: "1.05rem" }}>
+                <i className="fa-solid fa-envelope" aria-hidden="true" />{" "}
+                <a href={`mailto:${EMAIL_SOPORTE}`}>
+                  <strong>{EMAIL_SOPORTE}</strong>
+                </a>
+              </p>
+              <p>
+                El soporte cargará el plan y lo dejará vigente. El plan actual
+                no se modifica mientras tanto.
+              </p>
 
-                <label className="pe-campo">
-                  Resolución / Decreto *
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej: Decreto N.º 1420-ME-2026"
-                    value={nuevoPlan.resolucion}
-                    onChange={(e) =>
-                      setNuevoPlan({ ...nuevoPlan, resolucion: e.target.value })
-                    }
-                  />
-                </label>
-
-                <label className="pe-campo">
-                  Orientación
-                  <input
-                    type="text"
-                    value={nuevoPlan.orientacion}
-                    onChange={(e) =>
-                      setNuevoPlan({
-                        ...nuevoPlan,
-                        orientacion: e.target.value,
-                      })
-                    }
-                  />
-                </label>
-
-                <label className="pe-campo">
-                  Año de inicio
-                  <input
-                    type="number"
-                    value={nuevoPlan.anioInicio}
-                    onChange={(e) =>
-                      setNuevoPlan({ ...nuevoPlan, anioInicio: e.target.value })
-                    }
-                  />
-                </label>
-              </div>
-
-              {/* Alta rápida de materia (#39 POST /api/materias) */}
-              <div className="pe-configuracion">
-                <strong>¿Falta alguna materia en el catálogo?</strong>
-                <div style={{ display: "flex", gap: "10px", width: "100%" }}>
-                  <input
-                    type="text"
-                    placeholder="Nombre de la nueva materia"
-                    value={nuevaMateriaNombre}
-                    onChange={(e) => setNuevaMateriaNombre(e.target.value)}
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    className="pe-boton pe-secundario"
-                    onClick={agregarNuevaMateria}
-                    disabled={creandoMateria}
-                  >
-                    {creandoMateria ? "Agregando..." : "Registrar materia"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Selección de materias por cada Módulo */}
-              <div className="pe-bloques">
-                {MODULOS_BASE.map((mod) => (
-                  <div className="pe-editor" key={mod.moduloId}>
-                    <h3>
-                      {mod.nombre} ({mod.anio}º Año) —{" "}
-                      {(seleccionPorModulo[mod.moduloId] ?? []).length} materias
-                      seleccionadas
-                    </h3>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fill, minmax(220px, 1fr))",
-                        gap: "8px",
-                      }}
-                    >
-                      {materiasDisponibles.map((mat) => {
-                        const marcado = (
-                          seleccionPorModulo[mod.moduloId] ?? []
-                        ).includes(mat.id);
-                        return (
-                          <label key={mat.id} className="pe-checkbox">
-                            <input
-                              type="checkbox"
-                              checked={marcado}
-                              onChange={() =>
-                                alternarMateriaEnModulo(mod.moduloId, mat.id)
-                              }
-                            />
-                            <span>{mat.nombre}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {errorModal && (
-                <div className="pe-error" role="alert">
-                  {errorModal}
-                </div>
-              )}
-
-              <div className="pe-pie-formulario">
+              <div className="acciones-formulario">
                 <button
                   type="button"
-                  className="pe-boton pe-secundario"
-                  onClick={() => setMostrarModal(false)}
-                  disabled={guardando}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
                   className="pe-boton pe-principal"
-                  disabled={guardando}
+                  onClick={() => setMostrarAvisoSoporte(false)}
                 >
-                  {guardando ? "Guardando plan..." : "Guardar Plan de Estudios"}
+                  Entendido
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
