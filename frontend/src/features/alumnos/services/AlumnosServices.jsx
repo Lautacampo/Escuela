@@ -10,6 +10,11 @@ export async function getAlumnos(incluirInactivos = false) {
   );
 }
 
+// Alumnos que completaron los 6 módulos. Su legajo es de solo lectura.
+export async function getAlumnosEgresados() {
+  return apiFetch("/alumnos?egresados=true");
+}
+
 // Ficha completa: trayectoria, equivalencias y, por cada cursada, sus
 // materias y si admite una evaluación de módulo.
 export async function getAlumno(id) {
