@@ -106,13 +106,14 @@ export const listarAlumnosPlanilla = async (cursoId, moduloId, fecha) => {
        LEFT JOIN asistencia asi
          ON asi.cursada_modulo_id = cm.id AND asi.fecha = $3::date
       WHERE cm.curso_id = $1 AND cm.modulo_id = $2 AND al.activo
-        -- Si el alumno recursa el módulo en el mismo curso, solo se lista
-        -- su cursada más reciente.
+        -- Quien ya aprobó el módulo sale de la planilla: vuelve a aparecer en
+        -- el módulo en el que se lo matricule después.
+        AND cm.estado_academico <> 'APROBADO'
+        -- Si el alumno recursa el módulo, solo se lista su cursada nueva.
         AND NOT EXISTS (
             SELECT 1 FROM cursada_modulo nueva
              WHERE nueva.alumno_id = cm.alumno_id
                AND nueva.modulo_id = cm.modulo_id
-               AND nueva.curso_id = cm.curso_id
                AND nueva.id > cm.id)
       ORDER BY p.apellido, p.nombre`,
     [cursoId, moduloId, fecha],
