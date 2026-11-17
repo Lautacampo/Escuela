@@ -1,5 +1,6 @@
 import { pool } from "../../config/db.js";
 import { ReglaNegocio } from "../../utils/reglaNegocio.js";
+import { asegurarEsquemaPlanEstudio } from "../planestudios/planEstudios.repository.js";
 
 // Una cursada "abierta" todavía puede acreditarse (no está aprobada ni libre).
 const ESTADOS_ABIERTOS = ["EN_CURSO", "PENDIENTE"];
@@ -62,6 +63,19 @@ export const esEgresado = async (alumnoId) => {
         [alumnoId]
     );
     return rows[0].egresado;
+};
+
+// Plan de estudios al que pertenece cada alumno (solo los que tienen uno).
+export const listarPlanesDeAlumnos = async (alumnoIds) => {
+    await asegurarEsquemaPlanEstudio();
+    const { rows } = await pool.query(
+        `SELECT a.id AS alumno_id, pe.id, pe.titulo, pe.resolucion, pe.activo
+           FROM alumno a
+           JOIN plan_estudio pe ON pe.id = a.plan_estudio_id
+          WHERE a.id = ANY($1::int[])`,
+        [alumnoIds]
+    );
+    return rows;
 };
 
 export const listarIdsModulos = async () => {
@@ -372,13 +386,26 @@ export const quitarEquivalencia = (alumnoId, moduloId) =>
  *     6. si no, la cursada actual pasa al historial y se crea la nueva. Si el
  *        alumno estaba LIBRE en ese módulo, la nueva cursada es la recursada.
  */
-export const guardarMatricula = (
+export const guardarMatricula = async (
     alumnoId,
     { cursoId, moduloId, equivalencias = [], observacion = null, soloAlta = false }
-) =>
-    enTransaccion(async (db) => {
+) => {
+    await asegurarEsquemaPlanEstudio();
+    return enTransaccion(async (db) => {
         // Serializa las matrículas simultáneas del mismo alumno.
         await db.query("SELECT id FROM alumno WHERE id = $1 FOR UPDATE", [alumnoId]);
+
+        // En su primera matrícula el alumno queda asociado al plan de estudios
+        // vigente. Después no cambia, aunque entre en vigencia otro plan.
+        await db.query(
+            `UPDATE alumno
+                SET plan_estudio_id = (SELECT id FROM plan_estudio
+                                        WHERE activo
+                                        ORDER BY id DESC
+                                        LIMIT 1)
+              WHERE id = $1 AND plan_estudio_id IS NULL`,
+            [alumnoId]
+        );
 
         const { rows } = await db.query(
             `SELECT cm.id, cm.curso_id, cm.modulo_id, cm.estado_academico,
@@ -505,6 +532,7 @@ export const guardarMatricula = (
             tipo: cursadasPrevias > 0 ? "RECURSADA" : "NUEVA",
         };
     });
+};
 
 /**
  * Registra una evaluación de módulo y, si la nota alcanza, acredita el módulo.
