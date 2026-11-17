@@ -63,6 +63,7 @@ export function ListadoEgresados({ egresados }) {
             <tr>
               <th>Apellido y Nombre</th>
               <th>DNI</th>
+              <th>Plan de estudios</th>
               <th>Módulos acreditados</th>
               <th>Fecha de egreso</th>
               <th>Estado</th>
@@ -79,6 +80,7 @@ export function ListadoEgresados({ egresados }) {
                   </strong>
                 </td>
                 <td>{formatearDNI(alumno.dni)}</td>
+                <td>{alumno.planEstudio?.titulo ?? "-"}</td>
                 <td>{alumno.modulosAcreditados?.length ?? 6} de 6</td>
                 <td>{formatearFecha(alumno.fechaEgreso)}</td>
                 <td>
@@ -102,7 +104,7 @@ export function ListadoEgresados({ egresados }) {
 
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={6} className="sin-resultados">
+                <td colSpan={7} className="sin-resultados">
                   {egresados.length === 0
                     ? "Todavía no hay alumnos egresados."
                     : "No se encontraron egresados con esa búsqueda."}
