@@ -832,6 +832,27 @@ test("PLAN 3. Crear, dar de baja y REACTIVAR un plan de estudios", async () => {
   await espera(404, "DELETE", "/plan-estudio/99999999");
   await espera(400, "DELETE", "/plan-estudio/abc");
 
+  // --- Plan de estudios de cada alumno ---
+  // Se fija en la primera matrícula (plan vigente) y no cambia con el plan.
+  const alumnoViejo = await alumnoMatriculado();
+  assert.deepEqual(
+    [alumnoViejo.planEstudio.id, alumnoViejo.planEstudio.titulo, alumnoViejo.planEstudio.vigente],
+    [original.id, original.titulo, true],
+  );
+  const sinMatricula = await espera(201, "POST", "/alumnos", datosAlumno());
+  assert.equal(sinMatricula.planEstudio, null, "Sin matrícula todavía no tiene plan");
+
+  await espera(200, "PATCH", `/plan-estudio/${nuevo.id}/reactivar`);
+  const alumnoNuevo = await alumnoMatriculado();
+  assert.equal(alumnoNuevo.planEstudio.id, nuevo.id, "El que ingresa ahora pertenece al plan nuevo");
+  const viejoDespues = await espera(200, "GET", `/alumnos/${alumnoViejo.id}`);
+  assert.deepEqual([viejoDespues.planEstudio.id, viejoDespues.planEstudio.vigente], [original.id, false], "Conserva su plan, ahora inactivo");
+  // Cambiar de módulo no le cambia el plan.
+  await espera(200, "PUT", `/alumnos/${alumnoViejo.id}/cursadas`, { idCurso: cursoDe(M.II).id, idModulo: M.II });
+  assert.equal((await espera(200, "GET", `/alumnos/${alumnoViejo.id}`)).planEstudio.id, original.id);
+  assert.equal((await espera(200, "GET", "/alumnos")).find((x) => x.id === alumnoNuevo.id).planEstudio.titulo, nuevo.titulo);
+  await espera(200, "PATCH", `/plan-estudio/${original.id}/reactivar`);
+
   // Crear/reactivar planes no altera las materias de cada módulo.
   assert.deepEqual(await espera(200, "GET", "/materias"), materiasAntes);
 });
@@ -847,15 +868,43 @@ test("PLAN 4. Solo directivo", async () => {
 });
 
 // ================================================================ REPORTES
-test("REPORTES 1. Inasistencias: umbral, filtros y datos del alumno", async () => {
+test("REPORTES 1. Inasistencias: solo alumnos LIBRES por faltas, filtros y datos", async () => {
   const a = await alumnoMatriculado(M.I, "D");
+  const enReporte = async (id = a.id) =>
+    (await espera(200, "GET", "/reportes/inasistencias")).alertas.some((x) => x.alumnoId === id);
+  let ultima;
   for (let dia = 1; dia <= 26; dia++) {
-    await espera(201, "POST", "/asistencias", {
+    ultima = await espera(201, "POST", "/asistencias", {
       cursadaModuloId: a.cursada.idCursada,
       fecha: `${CICLO}-${dia <= 13 ? "03" : "04"}-${String(dia <= 13 ? dia : dia - 13).padStart(2, "0")}`,
       valorFalta: 1,
     });
+    // Con 25 faltas justas sigue regular: todavía no figura.
+    if (dia === 25) assert.equal(await enReporte(), false, "25 faltas: regular, no figura");
   }
+  assert.equal(await enReporte(), true, "26 faltas: libre, figura");
+
+  // Caso reportado: se corrige una falta (26 -> 25), deja de estar libre y sale del reporte.
+  await espera(200, "PUT", `/asistencias/${ultima.id}`, { valorFalta: 0 });
+  assert.equal(await enReporte(), false, "Volvió a 25: ya no figura");
+  await espera(200, "PUT", `/asistencias/${ultima.id}`, { valorFalta: 1 });
+  assert.equal(await enReporte(), true);
+
+  // Un módulo aprobado nunca figura, aunque después se le carguen faltas.
+  const aprobado = await alumnoMatriculado(M.I, "D");
+  for (const m of aprobado.cursada.materias) {
+    await espera(200, "PUT", "/calificaciones", { cursadaModuloId: aprobado.cursada.idCursada, materiaId: m.id, estado: "Aprobado", anio: CICLO });
+  }
+  await espera(201, "POST", "/alumnos/evaluaciones-modulo", { idCursadaModulo: aprobado.cursada.idCursada, fecha: `${CICLO}-06-20`, nota: 9, nroInstancia: 1 });
+  for (let dia = 1; dia <= 27; dia++) {
+    await espera(201, "POST", "/asistencias", { cursadaModuloId: aprobado.cursada.idCursada, fecha: `${CICLO}-${dia <= 14 ? "08" : "09"}-${String(dia <= 14 ? dia : dia - 14).padStart(2, "0")}`, valorFalta: 1 });
+  }
+  assert.equal(await enReporte(aprobado.id), false, "Módulo aprobado: no figura");
+
+  // Libre por otro motivo (materia desaprobada) con pocas faltas: tampoco.
+  const otroMotivo = await alumnoMatriculado(M.I, "D");
+  await espera(200, "PUT", "/calificaciones", { cursadaModuloId: otroMotivo.cursada.idCursada, materiaId: otroMotivo.cursada.materias[0].id, estado: "Desaprobado", anio: CICLO });
+  assert.equal(await enReporte(otroMotivo.id), false);
 
   const reporte = await espera(200, "GET", "/reportes/inasistencias");
   assert.equal(reporte.umbralFaltas, 25);
@@ -867,7 +916,10 @@ test("REPORTES 1. Inasistencias: umbral, filtros y datos del alumno", async () =
   // En este reporte `nombre` es el nombre completo (así lo muestra la pantalla).
   assert.equal(fila.nombre, "Api ZZ-TEST");
   assert.equal(fila.apellido, "ZZ-TEST");
-  assert.ok(reporte.alertas.every((x) => x.faltas >= 25));
+  assert.ok(reporte.alertas.every((x) => x.faltas > 25 && x.condicion === "LIBRE"));
+  // Cada alumno muestra el plan de estudios al que pertenece.
+  const planVigente = (await espera(200, "GET", "/plan-estudio/actual")).planActual;
+  assert.equal(fila.planEstudio, planVigente.titulo);
 
   const filtrado = await espera(200, "GET", `/reportes/inasistencias?curso=1&division=D&anio=${CICLO}&moduloId=${M.I}`);
   assert.ok(filtrado.alertas.some((x) => x.alumnoId === a.id));
