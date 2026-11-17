@@ -1,12 +1,15 @@
 import { pool } from "../../config/db.js";
+import { asegurarEsquemaPlanEstudio } from "../planestudios/planEstudios.repository.js";
 
 // #41 - GET /api/reportes/inasistencias
-// Lista los alumnos que alcanzaron o superaron el límite de faltas (por defecto 25)
+// Lista los alumnos que quedaron LIBRES por inasistencias: superaron las 25
+// faltas en un módulo que no tienen aprobado. Quien llegó a 25 justas sigue
+// regular y no figura; tampoco quien ya aprobó el módulo.
 // Reporta faltas por cursada de módulo, sin sumarlas entre módulos.
 // Sin filtro de módulo, muestra la cursada más reciente por alumno y módulo
 // dentro del ciclo seleccionado. Con módulo, permite consultar su historial.
 export const listarInasistenciasCriticas = async ({
-  minFaltas = 25,
+  minFaltas = null,
   curso = null,
   division = null,
   anio = null,
@@ -48,6 +51,8 @@ export const listarInasistenciasCriticas = async ({
        )`
       : "";
 
+  await asegurarEsquemaPlanEstudio();
+
   const { rows } = await pool.query(
     `SELECT *
        FROM (
@@ -69,18 +74,24 @@ export const listarInasistenciasCriticas = async ({
                      WHERE a.cursada_modulo_id = cm.id
                   ), 0)
                 )::float AS faltas,
-                cm.condicion
+                cm.condicion,
+                pe.titulo AS "planEstudio"
            FROM cursada_modulo cm
            JOIN persona p ON p.id = cm.alumno_id
            JOIN alumno al ON al.id = cm.alumno_id
+           LEFT JOIN plan_estudio pe ON pe.id = al.plan_estudio_id
            JOIN curso c ON c.id = cm.curso_id
            JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
            JOIN modulo m ON m.id = cm.modulo_id
           -- Los alumnos dados de baja no generan alertas.
-          WHERE al.activo ${whereExtra}
+          WHERE al.activo
+            -- Solo cursadas LIBRES por inasistencias (nunca las aprobadas).
+            AND cm.condicion = 'LIBRE'
+            AND cm.motivo_libre = 'INASISTENCIAS'
+            ${whereExtra}
             ${filtroCursadaActual}
        ) sub
-      WHERE sub.faltas >= $1
+      WHERE ($1::numeric IS NULL OR sub.faltas >= $1)
       ORDER BY sub.faltas DESC, sub.curso ASC,
                sub.division ASC, sub.apellido ASC`,
     params,
