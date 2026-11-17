@@ -149,6 +149,7 @@ const armar = async (filas, { detalle = false } = {}) => {
     detalle && cursadaIds.length
       ? await repo.correlativosPendientesDeCursadas(cursadaIds)
       : [];
+  const idsModulos = await repo.listarIdsModulos();
 
   return filas.map((f) => {
     const trayectoria = cursadas
@@ -211,6 +212,21 @@ const armar = async (filas, { detalle = false } = {}) => {
       ]),
     ].sort((a, b) => a - b);
 
+    // Egresado: todos los módulos acreditados y al menos uno aprobado acá.
+    const egresado =
+      idsModulos.length > 0 &&
+      idsModulos.every((id) => modulosAcreditados.includes(id)) &&
+      trayectoria.some((c) => c.estadoAcademico === "APROBADO");
+    // Fecha de egreso: la de la última evaluación con la que aprobó un módulo.
+    const fechaEgreso = egresado
+      ? trayectoria
+          .flatMap((c) => c.evaluaciones)
+          .filter((e) => e.nota !== null && e.nota >= 7)
+          .map((e) => e.fecha)
+          .sort()
+          .at(-1) ?? null
+      : null;
+
     const actual =
       trayectoria.find((c) => c.activa) ??
       [...trayectoria]
@@ -245,6 +261,8 @@ const armar = async (filas, { detalle = false } = {}) => {
       estadoAcademico: actual?.estadoAcademico ?? null,
       motivoLibre: actual?.motivoLibre ?? null,
       descripcionMotivoLibre: actual?.descripcionMotivoLibre ?? null,
+      egresado,
+      fechaEgreso,
       modulosAcreditados,
       equivalencias: equivalenciasAlumno,
       trayectoria,
@@ -259,14 +277,32 @@ const buscarOFallar = async (id) => {
   return fila;
 };
 
+// El legajo de un egresado es de solo lectura: no se modifica, no se da de
+// baja, no se matricula ni se le cambian equivalencias.
+const exigirNoEgresado = async (id) => {
+  if (await repo.esEgresado(id)) {
+    throw new HttpError(
+      409,
+      "El alumno es egresado: su legajo es de solo lectura y no admite cambios",
+    );
+  }
+};
+
 const buscarActivoOFallar = async (id) => {
   const fila = await buscarOFallar(id);
+  await exigirNoEgresado(id);
   if (!fila.activo) throw new HttpError(409, "El alumno está dado de baja");
   return fila;
 };
 
-export const listar = async ({ incluirInactivos = false } = {}) =>
-  armar(await repo.listarAlumnos({ incluirInactivos }));
+/**
+ * GET /alumnos                -> alumnos activos que todavía no egresaron
+ * GET /alumnos?egresados=true -> solo los egresados
+ */
+export const listar = async ({
+  incluirInactivos = false,
+  soloEgresados = false,
+} = {}) => armar(await repo.listarAlumnos({ incluirInactivos, soloEgresados }));
 
 export const obtener = async (id) =>
   (await armar([await buscarOFallar(id)], { detalle: true }))[0];
@@ -299,6 +335,7 @@ export const actualizar = async (id, body) => {
  */
 export const eliminar = async (id) => {
   const fila = await buscarOFallar(id);
+  await exigirNoEgresado(id);
   if (!fila.activo) return;
   try {
     await repo.darDeBajaAlumno(id);
