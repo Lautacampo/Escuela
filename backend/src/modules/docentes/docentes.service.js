@@ -165,7 +165,9 @@ export const actualizar = async (id, body) => {
     if (err.code === "23505") {
       throw new HttpError(
         409,
-        "El DNI o CUIL ingresado ya pertenece a otra persona",
+        err.constraint === "usuarios_email_key"
+          ? "Ese correo ya lo usa otro usuario del sistema"
+          : "El DNI o CUIL ingresado ya pertenece a otra persona",
       );
     }
     throw err;
