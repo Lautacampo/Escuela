@@ -329,8 +329,9 @@ test("B1. Trayectoria completa I -> VI respetando correlatividades", async () =>
   await aprobarActivo(id);
   const a = await ficha(id);
   assert.deepEqual(a.modulosAcreditados, [M.I, M.II, M.III, M.IV, M.V, M.VI]);
-  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.VI), 409, /ya aprobó/);
-  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.I), 409, /ya aprobó/);
+  // Con los 6 módulos aprobados es egresado: ya no se lo matricula.
+  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.VI), 409, /egresado/);
+  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.I), 409, /egresado/);
 });
 
 test("B2. No se saltea de año: de I (en curso) a III está bloqueado", async () => {
@@ -692,6 +693,27 @@ test("D8. La cursada libre ya recursada queda cerrada: no se le cambian notas ni
   assert.deepEqual([s.condicion, s.estado, s.cursada.activa], ["LIBRE", "A_RECURSAR", false]);
 });
 
+test("D9. Libre y rematriculado en OTRA división: sale del listado viejo y arranca en cero", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const vieja = await cursadaActiva(id);
+  await faltar(vieja.idCursada, 26);
+  const r = await cambiar(id, M.I, { division: "B" });
+  assert.equal(r.body.matricula, "RECURSADA");
+  const nueva = await cursadaActiva(id);
+  assert.deepEqual([nueva.division.trim(), nueva.faltas, nueva.condicion], ["B", 0, "REGULAR"]);
+  assert.ok(nueva.materias.every((m) => m.estado === "En Curso"));
+
+  const enA = await ok("GET", `/asistencias/modulos/${M.I}/divisiones/A?fecha=${CICLO}-04-01`);
+  assert.ok(!enA.alumnos.some((x) => x.alumnoId === id), "Ya no figura en la división anterior");
+  const enB = await ok("GET", `/asistencias/modulos/${M.I}/divisiones/B?fecha=${CICLO}-04-01`);
+  assert.deepEqual(enB.alumnos.filter((x) => x.alumnoId === id).map((x) => x.faltasAcumuladas), [0]);
+  const grillaA = await ok("GET", `/calificaciones/modulos/${M.I}/divisiones/A?anio=${nueva.cicloLectivo}`);
+  assert.ok(!grillaA.alumnos.some((x) => x.cursadaId === vieja.idCursada));
+  const grillaB = await ok("GET", `/calificaciones/modulos/${M.I}/divisiones/B?anio=${nueva.cicloLectivo}`);
+  assert.ok(grillaB.alumnos.some((x) => x.cursadaId === nueva.idCursada));
+});
+
 // ========================================================= E. EQUIVALENCIAS
 test("E1. Alta y baja de una equivalencia", async () => {
   const id = await crearAlumno();
@@ -843,4 +865,101 @@ test("H3. Trigger: la situación se recalcula aunque el cambio no pase por la AP
     db.query("UPDATE cursada_modulo SET condicion = 'Libre' WHERE id = $1", [c.idCursada]),
     /cursada_modulo_condicion_check/,
   );
+});
+
+// ============================== I. MÓDULOS APROBADOS Y EGRESADOS
+const enPlanilla = async (moduloId, alumnoId) =>
+  (await ok("GET", `/asistencias/modulos/${moduloId}/divisiones/A?fecha=${CICLO}-05-05`)).alumnos.filter((x) => x.alumnoId === alumnoId);
+const enGrilla = async (moduloId, cursadaId) =>
+  (await ok("GET", `/calificaciones/modulos/${moduloId}/divisiones/A?anio=${CICLO}`)).alumnos.filter((x) => x.cursadaId === cursadaId);
+
+test("I1. Al aprobar un módulo sale de asistencias y calificaciones; reaparece en el siguiente con faltas en cero", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  const cI = await cursadaActiva(id);
+  await faltar(cI.idCursada, 25);
+  assert.equal((await enPlanilla(M.I, id)).length, 1);
+  assert.equal((await enGrilla(M.I, cI.idCursada)).length, 1);
+
+  await aprobarActivo(id);
+  assert.equal((await enPlanilla(M.I, id)).length, 0, "Aprobado: fuera de la planilla del Módulo I");
+  assert.equal((await enGrilla(M.I, cI.idCursada)).length, 0, "Aprobado: fuera de la grilla del Módulo I");
+  assert.equal((await enPlanilla(M.II, id)).length, 0, "Todavía no está matriculado en el II");
+
+  assert.equal((await cambiar(id, M.II)).status, 200);
+  const cII = await cursadaActiva(id);
+  const fila = await enPlanilla(M.II, id);
+  assert.deepEqual(fila.map((x) => [x.cursadaId, x.faltasAcumuladas, x.condicion]), [[cII.idCursada, 0, "Regular"]]);
+  assert.equal((await enGrilla(M.II, cII.idCursada)).length, 1);
+  assert.equal((await enPlanilla(M.I, id)).length, 0);
+
+  // La ficha muestra las faltas del módulo que cursa ahora, no las del aprobado.
+  const a = await ficha(id);
+  assert.deepEqual([a.moduloId, a.faltas, a.condicion], [M.II, 0, "REGULAR"]);
+  assert.equal(a.trayectoria.find((c) => c.moduloId === M.I).faltas, 25);
+  assert.equal(a.egresado, false);
+});
+
+test("I2. Egresado: 6 módulos aprobados; legajo de solo lectura y listado propio", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.I);
+  for (const siguiente of ["II", "III", "IV", "V", "VI"]) {
+    await aprobarActivo(id);
+    assert.equal((await ficha(id)).egresado, false);
+    assert.equal((await cambiar(id, M[siguiente])).status, 200);
+  }
+  const ultima = await aprobarActivo(id);
+
+  const a = await ficha(id);
+  assert.equal(a.egresado, true);
+  assert.match(a.fechaEgreso, /^\d{4}-\d{2}-\d{2}/);
+  assert.equal(a.trayectoria.length, 6);
+  assert.ok(a.trayectoria.every((c) => c.estadoAcademico === "APROBADO" && c.evaluable === false));
+
+  // Sale del padrón de alumnos y aparece en el de egresados.
+  assert.ok(!(await ok("GET", "/alumnos")).some((x) => x.id === id));
+  assert.ok(!(await ok("GET", "/alumnos?incluirInactivos=true")).some((x) => x.id === id));
+  const egresados = await ok("GET", "/alumnos?egresados=true");
+  assert.ok(egresados.every((x) => x.egresado === true));
+  assert.equal(egresados.find((x) => x.id === id).trayectoria.length, 6);
+
+  // No se modifica, no se da de baja, no se matricula ni se califica.
+  await falla("PUT", `/alumnos/${id}`, datosAlumno(), 409, /egresado/);
+  await falla("DELETE", `/alumnos/${id}`, undefined, 409, /egresado/);
+  await falla("POST", `/alumnos/${id}/cursadas`, matricula(M.I), 409, /egresado/);
+  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I] }, 409, /egresado/);
+  assert.equal((await evaluar(ultima.idCursada, 2, 10)).status, 409);
+  const nota = await api("PUT", "/calificaciones", {
+    cursadaModuloId: ultima.idCursada, materiaId: ultima.materias[0].id, estado: "Desaprobado", anio: ultima.cicloLectivo,
+  });
+  assert.equal(nota.status, 409);
+  assert.equal((await enPlanilla(M.VI, id)).length, 0);
+  assert.equal((await ficha(id)).egresado, true);
+});
+
+test("I3. Con equivalencias: egresa recién cuando acredita TODOS los módulos", async () => {
+  const id = await crearAlumno();
+  // Entra al VI acreditando I-IV por equivalencia (el V no es correlativo del VI).
+  assert.equal((await alta(id, M.VI, { equivalencias: [M.I, M.II, M.III, M.IV] })).status, 201);
+  await aprobarActivo(id);
+  let a = await ficha(id);
+  assert.equal(a.egresado, false, "Le falta el Módulo V");
+  assert.ok((await ok("GET", "/alumnos")).some((x) => x.id === id), "Sigue en el padrón");
+
+  assert.equal((await cambiar(id, M.V)).status, 200);
+  await aprobarActivo(id);
+  a = await ficha(id);
+  assert.equal(a.egresado, true);
+  assert.equal(a.equivalencias.length, 4);
+  // Tampoco se le pueden quitar las equivalencias.
+  await falla("DELETE", `/alumnos/${id}/equivalencias/${M.I}`, undefined, 409, /egresado/);
+});
+
+test("I4. Tener todo por equivalencia, sin cursar nada acá, no es egresar", async () => {
+  const id = await crearAlumno();
+  await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I, M.II, M.III, M.IV, M.V, M.VI] }, 201);
+  const a = await ficha(id);
+  assert.equal(a.modulosAcreditados.length, 6);
+  assert.equal(a.egresado, false);
+  assert.ok(!(await ok("GET", "/alumnos?egresados=true")).some((x) => x.id === id));
 });
