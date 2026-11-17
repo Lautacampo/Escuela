@@ -241,18 +241,22 @@ test("ALUMNOS 2. Validaciones de datos personales", async () => {
   await espera(400, "POST", "/alumnos", datosAlumno({ cantidadHijos: -1 }));
   await espera(400, "POST", "/alumnos", datosAlumno({ nombre: "" }));
   await espera(400, "POST", "/alumnos", {});
-  // El correo es opcional.
-  const sinCorreo = await espera(201, "POST", "/alumnos", datosAlumno({ email: "" }));
-  assert.ok(sinCorreo.email === null || sinCorreo.email === "");
+  // El correo es obligatorio, el alumno debe ser mayor de edad y el CUIL
+  // tiene que corresponder al DNI.
+  await espera(400, "POST", "/alumnos", datosAlumno({ email: "" }));
+  await espera(400, "POST", "/alumnos", datosAlumno({ fechaNacimiento: `${new Date().getFullYear() - 17}-01-01` }));
+  await espera(400, "POST", "/alumnos", datosAlumno({ cuil: "20-11111111-1" }));
+  await espera(400, "POST", "/alumnos", datosAlumno({ telefonoEmergencia: "123" }));
 });
 
 test("ALUMNOS 3. DNI y CUIL no se repiten", async () => {
   const a = await espera(201, "POST", "/alumnos", datosAlumno());
   const b = await espera(201, "POST", "/alumnos", datosAlumno());
-  await espera(409, "POST", "/alumnos", datosAlumno({ dni: a.dni }));
-  await espera(409, "POST", "/alumnos", datosAlumno({ cuil: a.cuil }));
-  const fichaB = await espera(200, "GET", `/alumnos/${b.id}`);
-  await espera(409, "PUT", `/alumnos/${b.id}`, { ...datosAlumno(), dni: a.dni, cuil: fichaB.cuil });
+  await espera(409, "POST", "/alumnos", datosAlumno({ dni: a.dni, cuil: a.cuil }));
+  // Un CUIL de otro DNI ya no llega a la base: no corresponde al DNI.
+  await espera(400, "POST", "/alumnos", datosAlumno({ cuil: a.cuil }));
+  await espera(200, "GET", `/alumnos/${b.id}`);
+  await espera(409, "PUT", `/alumnos/${b.id}`, { ...datosAlumno(), dni: a.dni, cuil: a.cuil });
 });
 
 test("ALUMNOS 4. Ids inexistentes o inválidos", async () => {
@@ -565,7 +569,8 @@ test("DOCENTES 1. Alta con asignaciones, consulta, filtros, modificación y baja
   // Su usuario pierde el acceso...
   assert.equal((await login(datos.email, "clave1")).status, 401, "Un docente eliminado no inicia sesión");
   // ...y el correo queda libre: se lo puede volver a registrar con otra clave.
-  const otraVez = await espera(201, "POST", "/docentes", { ...datos, dni: unico(), cuil: undefined, password: "clave2" });
+  const dniOtraVez = unico();
+  const otraVez = await espera(201, "POST", "/docentes", { ...datos, dni: dniOtraVez, cuil: cuilDe(dniOtraVez), password: "clave2" });
   assert.equal((await login(datos.email, "clave1")).status, 401);
   assert.equal((await login(datos.email, "clave2")).status, 200);
   await espera(204, "DELETE", `/docentes/${otraVez.id}`);
@@ -585,7 +590,8 @@ test("DOCENTES 2. Validaciones y duplicados", async () => {
 
   const datos = datosDocente();
   const creado = await espera(201, "POST", "/docentes", datos);
-  await espera(409, "POST", "/docentes", datosDocente({ dni: datos.dni }));
+  await espera(409, "POST", "/docentes", datosDocente({ dni: datos.dni, cuil: datos.cuil }));
+  await espera(400, "POST", "/docentes", datosDocente({ cuil: "" }));
   await espera(409, "POST", "/docentes", datosDocente({ email: datos.email }));
   // Un alta rechazada no deja registros a medias.
   const antes = (await espera(200, "GET", "/docentes")).length;
@@ -702,10 +708,11 @@ test("PRECEPTORES 2. Validaciones, duplicados e inexistentes", async () => {
   const { datos, creado } = await crearPreceptor();
   const cantidad = (await espera(200, "GET", "/preceptores")).length;
   // DNI repetido: se rechaza y NO queda un usuario suelto con ese correo.
-  const repetido = { ...datosPreceptor({ dni: datos.dni }), password: "clave1" };
+  const repetido = { ...datosPreceptor({ dni: datos.dni, cuil: datos.cuil }), password: "clave1" };
   await espera(409, "POST", "/preceptores", repetido);
   assert.equal((await login(repetido.email, "clave1")).status, 401);
-  await espera(201, "POST", "/preceptores", { ...repetido, dni: unico(), cuil: cuilDe(unico()) });
+  const dniLibre = unico();
+  await espera(201, "POST", "/preceptores", { ...repetido, dni: dniLibre, cuil: cuilDe(dniLibre) });
   // Correo de otro usuario del sistema.
   await espera(409, "POST", "/preceptores", { ...datosPreceptor({ email: "director@escuela.com" }), password: "clave1" });
   assert.equal((await espera(200, "GET", "/preceptores")).length, cantidad + 1);
