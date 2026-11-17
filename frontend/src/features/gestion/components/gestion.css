@@ -2662,3 +2662,12 @@ body:has(.contenedor-dashboard) {
 .ficha-evaluacion-guardada.ficha-egresado {
   margin: 0 0 20px;
 }
+
+.alumno-plan {
+  display: block;
+  margin-top: 2px;
+  color: var(--gestion-texto);
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.75;
+}
