@@ -31,6 +31,7 @@ import { CalificacionesPage } from "./features/calificaciones/pages/Calificacion
 import { DivisionCalificacionesPage } from "./features/calificaciones/pages/DivisionCalificacionesPage";
 import { PlanEstudiosPage } from "./features/planestudios/pages/PlanEstudiosPage";
 import { ReportesPage } from "./features/reportes/pages/ReportesPage";
+import { NoEncontradaGestionPage } from "./features/gestion/pages/NoEncontradaGestionPage";
 
 export const router = createBrowserRouter([
   // ---------- VISTA PÚBLICA ----------
@@ -86,6 +87,7 @@ export const router = createBrowserRouter([
         element: <DivisionCalificacionesPage />,
         loader: controlSesion([DIRECTIVO, DOCENTE]),
       },
+      { path: "*", element: <NoEncontradaGestionPage /> },
     ],
   },
 ]);
