@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 
-export function CalificacionesTarjetas({ modulo, esDocente, anio }) {
+export function CalificacionesTarjetas({ modulo, esDocente }) {
   return (
     <div className="modulo">
       <div className="modulo-header">
@@ -18,7 +18,7 @@ export function CalificacionesTarjetas({ modulo, esDocente, anio }) {
           <Link
             key={division}
             className="divisionbtn"
-            to={`/gestion/calificaciones/${modulo.id}/${division}?anio=${encodeURIComponent(anio)}`}
+            to={`/gestion/calificaciones/${modulo.id}/${division}`}
           >
             {esDocente ? `División ${division}` : division}
           </Link>
