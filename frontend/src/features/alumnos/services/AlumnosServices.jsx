@@ -76,9 +76,3 @@ export async function registrarEquivalencias(idAlumno, modulosIds, observacion) 
     body: JSON.stringify({ modulosIds, observacion }),
   });
 }
-
-export async function quitarEquivalencia(idAlumno, idModulo) {
-  return apiFetch(`/alumnos/${idAlumno}/equivalencias/${idModulo}`, {
-    method: "DELETE",
-  });
-}

@@ -231,3 +231,63 @@ export const buscarSituacionCursada = async (cursadaId) => {
   );
   return rows[0] ?? null;
 };
+
+// Cantidad de alumnos y de calificaciones cargadas por módulo, materia y
+// división. Se apoya en las mismas reglas que la grilla: solo alumnos
+// activos, sin módulo aprobado y sin cursadas reemplazadas por un recursado.
+export const resumenCargaCalificaciones = async ({ anio, docenteId = null }) => {
+  const params = [anio];
+  let filtroDocente = "";
+
+  if (docenteId !== null) {
+    params.push(docenteId);
+    filtroDocente = `
+      AND EXISTS (
+        SELECT 1 FROM docente_curso_materia dcm
+         WHERE dcm.docente_id = $2
+           AND dcm.curso_id = c.id
+           AND dcm.materia_id = ma.id
+      )`;
+  }
+
+  const { rows } = await pool.query(
+    `WITH alumnos AS (
+       SELECT cm.id AS cursada_id, cm.curso_id, cm.modulo_id
+         FROM cursada_modulo cm
+         JOIN alumno al ON al.id = cm.alumno_id
+        WHERE al.activo
+          AND cm.estado_academico <> 'APROBADO'
+          AND NOT EXISTS (
+              SELECT 1 FROM cursada_modulo nueva
+               WHERE nueva.alumno_id = cm.alumno_id
+                 AND nueva.modulo_id = cm.modulo_id
+                 AND nueva.id > cm.id)
+     )
+     SELECT c.anio_curso::text AS anio_curso,
+            TRIM(c.division) AS division,
+            m.id AS modulo_id,
+            m.numero_leyenda AS modulo,
+            ma.id AS materia_id,
+            ma.nombre AS materia,
+            COUNT(a.cursada_id)::int AS alumnos,
+            COUNT(cal.id) FILTER (
+              WHERE cal.estado IN ('Aprobado', 'Desaprobado')
+            )::int AS calificados
+       FROM curso c
+       JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
+       JOIN curso_modulo cmm ON cmm.curso_id = c.id
+       JOIN modulo m ON m.id = cmm.modulo_id
+       JOIN materia_modulo mm ON mm.modulo_id = m.id
+       JOIN materia ma ON ma.id = mm.materia_id
+       LEFT JOIN alumnos a ON a.curso_id = c.id AND a.modulo_id = m.id
+       LEFT JOIN calificacion cal
+              ON cal.cursada_modulo_id = a.cursada_id
+             AND cal.materia_id = ma.id
+      WHERE cl.anio = $1 ${filtroDocente}
+      GROUP BY c.anio_curso, c.division, m.id, m.numero_leyenda, ma.id, ma.nombre
+      ORDER BY c.anio_curso, m.id, ma.nombre, c.division`,
+    params,
+  );
+
+  return rows;
+};

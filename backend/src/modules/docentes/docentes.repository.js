@@ -244,7 +244,11 @@ export const crearDocente = async (datos, passwordHash) => {
       personaId: nuevoId,
     });
     if (!usuarioId) {
-      throw new HttpError(409, "Ya existe un usuario registrado con ese correo");
+      throw new HttpError(
+        409,
+        "Ya existe un usuario registrado con ese correo",
+        { campo: "email" },
+      );
     }
 
     await client.query("COMMIT");

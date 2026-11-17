@@ -16,6 +16,14 @@ export const listarModulos = async (req, res, next) => {
   }
 };
 
+export const obtenerResumen = async (req, res, next) => {
+  try {
+    res.json(await service.obtenerResumen(req.usuario, req.query.anio));
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const listarDivisiones = async (req, res, next) => {
   try {
     const moduloId = Number(req.params.moduloId);

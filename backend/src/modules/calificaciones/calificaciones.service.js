@@ -57,8 +57,65 @@ export const listarModulos = async (usuario, anioParametro) => {
   }));
 };
 
-export const listarDivisiones = async (usuario, moduloId, anioParametro) => {
+// Agrupa las filas por módulo y materia para el panel de inicio del docente.
+const agruparResumen = (filas) => {
+  const modulos = new Map();
+
+  for (const fila of filas) {
+    const clave = `${fila.anio_curso}-${fila.modulo_id}`;
+
+    if (!modulos.has(clave)) {
+      modulos.set(clave, {
+        moduloId: fila.modulo_id,
+        nombre: fila.modulo,
+        anio: fila.anio_curso,
+        divisiones: [],
+        materias: [],
+      });
+    }
+
+    const modulo = modulos.get(clave);
+    if (!modulo.divisiones.includes(fila.division)) {
+      modulo.divisiones.push(fila.division);
+    }
+
+    let materia = modulo.materias.find((m) => m.id === fila.materia_id);
+    if (!materia) {
+      materia = {
+        id: fila.materia_id,
+        nombre: fila.materia,
+        alumnos: 0,
+        calificados: 0,
+      };
+      modulo.materias.push(materia);
+    }
+
+    materia.alumnos += fila.alumnos;
+    materia.calificados += fila.calificados;
+  }
+
+  return [...modulos.values()].map((modulo) => ({
+    ...modulo,
+    divisiones: [...modulo.divisiones].sort(),
+    materias: modulo.materias
+      .map((materia) => ({
+        ...materia,
+        pendientes: materia.alumnos - materia.calificados,
+      }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+  }));
+};
+
+// Progreso de carga de calificaciones por módulo y materia.
+export const obtenerResumen = async (usuario, anioParametro) => {
   const anio = validarAnio(anioParametro);
+  const docenteId = await resolverDocenteId(usuario);
+  const filas = await repo.resumenCargaCalificaciones({ anio, docenteId });
+
+  return { anio, modulos: agruparResumen(filas) };
+};
+
+export const listarDivisiones = async (usuario, moduloId, anioParametro) => {  const anio = validarAnio(anioParametro);
   if (!Number.isInteger(moduloId)) throw new HttpError(400, "Módulo inválido");
 
   const modulo = await repo.buscarModulo(moduloId);

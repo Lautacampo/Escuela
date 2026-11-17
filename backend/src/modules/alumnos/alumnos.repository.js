@@ -338,38 +338,6 @@ export const registrarEquivalencias = (alumnoId, modulosIds, observacion) =>
     });
 
 /**
- * Quita una equivalencia. No se permite si el alumno ya se apoyó en ella:
- * tiene una cursada u otra equivalencia en un módulo que la exige como
- * correlativa.
- */
-export const quitarEquivalencia = (alumnoId, moduloId) =>
-    enTransaccion(async (db) => {
-        await db.query("SELECT id FROM alumno WHERE id = $1 FOR UPDATE", [alumnoId]);
-
-        const { rows: dependientes } = await db.query(
-            `SELECT DISTINCT m.id, m.numero_leyenda AS nombre
-               FROM modulo_correlativo mc
-               JOIN modulo m ON m.id = mc.modulo_id
-              WHERE mc.modulo_correlativo_id = $2
-                AND (EXISTS (SELECT 1 FROM cursada_modulo cm
-                              WHERE cm.alumno_id = $1 AND cm.modulo_id = mc.modulo_id)
-                  OR EXISTS (SELECT 1 FROM equivalencia_modulo e
-                              WHERE e.alumno_id = $1 AND e.modulo_id = mc.modulo_id))
-              ORDER BY m.id`,
-            [alumnoId, moduloId]
-        );
-        if (dependientes.length > 0) {
-            throw new ReglaNegocio("EQUIVALENCIA_EN_USO", { dependientes });
-        }
-
-        const { rowCount } = await db.query(
-            "DELETE FROM equivalencia_modulo WHERE alumno_id = $1 AND modulo_id = $2",
-            [alumnoId, moduloId]
-        );
-        if (rowCount === 0) throw new ReglaNegocio("EQUIVALENCIA_INEXISTENTE");
-    });
-
-/**
  * Matricula al alumno en un módulo (alta o cambio de matrícula) manteniendo
  * una única cursada activa. Todo ocurre en una transacción: si una regla no
  * se cumple se lanza ReglaNegocio y no queda nada a medio guardar.

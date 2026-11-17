@@ -1,6 +1,6 @@
 import { getToken, logout } from "../../features/auth/services/authServices";
 
-const API = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 
 
@@ -45,7 +45,9 @@ export async function apiFetch(path, options = {}) {
       data?.error ??
       data?.title ??
       responseText;
-    throw new Error(message || "Error en la solicitud");
+    const error = new Error(message || "Error en la solicitud");
+    if (typeof data?.campo === "string") error.campo = data.campo;
+    throw error;
   }
 
   return data;

@@ -63,7 +63,7 @@ Un alumno puede empezar en cualquier módulo si acredita los anteriores por equi
 - **Módulo aprobado:** el alumno deja de figurar en la planilla de asistencia y en la grilla de calificaciones de ese módulo. Vuelve a aparecer en el módulo en el que se lo matricule después, con faltas y materias en cero. Su cursada aprobada queda en la trayectoria.
 - **Egresado:** alumno con los 6 módulos acreditados y al menos uno aprobado en la institución. No se guarda en la base: se calcula a partir de la trayectoria.
 - El egresado sale del padrón de alumnos y se consulta desde **Gestión de Alumnos → Alumnos egresados**.
-- Su legajo es de solo lectura: no se modifica, no se da de baja, no se matricula, no se califica y no se le cambian equivalencias (el backend responde 409).
+- Su legajo es de solo lectura: no se modifica, no se da de baja, no se matricula, no se califica ni se le registran nuevas equivalencias (el backend responde 409).
 
 ## 7. Plan de estudios y reportes
 
@@ -81,7 +81,6 @@ Un alumno puede empezar en cualquier módulo si acredita los anteriores por equi
 | POST | `/api/alumnos/:id/equivalencias` | Nuevo. Body: `{ modulosIds, observacion }` (`observacion` opcional). |
 | PATCH | `/api/plan-estudio/:id/reactivar` | Nuevo. Un plan inactivo vuelve a estar vigente; el que estaba vigente pasa a inactivo. |
 | POST | `/api/preceptores` | Acepta `password`: crea el preceptor y su usuario de acceso en una sola operación. |
-| DELETE | `/api/alumnos/:id/equivalencias/:moduloId` | Nuevo. |
 | POST | `/api/alumnos/evaluaciones-modulo` | Rechaza si el alumno está libre o le faltan correlativas. |
 | PUT | `/api/calificaciones` | Devuelve la situación recalculada. Rechaza cambios en módulos aprobados. |
 | GET | `/api/alumnos/:id` | Agrega equivalencias, módulos acreditados y, por cursada, materias y si es evaluable. |
