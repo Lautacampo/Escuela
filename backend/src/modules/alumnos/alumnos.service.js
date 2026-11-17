@@ -150,6 +150,7 @@ const armar = async (filas, { detalle = false } = {}) => {
       ? await repo.correlativosPendientesDeCursadas(cursadaIds)
       : [];
   const idsModulos = await repo.listarIdsModulos();
+  const planes = await repo.listarPlanesDeAlumnos(ids);
 
   return filas.map((f) => {
     const trayectoria = cursadas
@@ -263,6 +264,18 @@ const armar = async (filas, { detalle = false } = {}) => {
       descripcionMotivoLibre: actual?.descripcionMotivoLibre ?? null,
       egresado,
       fechaEgreso,
+      // Plan de estudios al que pertenece (null hasta su primera matrícula).
+      planEstudio: (() => {
+        const plan = planes.find((p) => p.alumno_id === f.id);
+        return plan
+          ? {
+              id: plan.id,
+              titulo: plan.titulo,
+              resolucion: plan.resolucion,
+              vigente: plan.activo,
+            }
+          : null;
+      })(),
       modulosAcreditados,
       equivalencias: equivalenciasAlumno,
       trayectoria,
