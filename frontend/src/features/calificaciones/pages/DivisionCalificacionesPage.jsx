@@ -1,13 +1,23 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router";
-import { getGrilla, setCalificacion } from "../services/CalificacionesServices";
+import {
+  getCiclosCalificaciones,
+  getGrilla,
+  setCalificacion,
+} from "../services/CalificacionesServices";
 import { CalificacionesAlumnos } from "../components/CalificacionesAlumnos";
 import "../components/calificacionesdivision.css";
 
 export function DivisionCalificacionesPage() {
   const { moduloId, division } = useParams();
   const [searchParams] = useSearchParams();
-  const anio = Number(searchParams.get("anio"));
+  const anioUrl = Number(searchParams.get("anio"));
+  // Ciclo lectivo sobre el que se califica: el de la URL o, si no viene, el vigente.
+  const [anio, setAnio] = useState(
+    Number.isInteger(anioUrl) && anioUrl >= 2000 && anioUrl <= 2100
+      ? anioUrl
+      : null,
+  );
   const [grilla, setGrilla] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -17,9 +27,22 @@ export function DivisionCalificacionesPage() {
     let activo = true;
     setCargando(true);
     setError(null);
-    if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
-      setError("Seleccioná primero un ciclo lectivo en Calificaciones.");
-      setCargando(false);
+    if (anio === null) {
+      getCiclosCalificaciones()
+        .then((respuesta) => {
+          if (!activo) return;
+          const vigente = respuesta?.cicloActivo?.anio;
+          if (vigente) setAnio(Number(vigente));
+          else {
+            setError("No hay un ciclo lectivo vigente.");
+            setCargando(false);
+          }
+        })
+        .catch((e) => {
+          if (!activo) return;
+          setError(e.message);
+          setCargando(false);
+        });
       return () => {
         activo = false;
       };
@@ -84,7 +107,7 @@ export function DivisionCalificacionesPage() {
 
   const volver = (
     <Link
-      to={`/gestion/calificaciones${anio >= 2000 ? `?anio=${anio}` : ""}`}
+      to="/gestion/calificaciones"
       className="btn-volver-calificaciones"
     >
       <span aria-hidden="true">←</span>Volver
@@ -113,7 +136,7 @@ export function DivisionCalificacionesPage() {
     <section className="pagina-calificaciones-division">
       {volver}
       <h2>
-        Módulo {moduloId} - División {division} · Ciclo lectivo {anio}
+        Módulo {moduloId} - División {division}
       </h2>
       {errorGuardar && (
         <p className="error-calificacion" role="alert">
