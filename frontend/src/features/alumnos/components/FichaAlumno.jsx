@@ -341,6 +341,11 @@ export function FichaAlumno() {
     });
   const faltasActuales = alumno.faltas ?? alumno.faltasAcumuladas;
   const condicionActual = formatearCondicion(alumno.condicion);
+  // Egresado: completó los 6 módulos. Su legajo es de solo lectura.
+  const esEgresado = alumno.egresado === true;
+  const rutaListado = esEgresado
+    ? "/gestion/alumnos?vista=egresados"
+    : "/gestion/alumnos";
   const datosAcademicos =
     trayectoria.length > 0
       ? trayectoria.map((cursada, index) => ({
@@ -414,7 +419,7 @@ export function FichaAlumno() {
         <button
           type="button"
           className="btn-volver"
-          onClick={() => navigate("/gestion/alumnos")}
+          onClick={() => navigate(rutaListado)}
         >
           <i className="fa-solid fa-arrow-left"></i>
           Volver
@@ -433,22 +438,49 @@ export function FichaAlumno() {
             <p>
               DNI {alumno.dni}
               {" · "}
-              {NOMBRE_CURSO[alumno.curso] || "Sin curso"}
-              {alumno.division && ` - División ${alumno.division}`}
+              {esEgresado ? (
+                "Egresado"
+              ) : (
+                <>
+                  {NOMBRE_CURSO[alumno.curso] || "Sin curso"}
+                  {alumno.division && ` - División ${alumno.division}`}
+                </>
+              )}
             </p>
           </div>
         </div>
 
-        <button
-          type="button"
-          className="btn-secundario"
-          onClick={() =>
-            navigate("/gestion/alumnos", { state: { editarAlumno: alumno } })
-          }
-        >
-          Editar datos
-        </button>
+        {esEgresado ? (
+          <span className="condicion-egresado">Egresado</span>
+        ) : (
+          <button
+            type="button"
+            className="btn-secundario"
+            onClick={() =>
+              navigate("/gestion/alumnos", { state: { editarAlumno: alumno } })
+            }
+          >
+            Editar datos
+          </button>
+        )}
       </div>
+
+      {esEgresado && (
+        <div className="ficha-evaluacion-guardada ficha-egresado" role="status">
+          <i className="fa-solid fa-graduation-cap"></i>
+          <div>
+            <strong>Alumno egresado</strong>
+            <p>
+              Completó los 6 módulos del plan de estudios
+              {alumno.fechaEgreso
+                ? ` el ${formatearFecha(alumno.fechaEgreso)}`
+                : ""}
+              . Su trayectoria académica está finalizada: el legajo es de solo
+              consulta y no admite modificaciones ni calificaciones.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="ficha-resumen">
         <div className="ficha-resumen-item">
@@ -457,8 +489,10 @@ export function FichaAlumno() {
           </span>
 
           <div>
-            <span>Módulo actual</span>
-            <strong>{alumno.moduloActual || "-"}</strong>
+            <span>{esEgresado ? "Trayectoria" : "Módulo actual"}</span>
+            <strong>
+              {esEgresado ? "Finalizada" : alumno.moduloActual || "-"}
+            </strong>
           </div>
         </div>
 
@@ -483,11 +517,11 @@ export function FichaAlumno() {
           </span>
 
           <div>
-            <span>Faltas acumuladas</span>
+            <span>
+              {esEgresado ? "Faltas en toda la cursada" : "Faltas del módulo actual"}
+            </span>
             <strong>
-              {datosAcademicos.length > 0
-                ? totalFaltas
-                : (faltasActuales ?? "-")}
+              {esEgresado ? totalFaltas : (faltasActuales ?? "-")}
             </strong>
           </div>
         </div>
@@ -498,10 +532,10 @@ export function FichaAlumno() {
           </span>
 
           <div>
-            <span>Condición actual</span>
+            <span>{esEgresado ? "Estado" : "Condición actual"}</span>
 
             <strong className={alumnoLibre ? "texto-libre" : "texto-regular"}>
-              {condicionActual}
+              {esEgresado ? "Egresado" : condicionActual}
             </strong>
           </div>
         </div>
@@ -561,6 +595,8 @@ export function FichaAlumno() {
         </div>
       </section>
 
+      {!esEgresado && (
+      <>
       <section className="ficha-seccion">
         <div className="ficha-seccion-titulo">
           <i className="fa-solid fa-school"></i>
@@ -832,6 +868,9 @@ export function FichaAlumno() {
         )}
       </section>
 
+      </>
+      )}
+
       <section className="ficha-seccion">
         <div className="ficha-seccion-titulo">
           <i className="fa-solid fa-route"></i>
@@ -890,7 +929,7 @@ export function FichaAlumno() {
 
                         <h3>
                           {modulo.modulo}
-                          {modulo.activa ? " (cursada actual)" : ""}
+                          {modulo.activa && !esEgresado ? " (cursada actual)" : ""}
                         </h3>
                       </div>
 
@@ -1008,14 +1047,16 @@ export function FichaAlumno() {
                     <td>{formatearFecha(item.fecha)}</td>
                     <td>{item.observacion || "—"}</td>
                     <td>
-                      <button
-                        type="button"
-                        className="btn-secundario"
-                        disabled={guardandoEquivalencia}
-                        onClick={() => eliminarEquivalencia(item)}
-                      >
-                        Quitar
-                      </button>
+                      {!esEgresado && (
+                        <button
+                          type="button"
+                          className="btn-secundario"
+                          disabled={guardandoEquivalencia}
+                          onClick={() => eliminarEquivalencia(item)}
+                        >
+                          Quitar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -1024,7 +1065,7 @@ export function FichaAlumno() {
           </div>
         )}
 
-        {modulosParaEquivalencia.length > 0 && (
+        {!esEgresado && modulosParaEquivalencia.length > 0 && (
           <form
             className="ficha-evaluacion-form ficha-equivalencia-form"
             onSubmit={guardarEquivalencia}
