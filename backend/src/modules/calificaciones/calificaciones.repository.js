@@ -153,13 +153,15 @@ export const listarAlumnos = async (cursoId, moduloId) => {
        FROM cursada_modulo cm JOIN persona p ON p.id = cm.alumno_id
        JOIN alumno al ON al.id = cm.alumno_id
       WHERE cm.curso_id = $1 AND cm.modulo_id = $2 AND al.activo
-        -- Si el alumno recursa el módulo en el mismo curso, solo se lista
-        -- su cursada más reciente (la anterior queda en su trayectoria).
+        -- Quien ya aprobó el módulo sale del listado: vuelve a aparecer en el
+        -- módulo en el que se lo matricule después.
+        AND cm.estado_academico <> 'APROBADO'
+        -- Si el alumno recursa el módulo, solo se lista su cursada nueva
+        -- (la anterior queda en su trayectoria).
         AND NOT EXISTS (
             SELECT 1 FROM cursada_modulo nueva
              WHERE nueva.alumno_id = cm.alumno_id
                AND nueva.modulo_id = cm.modulo_id
-               AND nueva.curso_id = cm.curso_id
                AND nueva.id > cm.id)
       ORDER BY p.apellido, p.nombre`,
     [cursoId, moduloId],
