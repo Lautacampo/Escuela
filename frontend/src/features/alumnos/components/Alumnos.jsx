@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import { esEmailValido, esDniValido, esCuilValido } from "../../../shared/utils/validaciones";
 import { capitalizarNombre } from "../../../shared/utils/formato";
 import { ListadoAlumnos } from "./ListadoAlumnos";
+import { ListadoEgresados } from "./ListadoEgresados";
 import {
   getAlumnos,
+  getAlumnosEgresados,
   getAlumno,
   getCursos,
   setAlumno,
@@ -221,6 +223,29 @@ export function Alumnos() {
   const [asistencias, setAsistencias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
+  // Vista de egresados (solo lectura): /gestion/alumnos?vista=egresados
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viendoEgresados = searchParams.get("vista") === "egresados";
+  const [egresados, setEgresados] = useState(null);
+  const [errorEgresados, setErrorEgresados] = useState("");
+
+  useEffect(() => {
+    if (!viendoEgresados) return;
+    let activo = true;
+    getAlumnosEgresados()
+      .then((datos) => {
+        if (activo) {
+          setEgresados(datos);
+          setErrorEgresados("");
+        }
+      })
+      .catch((e) => {
+        if (activo) setErrorEgresados(e.message);
+      });
+    return () => {
+      activo = false;
+    };
+  }, [viendoEgresados]);
   const [errorGuardar, setErrorGuardar] = useState("");
   const [errorEliminar, setErrorEliminar] = useState("");
 
@@ -646,18 +671,38 @@ export function Alumnos() {
         <div>
           <h1>Gestión de Alumnos</h1>
           <p>
-            Administración de los alumnos registrados en la institución.
+            {viendoEgresados
+              ? "Alumnos que completaron los 6 módulos. Sus legajos son de solo consulta."
+              : "Administración de los alumnos registrados en la institución."}
           </p>
         </div>
 
-        <button
-          type="button"
-          className="btn-primario-gestion"
-          onClick={abrirFormulario}
-        >
-          <i className="fa-solid fa-user-plus"></i>
-          Registrar alumno
-        </button>
+        <div className="encabezado-acciones">
+          <button
+            type="button"
+            className="btn-secundario"
+            onClick={() =>
+              setSearchParams(viendoEgresados ? {} : { vista: "egresados" })
+            }
+          >
+            <i
+              className={`fa-solid ${viendoEgresados ? "fa-users" : "fa-graduation-cap"}`}
+              aria-hidden="true"
+            ></i>{" "}
+            {viendoEgresados ? "Volver a alumnos" : "Alumnos egresados"}
+          </button>
+
+          {!viendoEgresados && (
+            <button
+              type="button"
+              className="btn-primario-gestion"
+              onClick={abrirFormulario}
+            >
+              <i className="fa-solid fa-user-plus"></i>
+              Registrar alumno
+            </button>
+          )}
+        </div>
       </div>
 
       {errorEliminar && (
@@ -672,11 +717,23 @@ export function Alumnos() {
         </p>
       )}
 
-      <ListadoAlumnos
-        alumnos={alumnos}
-        onEditar={abrirEdicion}
-        onEliminar={eliminarAlumno}
-      />
+      {viendoEgresados ? (
+        errorEgresados ? (
+          <p className="mensaje-error" role="alert">
+            {errorEgresados}
+          </p>
+        ) : egresados === null ? (
+          <p>Cargando alumnos egresados...</p>
+        ) : (
+          <ListadoEgresados egresados={egresados} />
+        )
+      ) : (
+        <ListadoAlumnos
+          alumnos={alumnos}
+          onEditar={abrirEdicion}
+          onEliminar={eliminarAlumno}
+        />
+      )}
 
       {mostrarFormulario && (
         <div
