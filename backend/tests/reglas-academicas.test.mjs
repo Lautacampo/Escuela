@@ -715,7 +715,7 @@ test("D9. Libre y rematriculado en OTRA división: sale del listado viejo y arra
 });
 
 // ========================================================= E. EQUIVALENCIAS
-test("E1. Alta y baja de una equivalencia", async () => {
+test("E1. Alta de equivalencias y repetición sin duplicados", async () => {
   const id = await crearAlumno();
   await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [], observacion: "Tabla 3 Res. 195" }, 400);
   await falla("POST", `/alumnos/${id}/equivalencias`, {}, 400);
@@ -730,20 +730,9 @@ test("E1. Alta y baja de una equivalencia", async () => {
   // Repetirla no duplica ni falla.
   a = await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I], observacion: "Tabla 3 Res. 195" }, 201);
   assert.equal(a.equivalencias.length, 2);
-
-  a = await ok("DELETE", `/alumnos/${id}/equivalencias/${M.II}`);
-  assert.deepEqual(a.equivalencias.map((e) => e.moduloId), [M.I]);
-  await falla("DELETE", `/alumnos/${id}/equivalencias/${M.II}`, undefined, 404);
 });
 
-test("E2. No se puede quitar una equivalencia de la que depende una cursada", async () => {
-  const id = await crearAlumno();
-  await alta(id, M.III, { equivalencias: [M.I, M.II] });
-  await falla("DELETE", `/alumnos/${id}/equivalencias/${M.I}`, undefined, 409, /correlativa de Modulo III/);
-  assert.equal((await ficha(id)).equivalencias.length, 2);
-});
-
-test("E3. No hay equivalencia para un módulo que el alumno está cursando o tiene acreditado", async () => {
+test("E2. No hay equivalencia para un módulo que el alumno está cursando o tiene acreditado", async () => {
   const id = await crearAlumno();
   await alta(id, M.I);
   await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I], observacion: "Tabla 3 Res. 195" }, 409, /ya lo cursó/);
@@ -951,8 +940,6 @@ test("I3. Con equivalencias: egresa recién cuando acredita TODOS los módulos",
   a = await ficha(id);
   assert.equal(a.egresado, true);
   assert.equal(a.equivalencias.length, 4);
-  // Tampoco se le pueden quitar las equivalencias.
-  await falla("DELETE", `/alumnos/${id}/equivalencias/${M.I}`, undefined, 409, /egresado/);
 });
 
 test("I4. Tener todo por equivalencia, sin cursar nada acá, no es egresar", async () => {

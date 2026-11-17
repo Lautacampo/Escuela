@@ -16,7 +16,6 @@ router.put("/:id", controller.actualizar);
 router.post("/:id/cursadas", controller.crearCursada);
 router.put("/:id/cursadas", controller.actualizarCursada);
 router.post("/:id/equivalencias", controller.registrarEquivalencias);
-router.delete("/:id/equivalencias/:moduloId", controller.quitarEquivalencia);
 router.post("/evaluaciones-modulo", controller.evaluarModulo);
 
 export default router;

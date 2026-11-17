@@ -86,16 +86,3 @@ export const registrarEquivalencias = async (req, res, next) => {
         next(err);
     }
 };
-
-export const quitarEquivalencia = async (req, res, next) => {
-    try {
-        res.json(
-            await service.quitarEquivalencia(
-                Number(req.params.id),
-                Number(req.params.moduloId)
-            )
-        );
-    } catch (err) {
-        next(err);
-    }
-};

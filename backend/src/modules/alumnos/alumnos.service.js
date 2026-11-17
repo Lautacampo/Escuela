@@ -508,15 +508,6 @@ const traducirRegla = (err, modulo = null) => {
           .map((p) => p.nombre)
           .join(" y ")}`,
       );
-    case "EQUIVALENCIA_EN_USO":
-      return new HttpError(
-        409,
-        `No se puede quitar la equivalencia: el alumno la necesita como correlativa de ${d.dependientes
-          .map((m) => m.nombre)
-          .join(" y ")}`,
-      );
-    case "EQUIVALENCIA_INEXISTENTE":
-      return new HttpError(404, "El alumno no tiene esa equivalencia");
     default:
       return err;
   }
@@ -608,18 +599,6 @@ export const registrarEquivalencias = async (id, body = {}) => {
   );
   try {
     await repo.registrarEquivalencias(id, ids, observacion);
-  } catch (err) {
-    throw traducirRegla(err);
-  }
-  return obtener(id);
-};
-
-/** DELETE /alumnos/:id/equivalencias/:moduloId */
-export const quitarEquivalencia = async (id, moduloId) => {
-  await buscarActivoOFallar(id);
-  if (!Number.isInteger(moduloId)) throw new HttpError(400, "Módulo inválido");
-  try {
-    await repo.quitarEquivalencia(id, moduloId);
   } catch (err) {
     throw traducirRegla(err);
   }

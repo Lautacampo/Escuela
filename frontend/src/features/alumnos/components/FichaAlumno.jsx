@@ -3,7 +3,6 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import {
   getAlumno,
   getCursos,
-  quitarEquivalencia,
   registrarEquivalencias,
 } from "../services/AlumnosServices";
 import { crearEvaluacionModulo } from "../services/EvaluacionesModuloService";
@@ -236,23 +235,6 @@ export function FichaAlumno() {
         ),
       );
       setEquivalencia({ moduloId: "", observacion: "" });
-    } catch (e) {
-      setErrorEquivalencia(e.message);
-    } finally {
-      setGuardandoEquivalencia(false);
-    }
-  }
-
-  async function eliminarEquivalencia(item) {
-    const confirmar = window.confirm(
-      `¿Quitar la equivalencia de ${item.modulo}?`,
-    );
-    if (!confirmar) return;
-
-    setErrorEquivalencia("");
-    try {
-      setGuardandoEquivalencia(true);
-      setAlumno(await quitarEquivalencia(id, item.moduloId));
     } catch (e) {
       setErrorEquivalencia(e.message);
     } finally {
@@ -1035,7 +1017,6 @@ export function FichaAlumno() {
                   <th>Módulo</th>
                   <th>Fecha de registro</th>
                   <th>Observación</th>
-                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -1046,18 +1027,6 @@ export function FichaAlumno() {
                     </td>
                     <td>{formatearFecha(item.fecha)}</td>
                     <td>{item.observacion || "—"}</td>
-                    <td>
-                      {!esEgresado && (
-                        <button
-                          type="button"
-                          className="btn-secundario"
-                          disabled={guardandoEquivalencia}
-                          onClick={() => eliminarEquivalencia(item)}
-                        >
-                          Quitar
-                        </button>
-                      )}
-                    </td>
                   </tr>
                 ))}
               </tbody>
