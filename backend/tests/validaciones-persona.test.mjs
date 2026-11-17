@@ -6,6 +6,7 @@ import {
   esTelefonoValido,
   normalizarCuil,
 } from "../src/utils/validacionesPersona.js";
+import { esMayorDeEdad } from "../src/utils/fechas.js";
 import { HttpError } from "../src/utils/httpError.js";
 import { traducirUnicidadPersona } from "../src/utils/errorUnicidadPersona.js";
 import { errorHandler } from "../src/middlewares/errorHandler.js";
@@ -30,6 +31,13 @@ test("DNI permite 7 u 8 dígitos, incluso con separadores", () => {
   assert.equal(esDniValido("1234abcd"), false);
 });
 
+test("la mayoría de edad se calcula según si ya pasó el cumpleaños 18", () => {
+  assert.equal(esMayorDeEdad("2008-11-17", "2026-11-17"), true);
+  assert.equal(esMayorDeEdad("2008-11-18", "2026-11-17"), false);
+  assert.equal(esMayorDeEdad("2008-02-29", "2026-02-28"), false);
+  assert.equal(esMayorDeEdad("2008-02-29", "2026-03-01"), true);
+});
+
 test("CUIL debe tener 11 dígitos y coincidir con el DNI, sin validar verificador", () => {
   const cuil = "20-12345678-6";
   assert.equal(esCuilValido(cuil, "12345678"), true);
@@ -39,6 +47,35 @@ test("CUIL debe tener 11 dígitos y coincidir con el DNI, sin validar verificado
   assert.equal(esCuilValido("20-87654321-0", "12345678"), false);
   assert.equal(esCuilValido("20-12345678", "12345678"), false);
   assert.equal(normalizarCuil(cuil.replace(/\D/g, "")), cuil);
+});
+
+test("el alta de alumnos rechaza menores de edad en el campo fecha de nacimiento", async () => {
+  const fechaMenorDeEdad = new Date();
+  fechaMenorDeEdad.setFullYear(fechaMenorDeEdad.getFullYear() - 18);
+  fechaMenorDeEdad.setDate(fechaMenorDeEdad.getDate() + 1);
+  const fechaNacimiento = [
+    fechaMenorDeEdad.getFullYear(),
+    String(fechaMenorDeEdad.getMonth() + 1).padStart(2, "0"),
+    String(fechaMenorDeEdad.getDate()).padStart(2, "0"),
+  ].join("-");
+
+  await rechazaConCampo(
+    crearAlumno({
+      nombre: "Prueba",
+      apellido: "Menor",
+      dni: "12345678",
+      cuil: "20-12345678-0",
+      fechaNacimiento,
+      lugarNacimiento: "San Luis",
+      domicilio: "Calle 1",
+      email: "menor@example.com",
+      telefono: "",
+      telefonoEmergencia: "2664123456",
+      cantidadHijos: 0,
+      trabaja: false,
+    }),
+    "fechaNacimiento",
+  );
 });
 
 test("teléfono admite 8 a 15 dígitos y es opcional cuando se indica", () => {

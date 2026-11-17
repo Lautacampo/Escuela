@@ -35,12 +35,12 @@ export function AsistenciaAlumnos({
           <table className="tabla-gestion">
             <thead>
               <tr>
-                <th>N°</th>
-                <th>Alumno</th>
-                <th>DNI</th>
-                <th>Asistencia del día</th>
-                <th>Faltas acumuladas</th>
-                <th>Situación</th>
+                <th scope="col">N°</th>
+                <th scope="col">Alumno</th>
+                <th scope="col">DNI</th>
+                <th scope="col">Asistencia del día</th>
+                <th scope="col">Faltas acumuladas</th>
+                <th scope="col">Situación</th>
               </tr>
             </thead>
             <tbody>
@@ -53,34 +53,56 @@ export function AsistenciaAlumnos({
                   const registro = registrosDia[a.id];
                   const total = totales[a.id] ?? 0;
                   const libre = a.condicion === "Libre";
+                  const valorFalta = Number(registro?.valorFalta ?? 0);
 
                   return (
                     <tr key={a.id} className={libre ? "fila-libre" : ""}>
-                      <td>{i + 1}</td>
-                      <td>
+                      <td data-label="N°">{i + 1}</td>
+                      <td data-label="Alumno">
                         {a.apellido}, {a.nombre}
                       </td>
-                      <td>{a.dni}</td>
-                      <td>
-                        <select
-                          value={registro ? String(registro.valorFalta) : ""}
-                          disabled={guardando}
-                          onChange={(e) => onCambiar(a.id, e.target.value)}
+                      <td data-label="DNI">{a.dni}</td>
+                      <td data-label="Asistencia del día">
+                        <div
+                          className="asistencia-opciones"
+                          role="group"
+                          aria-label={`Asistencia de ${a.apellido}, ${a.nombre}`}
                         >
-                          {!registro && (
-                            <option value="" disabled>
-                              Sin cargar
-                            </option>
-                          )}
-                          <option value="0">Presente</option>
-                          <option value="0.5">Media falta</option>
-                          <option value="1">Falta</option>
-                        </select>
+                          <span className="asistencia-estado-dia">
+                            {valorFalta === 0
+                              ? "Presente"
+                              : valorFalta === 0.5
+                                ? "Media falta"
+                                : "Falta completa"}
+                          </span>
+                          <label className="asistencia-opcion">
+                            <input
+                              type="checkbox"
+                              checked={valorFalta === 0.5}
+                              disabled={guardando}
+                              onChange={(e) =>
+                                onCambiar(a.id, e.target.checked ? 0.5 : 0)
+                              }
+                            />
+                            Media falta (0,5)
+                          </label>
+                          <label className="asistencia-opcion">
+                            <input
+                              type="checkbox"
+                              checked={valorFalta === 1}
+                              disabled={guardando}
+                              onChange={(e) =>
+                                onCambiar(a.id, e.target.checked ? 1 : 0)
+                              }
+                            />
+                            Falta completa (1)
+                          </label>
+                        </div>
                       </td>
-                      <td>
+                      <td data-label="Faltas acumuladas">
                         {total} / {limite}
                       </td>
-                      <td>
+                      <td data-label="Situación">
                         <span className={libre ? "estado-dp" : "estado-ap"}>
                           {libre ? "Libre" : "Regular"}
                         </span>

@@ -21,3 +21,23 @@ export const hoyISO = () => {
   const dosDigitos = (n) => String(n).padStart(2, "0");
   return `${hoy.getFullYear()}-${dosDigitos(hoy.getMonth() + 1)}-${dosDigitos(hoy.getDate())}`;
 };
+
+export const esMayorDeEdad = (fechaNacimiento, fechaActual = hoyISO()) => {
+  if (!esFechaISOValida(fechaNacimiento) || !esFechaISOValida(fechaActual)) {
+    return false;
+  }
+
+  const [anioNacimiento, mesNacimiento, diaNacimiento] =
+    fechaNacimiento.split("-").map(Number);
+  const [anioActual, mesActual, diaActual] = fechaActual.split("-").map(Number);
+
+  let edad = anioActual - anioNacimiento;
+  if (
+    mesActual < mesNacimiento ||
+    (mesActual === mesNacimiento && diaActual < diaNacimiento)
+  ) {
+    edad--;
+  }
+
+  return edad >= 18;
+};

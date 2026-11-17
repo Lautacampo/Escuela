@@ -184,21 +184,31 @@ function prepararAlumnoLista(alumno, cursos) {
 function calcularEdad(fechaNacimiento) {
   if (!fechaNacimiento) return "";
 
-  const nacimiento = new Date(fechaNacimiento);
+  const [anioNacimiento, mesNacimiento, diaNacimiento] = fechaNacimiento
+    .split("-")
+    .map(Number);
   const hoy = new Date();
 
-  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  let edad = hoy.getFullYear() - anioNacimiento;
 
   const noCumplio =
-    hoy.getMonth() < nacimiento.getMonth() ||
-    (hoy.getMonth() === nacimiento.getMonth() &&
-      hoy.getDate() < nacimiento.getDate());
+    hoy.getMonth() + 1 < mesNacimiento ||
+    (hoy.getMonth() + 1 === mesNacimiento && hoy.getDate() < diaNacimiento);
 
   if (noCumplio) {
     edad--;
   }
 
   return edad;
+}
+
+function fechaMaximaMayorDeEdad() {
+  const hoy = new Date();
+  const anio = hoy.getFullYear() - 18;
+  const mes = hoy.getMonth();
+  const dia = Math.min(hoy.getDate(), new Date(anio, mes + 1, 0).getDate());
+
+  return `${anio}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 }
 
 export function Alumnos() {
@@ -571,6 +581,12 @@ export function Alumnos() {
 
     if (!valores.fechaNacimiento) {
       nuevosErrores.fechaNacimiento = "Debe ingresar la fecha de nacimiento.";
+    } else if (calcularEdad(valores.fechaNacimiento) < 0) {
+      nuevosErrores.fechaNacimiento =
+        "La fecha de nacimiento no puede ser futura.";
+    } else if (calcularEdad(valores.fechaNacimiento) < 18) {
+      nuevosErrores.fechaNacimiento =
+        "El alumno debe tener 18 años o más.";
     }
     if (
       !esTelefonoValido(valores.telefono) ||
@@ -923,6 +939,7 @@ export function Alumnos() {
                       name="fechaNacimiento"
                       value={valores.fechaNacimiento}
                       onChange={manejarCambio}
+                      max={fechaMaximaMayorDeEdad()}
                       className={`input-gestion ${
                         errores.fechaNacimiento ? "input-error" : ""
                       }`}

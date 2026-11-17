@@ -1,6 +1,10 @@
 import { HttpError } from "../../utils/httpError.js";
 import { ReglaNegocio } from "../../utils/reglaNegocio.js";
-import { esFechaISOValida, hoyISO } from "../../utils/fechas.js";
+import {
+  esFechaISOValida,
+  esMayorDeEdad,
+  hoyISO,
+} from "../../utils/fechas.js";
 import { traducirUnicidadPersona } from "../../utils/errorUnicidadPersona.js";
 import {
   esCuilValido,
@@ -134,6 +138,13 @@ const validar = (body) => {
     throw new HttpError(
       400,
       "La fecha de nacimiento no puede ser futura ni anterior a 1900",
+      { campo: "fechaNacimiento" },
+    );
+  }
+  if (!esMayorDeEdad(d.fechaNacimiento)) {
+    throw new HttpError(
+      400,
+      "El alumno debe tener 18 años o más",
       { campo: "fechaNacimiento" },
     );
   }
