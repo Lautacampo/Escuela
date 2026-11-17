@@ -2638,3 +2638,27 @@ body:has(.contenedor-dashboard) {
   color: var(--gestion-secundario);
   font-size: 0.72rem;
 }
+
+/* ---------- ALUMNOS EGRESADOS ---------- */
+
+.encabezado-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.condicion-egresado {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background-color: #e0ecff;
+  color: #1d4ed8;
+  font-size: 0.8rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.ficha-evaluacion-guardada.ficha-egresado {
+  margin: 0 0 20px;
+}
