@@ -3,10 +3,7 @@ import {
   getReporteInasistencias,
   getReporteDesaprobaciones,
 } from "../services/reportesService.js";
-import {
-  getCicloLectivo,
-  crearCicloLectivo,
-} from "../../planestudios/services/planEstudiosService.js";
+import { getCicloLectivo } from "../../planestudios/services/planEstudiosService.js";
 import { getModulos as getModulosCalificaciones } from "../../calificaciones/services/CalificacionesServices.js";
 
 export function Reportes() {
@@ -15,15 +12,9 @@ export function Reportes() {
   const [materiaId, setMateriaId] = useState("");
   const [moduloId, setModuloId] = useState("");
   const [modulosDisponibles, setModulosDisponibles] = useState([]);
-  const [ciclos, setCiclos] = useState([]);
+  // Los reportes son siempre del ciclo lectivo vigente (no se elige en pantalla).
   const [anioSeleccionado, setAnioSeleccionado] = useState("");
   const [cargandoCiclos, setCargandoCiclos] = useState(true);
-  const [mostrarAltaCiclo, setMostrarAltaCiclo] = useState(false);
-  const [nuevoAnio, setNuevoAnio] = useState(
-    String(new Date().getFullYear() + 1),
-  );
-  const [guardandoCiclo, setGuardandoCiclo] = useState(false);
-  const [errorCiclo, setErrorCiclo] = useState("");
   const [alertas, setAlertas] = useState([]);
   const [materias, setMaterias] = useState([]);
   const [umbral, setUmbral] = useState(25);
@@ -37,10 +28,8 @@ export function Reportes() {
       .then((respuesta) => {
         if (!activo) return;
 
-        const lista = respuesta?.ciclos ?? [];
-        setCiclos(lista);
-
-        const vigente = respuesta?.cicloActivo?.anio ?? lista[0]?.anio;
+        const vigente =
+          respuesta?.cicloActivo?.anio ?? respuesta?.ciclos?.[0]?.anio;
 
         setAnioSeleccionado(vigente == null ? "" : String(vigente));
       })
@@ -133,39 +122,6 @@ export function Reportes() {
       (!materiaId || String(registro.materiaId) === materiaId),
   );
 
-  async function agregarCiclo(evento) {
-    evento.preventDefault();
-    setErrorCiclo("");
-
-    const anio = Number(nuevoAnio);
-
-    if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) {
-      setErrorCiclo("Ingresá un año válido entre 2000 y 2100.");
-      return;
-    }
-
-    try {
-      setGuardandoCiclo(true);
-
-      await crearCicloLectivo(anio);
-
-      const respuesta = await getCicloLectivo();
-
-      setCiclos(respuesta.ciclos ?? []);
-      setAnioSeleccionado(String(anio));
-
-      setCurso("");
-      setDivision("");
-      setMateriaId("");
-      setModuloId("");
-      setMostrarAltaCiclo(false);
-    } catch (err) {
-      setErrorCiclo(err.message);
-    } finally {
-      setGuardandoCiclo(false);
-    }
-  }
-
   function limpiarFiltros() {
     setCurso("");
     setDivision("");
@@ -174,7 +130,7 @@ export function Reportes() {
   }
 
   if (cargandoCiclos) {
-    return <p>Cargando ciclos lectivos...</p>;
+    return <p>Cargando reportes...</p>;
   }
 
   if (error && !anioSeleccionado) {
@@ -197,81 +153,10 @@ export function Reportes() {
           </p>
         </div>
 
-        <div className="rep-selector-ciclo">
-          <label htmlFor="reporte-ciclo">Ciclo lectivo</label>
-
-          <select
-            id="reporte-ciclo"
-            className="rep-ciclo"
-            value={anioSeleccionado}
-            onChange={(evento) => {
-              setAnioSeleccionado(evento.target.value);
-              setCurso("");
-              setDivision("");
-              setMateriaId("");
-              setModuloId("");
-            }}
-          >
-            {ciclos.map((ciclo) => (
-              <option key={ciclo.id} value={ciclo.anio}>
-                {ciclo.anio}
-              </option>
-            ))}
-          </select>
-
-          <button
-            type="button"
-            className="btn-secundario"
-            onClick={() => {
-              setErrorCiclo("");
-              setMostrarAltaCiclo(!mostrarAltaCiclo);
-            }}
-          >
-            <i className="fa-solid fa-plus" aria-hidden="true" /> Agregar ciclo
-          </button>
-        </div>
       </header>
 
-      {mostrarAltaCiclo && (
-        <form className="rep-alta-ciclo" onSubmit={agregarCiclo}>
-          <label htmlFor="nuevo-ciclo-lectivo">Nuevo ciclo lectivo</label>
-
-          <input
-            id="nuevo-ciclo-lectivo"
-            type="number"
-            min="2000"
-            max="2100"
-            value={nuevoAnio}
-            onChange={(evento) => setNuevoAnio(evento.target.value)}
-            required
-          />
-
-          <button
-            type="submit"
-            className="btn-secundario"
-            disabled={guardandoCiclo}
-          >
-            {guardandoCiclo ? "Guardando..." : "Guardar ciclo"}
-          </button>
-
-          <button
-            type="button"
-            className="btn-secundario"
-            onClick={() => setMostrarAltaCiclo(false)}
-          >
-            Cancelar
-          </button>
-
-          {errorCiclo && (
-            <p role="alert" className="mensaje-error">
-              {errorCiclo}
-            </p>
-          )}
-        </form>
-      )}
-
       {cargando && (
-        <p role="status">Cargando reportes del ciclo {anioSeleccionado}...</p>
+        <p role="status">Cargando reportes...</p>
       )}
 
       {error && (
