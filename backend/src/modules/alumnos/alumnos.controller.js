@@ -4,7 +4,9 @@ export const listar = async (req, res, next) => {
     try {
         const incluirInactivos =
             String(req.query.incluirInactivos ?? "").toLowerCase() === "true";
-        res.json(await service.listar({ incluirInactivos }));
+        const soloEgresados =
+            String(req.query.egresados ?? "").toLowerCase() === "true";
+        res.json(await service.listar({ incluirInactivos, soloEgresados }));
     } catch (err) {
         next(err);
     }
