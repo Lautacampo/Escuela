@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useForm } from "../../../shared/hooks/useForm";
-import { esDniValido, esEmailValido } from "../../../shared/utils/validaciones";
+import {
+  esCuilValido,
+  esDniValido,
+  esEmailValido,
+  esTelefonoValido,
+  limitarDigitos,
+  normalizarCuil,
+} from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
 import { exportarExcel } from "../../../shared/utils/exportarExcel.js";
 import {
@@ -14,6 +21,9 @@ const DOCENTE_INICIAL = {
   nombre: "",
   apellido: "",
   dni: "",
+  cuil: "",
+  domicilio: "",
+  antiguedad: "",
   especialidad: "",
   email: "",
   telefono: "",
@@ -26,9 +36,27 @@ const CAMPOS = [
   { nombre: "apellido", etiqueta: "Apellido", tipo: "text", obligatorio: true },
   { nombre: "dni", etiqueta: "DNI", tipo: "text", obligatorio: true },
   {
-    nombre: "especialidad",
-    etiqueta: "Especialidad / área de formación",
+    nombre: "cuil",
+    etiqueta: "CUIL",
     tipo: "text",
+    obligatorio: true,
+  },
+  {
+    nombre: "especialidad",
+    etiqueta: "Título / especialidad",
+    tipo: "text",
+    obligatorio: true,
+  },
+  {
+    nombre: "domicilio",
+    etiqueta: "Domicilio",
+    tipo: "text",
+    obligatorio: true,
+  },
+  {
+    nombre: "antiguedad",
+    etiqueta: "Antigüedad (años)",
+    tipo: "number",
     obligatorio: true,
   },
   {
@@ -50,8 +78,10 @@ const CAMPOS = [
 const FILAS_CAMPOS = [
   [CAMPOS[0], CAMPOS[1]],
   [CAMPOS[2], CAMPOS[3]],
-  [CAMPOS[4], CAMPOS[5]],
-  [CAMPOS[6]],
+  [CAMPOS[4], CAMPOS[6]],
+  [CAMPOS[7], CAMPOS[8]],
+  [CAMPOS[5]],
+  [CAMPOS[9]],
 ];
 
 function normalizar(texto) {
@@ -330,7 +360,12 @@ export function Docentes() {
   });
 
   function manejarCambio(evento) {
-    const { name, value } = evento.target;
+    const { name } = evento.target;
+    let { value } = evento.target;
+
+    if (name === "dni") value = limitarDigitos(value, 8);
+    if (name === "telefono") value = limitarDigitos(value, 15);
+    if (name === "antiguedad") value = limitarDigitos(value, 2);
 
     setValores((anteriores) => ({
       ...anteriores,
@@ -395,31 +430,71 @@ export function Docentes() {
     evento.preventDefault();
 
     const nuevosErrores = {};
-    const dni = valores.dni.trim();
+    const dni = limitarDigitos(valores.dni, 8);
+    const antiguedad = Number(valores.antiguedad);
 
     if (!valores.nombre.trim()) {
       nuevosErrores.nombre = "Debe ingresar el nombre.";
+    } else if (valores.nombre.trim().length > 100) {
+      nuevosErrores.nombre = "No puede superar los 100 caracteres.";
     }
 
     if (!valores.apellido.trim()) {
       nuevosErrores.apellido = "Debe ingresar el apellido.";
+    } else if (valores.apellido.trim().length > 100) {
+      nuevosErrores.apellido = "No puede superar los 100 caracteres.";
     }
 
-    if (!/^\d{7,8}$/.test(dni) || !esDniValido(dni)) {
+    if (!dni) {
+      nuevosErrores.dni = "Debe ingresar el DNI.";
+    } else if (!esDniValido(dni)) {
       nuevosErrores.dni = "Debe ingresar un DNI de 7 u 8 números, sin puntos.";
-    } else if (
-      docentes.some((docente) => docente.dni === dni && docente.id !== editando)
-    ) {
-      nuevosErrores.dni = "Ya existe un docente con ese DNI.";
+    }
+
+    if (!valores.cuil.trim()) {
+      nuevosErrores.cuil = "Debe ingresar el CUIL.";
+    } else if (!esCuilValido(valores.cuil, dni)) {
+      nuevosErrores.cuil =
+        "El CUIL debe tener 11 dígitos y corresponder al DNI.";
     }
 
     if (!valores.especialidad.trim()) {
-      nuevosErrores.especialidad = "Debe ingresar la especialidad.";
+      nuevosErrores.especialidad = "Debe ingresar el título o especialidad.";
+    } else if (valores.especialidad.trim().length > 50) {
+      nuevosErrores.especialidad = "No puede superar los 50 caracteres.";
     }
 
-    if (!esEmailValido(valores.email)) {
+    if (!valores.domicilio.trim()) {
+      nuevosErrores.domicilio = "Debe ingresar el domicilio.";
+    } else if (valores.domicilio.trim().length > 200) {
+      nuevosErrores.domicilio = "No puede superar los 200 caracteres.";
+    }
+
+    if (
+      valores.antiguedad === "" ||
+      !Number.isInteger(antiguedad) ||
+      antiguedad < 0 ||
+      antiguedad > 99
+    ) {
+      nuevosErrores.antiguedad =
+        "Ingrese un número entero de años entre 0 y 99.";
+    }
+
+    if (!valores.email.trim()) {
+      nuevosErrores.email = "Debe ingresar el correo electrónico.";
+    } else if (
+      !esEmailValido(valores.email) ||
+      valores.email.trim().length > 150
+    ) {
       nuevosErrores.email =
-        "El formato del correo electrónico ingresado no es válido.";
+        "Ingrese un correo válido de hasta 150 caracteres.";
+    }
+
+    if (
+      !esTelefonoValido(valores.telefono) ||
+      (valores.telefono && valores.telefono.length > 20)
+    ) {
+      nuevosErrores.telefono = "El teléfono debe tener entre 8 y 15 dígitos.";
     }
 
     if (
@@ -465,6 +540,9 @@ export function Docentes() {
       nombre: capitalizarNombre(valores.nombre.trim().replace(/\s+/g, " ")),
       apellido: capitalizarNombre(valores.apellido.trim().replace(/\s+/g, " ")),
       dni,
+      cuil: normalizarCuil(valores.cuil),
+      domicilio: valores.domicilio.trim(),
+      antiguedad,
       especialidad: valores.especialidad.trim(),
       email: valores.email.trim(),
       telefono: valores.telefono.trim(),
@@ -501,7 +579,14 @@ export function Docentes() {
       setHayCambios(false);
       cerrarSinConfirmar();
     } catch (error) {
-      setErrorOperacion(error.message);
+      if (error.campo) {
+        setErrores((anteriores) => ({
+          ...anteriores,
+          [error.campo]: error.message,
+        }));
+      } else {
+        setErrorOperacion(error.message);
+      }
     }
   }
 
@@ -777,9 +862,32 @@ export function Docentes() {
                           onChange={manejarCambio}
                           required={campo.obligatorio}
                           inputMode={
-                            campo.nombre === "dni" ? "numeric" : undefined
+                            ["dni", "cuil", "telefono", "antiguedad"].includes(
+                              campo.nombre,
+                            )
+                              ? "numeric"
+                              : undefined
                           }
-                          maxLength={campo.nombre === "dni" ? 8 : undefined}
+                          maxLength={
+                            campo.nombre === "dni"
+                              ? 8
+                              : campo.nombre === "cuil"
+                                ? 15
+                                : ["nombre", "apellido"].includes(campo.nombre)
+                                  ? 100
+                                  : campo.nombre === "domicilio"
+                                    ? 200
+                                    : campo.nombre === "especialidad"
+                                      ? 50
+                                      : campo.nombre === "email"
+                                        ? 150
+                                        : campo.nombre === "telefono"
+                                          ? 20
+                                          : undefined
+                          }
+                          min={campo.nombre === "antiguedad" ? 0 : undefined}
+                          max={campo.nombre === "antiguedad" ? 99 : undefined}
+                          step={campo.nombre === "antiguedad" ? 1 : undefined}
                           minLength={
                             campo.nombre === "password" ? 4 : undefined
                           }

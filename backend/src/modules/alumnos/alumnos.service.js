@@ -1,6 +1,14 @@
 import { HttpError } from "../../utils/httpError.js";
 import { ReglaNegocio } from "../../utils/reglaNegocio.js";
 import { esFechaISOValida, hoyISO } from "../../utils/fechas.js";
+import { traducirUnicidadPersona } from "../../utils/errorUnicidadPersona.js";
+import {
+  esCuilValido,
+  esDniValido,
+  esTelefonoValido,
+  normalizarCuil,
+  normalizarDni,
+} from "../../utils/validacionesPersona.js";
 import * as repo from "./alumnos.repository.js";
 
 // Campos de texto obligatorios (NOT NULL en persona/alumno) y su etiqueta.
@@ -28,45 +36,128 @@ const validar = (body) => {
   for (const campo of REQUERIDOS) {
     d[campo] = String(body[campo] ?? "").trim();
     if (!d[campo]) {
-      throw new HttpError(400, `${ETIQUETAS_REQUERIDOS[campo]} es obligatorio`);
+      throw new HttpError(
+        400,
+        `${ETIQUETAS_REQUERIDOS[campo]} es obligatorio`,
+        { campo },
+      );
     }
   }
 
-  d.dni = String(body.dni ?? "")
-    .replace(/\./g, "")
-    .trim();
-  if (!/^\d{7,8}$/.test(d.dni) || Number(d.dni) < 1000000) {
-    throw new HttpError(400, "DNI inválido");
+  d.dni = normalizarDni(body.dni);
+  if (!esDniValido(body.dni)) {
+    throw new HttpError(
+      400,
+      "El DNI debe tener entre 7 y 8 dígitos numéricos",
+      { campo: "dni" },
+    );
   }
 
-  d.email = String(body.email ?? "").trim() || null;
-  if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) {
-    throw new HttpError(400, "Correo electrónico inválido");
+  if (d.cuil.length > 15) {
+    throw new HttpError(400, "El CUIL no puede superar los 15 caracteres", {
+      campo: "cuil",
+    });
+  }
+  if (!esCuilValido(d.cuil, d.dni)) {
+    throw new HttpError(
+      400,
+      "El CUIL debe tener 11 dígitos y corresponder al DNI",
+      { campo: "cuil" },
+    );
+  }
+  d.cuil = normalizarCuil(d.cuil);
+
+  for (const [campo, maximo] of [
+    ["nombre", 100],
+    ["apellido", 100],
+    ["cuil", 15],
+    ["domicilio", 200],
+    ["lugarNacimiento", 100],
+    ["telefonoEmergencia", 30],
+  ]) {
+    if (String(d[campo]).length > maximo) {
+      throw new HttpError(
+        400,
+        `${ETIQUETAS_REQUERIDOS[campo] ?? `El campo ${campo}`} no puede superar ${maximo} caracteres`,
+        { campo },
+      );
+    }
+  }
+
+  d.email = String(body.email ?? "").trim();
+  if (!d.email) {
+    throw new HttpError(400, "El correo electrónico es obligatorio", {
+      campo: "email",
+    });
+  }
+  if (
+    d.email.length > 200 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)
+  ) {
+    throw new HttpError(400, "El correo electrónico no es válido", {
+      campo: "email",
+    });
   }
 
   d.telefono = String(body.telefono ?? "").trim() || null;
+  if (
+    !esTelefonoValido(d.telefono) ||
+    (d.telefono && d.telefono.length > 20)
+  ) {
+    throw new HttpError(
+      400,
+      "El teléfono debe tener entre 8 y 15 dígitos",
+      { campo: "telefono" },
+    );
+  }
+
+  if (
+    !esTelefonoValido(d.telefonoEmergencia, true) ||
+    d.telefonoEmergencia.length > 30
+  ) {
+    throw new HttpError(
+      400,
+      "El teléfono de emergencia debe tener entre 8 y 15 dígitos",
+      { campo: "telefonoEmergencia" },
+    );
+  }
+
   d.fechaNacimiento = body.fechaNacimiento;
   if (!esFechaISOValida(d.fechaNacimiento)) {
-    throw new HttpError(400, "La fecha de nacimiento debe ser una fecha válida (AAAA-MM-DD)");
+    throw new HttpError(
+      400,
+      "La fecha de nacimiento debe ser una fecha válida (AAAA-MM-DD)",
+      { campo: "fechaNacimiento" },
+    );
   }
   if (d.fechaNacimiento > hoyISO() || d.fechaNacimiento < "1900-01-01") {
-    throw new HttpError(400, "La fecha de nacimiento no puede ser futura ni anterior a 1900");
+    throw new HttpError(
+      400,
+      "La fecha de nacimiento no puede ser futura ni anterior a 1900",
+      { campo: "fechaNacimiento" },
+    );
   }
 
   d.trabaja = Boolean(body.trabaja);
   d.cantidadHijos = Number(body.cantidadHijos ?? 0);
-  if (!Number.isInteger(d.cantidadHijos) || d.cantidadHijos < 0) {
-    throw new HttpError(400, "Cantidad de hijos inválida");
+  if (
+    !Number.isInteger(d.cantidadHijos) ||
+    d.cantidadHijos < 0 ||
+    d.cantidadHijos > 99
+  ) {
+    throw new HttpError(
+      400,
+      "La cantidad de hijos debe ser un entero entre 0 y 99",
+      { campo: "cantidadHijos" },
+    );
   }
   return d;
 };
 
 const traducirError = (err) => {
   if (err instanceof HttpError) return err;
-  if (err.constraint === "persona_dni_key")
-    return new HttpError(409, "Ya existe una persona con ese DNI");
-  if (err.constraint === "persona_cuil_key")
-    return new HttpError(409, "Ya existe una persona con ese CUIL");
+  const duplicado = traducirUnicidadPersona(err);
+  if (duplicado) return duplicado;
   if (err.constraint === "equivalencia_modulo_alumno_modulo_uk")
     return new HttpError(409, "Esa equivalencia ya está registrada");
   if (err.constraint === "cursada_modulo_abierta_uk")

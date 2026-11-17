@@ -3,42 +3,50 @@ export function esEmailValido(email) {
 }
 
 export function esDniValido(dni) {
-  const numero = parseInt(dni, 10);
-  return numero >= 1000000 && numero <= 99999999;
+  const valor = String(dni ?? "").trim();
+  return /^\d{7,8}$/.test(valor) && Number(valor) >= 1000000;
 }
 
 export function esCuilValido(cuil, dni) {
-  const cuilLimpio = String(cuil).replace(/[^0-9]/g, '');
-  const dniLimpio = String(dni).replace(/[^0-9]/g, '');
+  const valor = String(cuil ?? "").trim();
+  if (!/^[\d\s.-]+$/.test(valor)) return false;
 
-  if(cuilLimpio.length !== 11 || dniLimpio.length < 7 || dniLimpio.length > 8) {
+  const cuilLimpio = valor.replace(/\D/g, "");
+  const dniLimpio = String(dni ?? "").replace(/\D/g, "");
+
+  if (
+    cuilLimpio.length !== 11 ||
+    dniLimpio.length < 7 ||
+    dniLimpio.length > 8
+  ) {
     return false;
   }
 
   const dniEnCuil = cuilLimpio.slice(2, 10);
-  const dniNormalizado = dniLimpio.padStart(8, '0');
+  const dniNormalizado = dniLimpio.padStart(8, "0");
 
-  if(dniEnCuil !== dniNormalizado) {
-    return false;
-  }
+  return dniEnCuil === dniNormalizado;
+}
 
-  const mult = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
-  const digitos = cuilLimpio.split('').map(Number);
-  const digitoVerificador = digitos.pop();
+export function normalizarCuil(cuil) {
+  const digitos = String(cuil ?? "").replace(/\D/g, "");
+  if (digitos.length !== 11) return String(cuil ?? "").trim();
+  return `${digitos.slice(0, 2)}-${digitos.slice(2, 10)}-${digitos[10]}`;
+}
 
-  const acum = digitos.reduce((acc, curr, index) => {
-    return acc + curr * mult[index];
-  }, 0);
+export function esTelefonoValido(telefono, obligatorio = false) {
+  const valor = String(telefono ?? "").trim();
+  if (!valor) return !obligatorio;
+  if (!/^[+\d\s().-]+$/.test(valor)) return false;
 
-  let calculo = 11 - (acum % 11);
+  const cantidadDigitos = valor.replace(/\D/g, "").length;
+  return cantidadDigitos >= 8 && cantidadDigitos <= 15;
+}
 
-  if (calculo === 11) {
-    calculo = 0;
-  } else if (calculo === 10) {
-    calculo = 9;
-  }
-
-  return digitoVerificador === calculo;
+export function limitarDigitos(valor, maximo) {
+  return String(valor ?? "")
+    .replace(/\D/g, "")
+    .slice(0, maximo);
 }
 
 export function esEdadValidaParaNocturna(edad) {

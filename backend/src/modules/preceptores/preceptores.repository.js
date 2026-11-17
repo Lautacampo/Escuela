@@ -93,6 +93,7 @@ export const crearPreceptor = async (datos, passwordHash = null) => {
         passwordHash
           ? "Ya existe un usuario registrado con ese correo"
           : "No se encontró un usuario de preceptor disponible para vincular con ese correo",
+        { campo: "email" },
       );
     }
 

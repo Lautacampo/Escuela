@@ -32,8 +32,9 @@ psql --version
    ```
    *(En pgAdmin: hacer clic derecho sobre `escuela_db` → **Query Tool** → abrir el archivo `database/schema.sql` y presionar **Execute / F5**).*
 
-3. Si la base ya existía (por ejemplo, la de Neon), ejecutar la migración de reglas académicas. `schema.sql` ya la incluye para bases nuevas:
+3. Si la base ya existía (por ejemplo, la de Neon), ejecutar las migraciones necesarias. `schema.sql` ya las incluye para bases nuevas:
    ```bash
+   psql -U postgres -d escuela_db -f database/migrations/003_alumno_baja_logica.sql
    psql -U postgres -d escuela_db -f database/migrations/005_correlatividades_condicion_equivalencias.sql
    psql -U postgres -d escuela_db -f database/migrations/006_sincronizar_secuencias.sql
    ```

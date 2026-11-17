@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useForm } from "../../../shared/hooks/useForm";
-import { esDniValido, esEmailValido } from "../../../shared/utils/validaciones";
+import {
+  esCuilValido,
+  esDniValido,
+  esEmailValido,
+  esTelefonoValido,
+  limitarDigitos,
+  normalizarCuil,
+} from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
 import { exportarExcel } from "../../../shared/utils/exportarExcel.js";
 import {
@@ -30,7 +37,7 @@ const CAMPOS = [
   { nombre: "dni", etiqueta: "DNI", tipo: "text", obligatorio: true },
   {
     nombre: "cuil",
-    etiqueta: "CUIL (ej: 20-12345678-9)",
+    etiqueta: "CUIL (11 dígitos, debe coincidir con el DNI)",
     tipo: "text",
     obligatorio: true,
   },
@@ -245,7 +252,13 @@ export function Preceptores() {
   });
 
   function manejarCambio(evento) {
-    const { name, value } = evento.target;
+    const { name } = evento.target;
+    let { value } = evento.target;
+
+    if (name === "dni") value = limitarDigitos(value, 8);
+    if (name === "telefono") value = limitarDigitos(value, 15);
+    if (name === "antiguedad") value = limitarDigitos(value, 2);
+
     setValores((anteriores) => ({ ...anteriores, [name]: value }));
     setErrores((anteriores) => ({ ...anteriores, [name]: "" }));
     setHayCambios(true);
@@ -255,47 +268,72 @@ export function Preceptores() {
     evento.preventDefault();
 
     const nuevosErrores = {};
-    const dni = valores.dni.trim();
+    const dni = limitarDigitos(valores.dni, 8);
     const cuil = valores.cuil.trim();
 
-    if (!valores.nombre.trim())
+    if (!valores.nombre.trim()) {
       nuevosErrores.nombre = "Debe ingresar el nombre.";
-    if (!valores.apellido.trim())
+    } else if (valores.nombre.trim().length > 100) {
+      nuevosErrores.nombre = "No puede superar los 100 caracteres.";
+    }
+
+    if (!valores.apellido.trim()) {
       nuevosErrores.apellido = "Debe ingresar el apellido.";
+    } else if (valores.apellido.trim().length > 100) {
+      nuevosErrores.apellido = "No puede superar los 100 caracteres.";
+    }
 
-    if (!/^\d{7,8}$/.test(dni) || !esDniValido(dni)) {
+    if (!dni) {
+      nuevosErrores.dni = "Debe ingresar el DNI.";
+    } else if (!esDniValido(dni)) {
       nuevosErrores.dni = "Debe ingresar un DNI de 7 u 8 números, sin puntos.";
+    }
+
+    if (!cuil) {
+      nuevosErrores.cuil = "Debe ingresar el CUIL.";
+    } else if (!esCuilValido(cuil, dni)) {
+      nuevosErrores.cuil =
+        "El CUIL debe tener 11 dígitos y corresponder al DNI.";
+    }
+
+    if (!valores.email.trim()) {
+      nuevosErrores.email = "Debe ingresar el correo electrónico.";
     } else if (
-      preceptores.some(
-        (preceptor) =>
-          String(preceptor.dni) === dni && preceptor.id !== editando,
-      )
+      !esEmailValido(valores.email) ||
+      valores.email.trim().length > 150
     ) {
-      nuevosErrores.dni = "Ya existe un preceptor con ese DNI.";
-    }
-
-    if (!/^\d{2}-\d{7,8}-\d$/.test(cuil)) {
-      nuevosErrores.cuil = "Formato de CUIL inválido (ej: 20-12345678-9).";
-    }
-
-    if (!esEmailValido(valores.email)) {
       nuevosErrores.email =
-        "El formato del correo electrónico ingresado no es válido.";
+        "Ingrese un correo válido de hasta 150 caracteres.";
     }
 
-    if (!valores.domicilio.trim())
+    if (!valores.domicilio.trim()) {
       nuevosErrores.domicilio = "Debe ingresar el domicilio.";
-    if (!valores.titulo.trim())
+    } else if (valores.domicilio.trim().length > 200) {
+      nuevosErrores.domicilio = "No puede superar los 200 caracteres.";
+    }
+
+    if (!valores.titulo.trim()) {
       nuevosErrores.titulo = "Debe ingresar el título.";
+    } else if (valores.titulo.trim().length > 50) {
+      nuevosErrores.titulo = "No puede superar los 50 caracteres.";
+    }
 
     const antiguedad = Number(valores.antiguedad);
     if (
       valores.antiguedad === "" ||
       !Number.isInteger(antiguedad) ||
-      antiguedad < 0
+      antiguedad < 0 ||
+      antiguedad > 99
     ) {
       nuevosErrores.antiguedad =
-        "Ingrese la antigüedad en años (número entero, 0 o más).";
+        "Ingrese la antigüedad en años (entero entre 0 y 99).";
+    }
+
+    if (
+      !esTelefonoValido(valores.telefono) ||
+      (valores.telefono && valores.telefono.length > 20)
+    ) {
+      nuevosErrores.telefono = "El teléfono debe tener entre 8 y 15 dígitos.";
     }
 
     if (
@@ -314,7 +352,7 @@ export function Preceptores() {
       nombre: capitalizarNombre(valores.nombre.trim().replace(/\s+/g, " ")),
       apellido: capitalizarNombre(valores.apellido.trim().replace(/\s+/g, " ")),
       dni,
-      cuil,
+      cuil: normalizarCuil(cuil),
       email: valores.email.trim(),
       telefono: valores.telefono.trim() || null,
       domicilio: valores.domicilio.trim(),
@@ -350,7 +388,14 @@ export function Preceptores() {
       limpiarFiltros();
       cerrarSinConfirmar();
     } catch (e) {
-      setErrorGuardar(e.message);
+      if (e.campo) {
+        setErrores((anteriores) => ({
+          ...anteriores,
+          [e.campo]: e.message,
+        }));
+      } else {
+        setErrorGuardar(e.message);
+      }
     } finally {
       setGuardando(false);
     }
@@ -686,16 +731,37 @@ export function Preceptores() {
                             onChange={manejarCambio}
                             required={campo.obligatorio}
                             inputMode={
-                              campo.nombre === "dni" ? "numeric" : undefined
+                              [
+                                "dni",
+                                "cuil",
+                                "telefono",
+                                "antiguedad",
+                              ].includes(campo.nombre)
+                                ? "numeric"
+                                : undefined
                             }
                             maxLength={
                               campo.nombre === "dni"
                                 ? 8
                                 : campo.nombre === "cuil"
                                   ? 15
+                                  : ["nombre", "apellido"].includes(
+                                        campo.nombre,
+                                      )
+                                    ? 100
+                                    : campo.nombre === "email"
+                                      ? 150
+                                      : campo.nombre === "telefono"
+                                        ? 20
+                                        : campo.nombre === "domicilio"
+                                          ? 200
+                                          : campo.nombre === "titulo"
+                                            ? 50
                                   : undefined
                             }
                             min={campo.nombre === "antiguedad" ? 0 : undefined}
+                            max={campo.nombre === "antiguedad" ? 99 : undefined}
+                            step={campo.nombre === "antiguedad" ? 1 : undefined}
                             className={`input-gestion ${
                               errores[campo.nombre] ? "input-error" : ""
                             }`}

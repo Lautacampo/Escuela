@@ -1,51 +1,115 @@
 import bcrypt from "bcryptjs";
+import { traducirUnicidadPersona } from "../../utils/errorUnicidadPersona.js";
 import { HttpError } from "../../utils/httpError.js";
+import {
+  esCuilValido,
+  esDniValido,
+  esTelefonoValido,
+  normalizarCuil,
+  normalizarDni,
+} from "../../utils/validacionesPersona.js";
 import * as repo from "./docentes.repository.js";
 
 const PASSWORD_SALT_ROUNDS = 10;
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const REGEX_DNI = /^\d{7,8}$/;
-
-function generarCuilPorDefecto(dni) {
-  return `20-${dni}-0`;
-}
 
 function validarDatosDocente(datos) {
   const nombre = String(datos.nombre ?? "").trim();
   const apellido = String(datos.apellido ?? "").trim();
-  const dni = String(datos.dni ?? "").replace(/\D/g, "");
+  const dniIngresado = String(datos.dni ?? "").trim();
+  const dni = normalizarDni(dniIngresado);
   const especialidad = String(datos.especialidad ?? datos.titulo ?? "").trim();
   const email = String(datos.email ?? "").trim();
   const telefono = String(datos.telefono ?? "").trim();
-  const domicilio = String(datos.domicilio ?? "San Luis").trim();
-  const cuil = String(datos.cuil ?? "").trim() || generarCuilPorDefecto(dni);
+  const domicilio = String(datos.domicilio ?? "").trim();
+  const cuilIngresado = String(datos.cuil ?? "").trim();
+  const cuil = normalizarCuil(cuilIngresado);
   const antiguedad =
     datos.antiguedad !== undefined && datos.antiguedad !== ""
       ? Number(datos.antiguedad)
-      : 0;
+      : NaN;
   const asignaciones = Array.isArray(datos.asignaciones)
     ? datos.asignaciones
     : [];
 
-  if (!nombre || !apellido || !dni || !especialidad || !email) {
+  const obligatorios = [
+    ["nombre", nombre, "El nombre es obligatorio"],
+    ["apellido", apellido, "El apellido es obligatorio"],
+    ["dni", dni, "El DNI es obligatorio"],
+    ["cuil", cuilIngresado, "El CUIL es obligatorio"],
+    ["domicilio", domicilio, "El domicilio es obligatorio"],
+    ["especialidad", especialidad, "La especialidad o título es obligatorio"],
+    ["email", email, "El correo electrónico es obligatorio"],
+  ];
+  for (const [campo, valor, mensaje] of obligatorios) {
+    if (!valor) throw new HttpError(400, mensaje, { campo });
+  }
+
+  if (!esDniValido(dniIngresado)) {
     throw new HttpError(
       400,
-      "Nombre, apellido, DNI, especialidad y email son obligatorios",
+      "El DNI debe tener entre 7 y 8 dígitos numéricos",
+      { campo: "dni" },
+    );
+  }
+  if (cuilIngresado.length > 15) {
+    throw new HttpError(400, "El CUIL no puede superar los 15 caracteres", {
+      campo: "cuil",
+    });
+  }
+  if (!esCuilValido(cuilIngresado, dni)) {
+    throw new HttpError(
+      400,
+      "El CUIL debe tener 11 dígitos y corresponder al DNI",
+      { campo: "cuil" },
     );
   }
 
-  if (!REGEX_DNI.test(dni)) {
-    throw new HttpError(400, "El DNI debe tener entre 7 y 8 dígitos numéricos");
+  if (nombre.length > 100 || apellido.length > 100) {
+    const campo = nombre.length > 100 ? "nombre" : "apellido";
+    throw new HttpError(400, "No puede superar los 100 caracteres", { campo });
   }
-
-  if (!REGEX_EMAIL.test(email)) {
-    throw new HttpError(400, "El formato del correo electrónico es inválido");
+  if (cuil.length > 15) {
+    throw new HttpError(400, "El CUIL no puede superar los 15 caracteres", {
+      campo: "cuil",
+    });
   }
-
-  if (!Number.isInteger(antiguedad) || antiguedad < 0) {
+  if (domicilio.length > 200) {
+    throw new HttpError(400, "El domicilio no puede superar los 200 caracteres", {
+      campo: "domicilio",
+    });
+  }
+  if (!especialidad || especialidad.length > 50) {
     throw new HttpError(
       400,
-      "La antigüedad debe ser un número entero mayor o igual a 0",
+      "La especialidad o título no puede superar los 50 caracteres",
+      { campo: "especialidad" },
+    );
+  }
+  if (!REGEX_EMAIL.test(email) || email.length > 150) {
+    throw new HttpError(
+      400,
+      "Ingrese un correo válido de hasta 150 caracteres",
+      { campo: "email" },
+    );
+  }
+  if (!esTelefonoValido(telefono) || telefono.length > 20) {
+    throw new HttpError(
+      400,
+      "El teléfono debe tener entre 8 y 15 dígitos",
+      { campo: "telefono" },
+    );
+  }
+
+  if (
+    !Number.isInteger(antiguedad) ||
+    antiguedad < 0 ||
+    antiguedad > 99
+  ) {
+    throw new HttpError(
+      400,
+      "La antigüedad debe ser un número entero entre 0 y 99",
+      { campo: "antiguedad" },
     );
   }
 
@@ -58,6 +122,7 @@ function validarDatosDocente(datos) {
       throw new HttpError(
         400,
         "Cada asignación debe incluir moduloId, division y materia válidos",
+        { campo: "asignaciones" },
       );
     }
   }
@@ -122,7 +187,11 @@ export const obtenerPorId = async (id) => {
 
 export const crear = async (body) => {
   if (typeof body.password !== "string" || body.password.length < 4) {
-    throw new HttpError(400, "La contraseña debe tener al menos 4 caracteres");
+    throw new HttpError(
+      400,
+      "La contraseña debe tener al menos 4 caracteres",
+      { campo: "password" },
+    );
   }
 
   const datos = validarDatosDocente(body);
@@ -131,11 +200,10 @@ export const crear = async (body) => {
   try {
     return await repo.crearDocente(datos, passwordHash);
   } catch (err) {
+    const duplicado = traducirUnicidadPersona(err);
+    if (duplicado) throw duplicado;
     if (err.code === "23505") {
-      throw new HttpError(
-        409,
-        "Ya existe un usuario registrado con ese correo, DNI o CUIL",
-      );
+      throw new HttpError(409, "Ya existe un registro con esos datos");
     }
     throw err;
   }
@@ -162,13 +230,10 @@ export const actualizar = async (id, body) => {
   try {
     return await repo.actualizarDocente(id, datos);
   } catch (err) {
+    const duplicado = traducirUnicidadPersona(err);
+    if (duplicado) throw duplicado;
     if (err.code === "23505") {
-      throw new HttpError(
-        409,
-        err.constraint === "usuarios_email_key"
-          ? "Ese correo ya lo usa otro usuario del sistema"
-          : "El DNI o CUIL ingresado ya pertenece a otra persona",
-      );
+      throw new HttpError(409, "Ya existe un registro con esos datos");
     }
     throw err;
   }

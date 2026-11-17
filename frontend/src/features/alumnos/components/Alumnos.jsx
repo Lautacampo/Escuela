@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
-import { esEmailValido, esDniValido, esCuilValido } from "../../../shared/utils/validaciones";
+import {
+  esCuilValido,
+  esDniValido,
+  esEmailValido,
+  esTelefonoValido,
+  limitarDigitos,
+  normalizarCuil,
+} from "../../../shared/utils/validaciones";
 import { capitalizarNombre } from "../../../shared/utils/formato";
 import { ListadoAlumnos } from "./ListadoAlumnos";
 import { ListadoEgresados } from "./ListadoEgresados";
@@ -277,7 +284,14 @@ export function Alumnos() {
   }, []);
 
   const manejarCambio = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, type, checked } = e.target;
+    let { value } = e.target;
+
+    if (name === "dni") value = limitarDigitos(value, 8);
+    if (["telefono", "telefonoEmergencia"].includes(name)) {
+      value = limitarDigitos(value, 15);
+    }
+    if (name === "cantidadHijos") value = limitarDigitos(value, 2);
 
     setValores((anteriores) => ({
       ...anteriores,
@@ -520,8 +534,10 @@ export function Alumnos() {
   async function handleSubmit(e) {
     e.preventDefault();
     setErrorGuardar("");
+    setErrores({});
 
     const nuevosErrores = {};
+    const dni = limitarDigitos(valores.dni, 8);
 
     for (const [campo, mensaje] of Object.entries(CAMPOS_OBLIGATORIOS)) {
       if (!String(valores[campo] ?? "").trim()) {
@@ -529,23 +545,66 @@ export function Alumnos() {
       }
     }
 
-    if (!esDniValido(valores.dni)) {
+    if (!dni) {
+      nuevosErrores.dni = "Debe ingresar el DNI.";
+    } else if (!esDniValido(dni)) {
       nuevosErrores.dni =
-        "El DNI debe contener un número válido entre 1.000.000 y 99.999.999.";
+        "El DNI debe tener entre 7 y 8 dígitos numéricos.";
     }
 
-    if (!esCuilValido(valores.cuil, valores.dni)) {
+    if (!valores.cuil.trim()) {
+      nuevosErrores.cuil = "Debe ingresar el CUIL.";
+    } else if (!esCuilValido(valores.cuil, dni)) {
       nuevosErrores.cuil =
-        "El CUIL debe contener el DNI ingresado, y debe tener 11 dígitos de largo."
+        "El CUIL debe tener 11 dígitos y corresponder al DNI.";
     }
 
-    if (!esEmailValido(valores.email)) {
+    if (!valores.email.trim()) {
+      nuevosErrores.email = "Debe ingresar el correo electrónico.";
+    } else if (
+      !esEmailValido(valores.email) ||
+      valores.email.trim().length > 200
+    ) {
       nuevosErrores.email =
-        "El formato del correo electrónico ingresado no es válido.";
+        "Ingrese un correo válido de hasta 200 caracteres.";
     }
 
     if (!valores.fechaNacimiento) {
       nuevosErrores.fechaNacimiento = "Debe ingresar la fecha de nacimiento.";
+    }
+    if (
+      !esTelefonoValido(valores.telefono) ||
+      (valores.telefono && valores.telefono.length > 20)
+    ) {
+      nuevosErrores.telefono = "El teléfono debe tener entre 8 y 15 dígitos.";
+    }
+    if (
+      valores.telefonoEmergencia.trim() &&
+      (!esTelefonoValido(valores.telefonoEmergencia, true) ||
+        valores.telefonoEmergencia.length > 30)
+    ) {
+      nuevosErrores.telefonoEmergencia =
+        "El teléfono de emergencia debe tener entre 8 y 15 dígitos.";
+    }
+    const cantidadHijos = Number(valores.cantidadHijos || 0);
+    if (
+      !Number.isInteger(cantidadHijos) ||
+      cantidadHijos < 0 ||
+      cantidadHijos > 99
+    ) {
+      nuevosErrores.cantidadHijos =
+        "La cantidad de hijos debe ser un entero entre 0 y 99.";
+    }
+
+    for (const [campo, maximo] of [
+      ["nombre", 100],
+      ["apellido", 100],
+      ["lugarNacimiento", 100],
+      ["domicilio", 200],
+    ]) {
+      if (String(valores[campo] ?? "").trim().length > maximo) {
+        nuevosErrores[campo] = `No puede superar los ${maximo} caracteres.`;
+      }
     }
 
     // Al editar, los datos académicos se cambian sólo desde el editor de
@@ -584,16 +643,16 @@ export function Alumnos() {
       apellido: capitalizarNombre(
         valores.apellido.trim().replace(/\s+/g, " ")
       ),
-      dni: String(valores.dni).trim(),
+      dni,
       fechaNacimiento: valores.fechaNacimiento,
-      cuil: valores.cuil.trim(),
+      cuil: normalizarCuil(valores.cuil),
       lugarNacimiento: valores.lugarNacimiento.trim(),
       domicilio: valores.domicilio.trim(),
       telefono: valores.telefono,
       email: valores.email,
       trabaja: valores.trabaja,
       telefonoEmergencia: valores.telefonoEmergencia.trim(),
-      cantidadHijos: Number(valores.cantidadHijos) || 0,
+      cantidadHijos,
     };
 
     try {
@@ -653,7 +712,14 @@ export function Alumnos() {
 
       cerrarFormulario();
     } catch (e) {
-      setErrorGuardar(e.message);
+      if (e.campo) {
+        setErrores((anteriores) => ({
+          ...anteriores,
+          [e.campo]: e.message,
+        }));
+      } else {
+        setErrorGuardar(e.message);
+      }
     }
   }
 
@@ -772,7 +838,11 @@ export function Alumnos() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="form-gestion">
+            <form
+              onSubmit={handleSubmit}
+              className="form-gestion"
+              noValidate
+            >
               <p className="nota-obligatorios">
                 Los campos marcados con * son obligatorios.
               </p>
@@ -789,6 +859,7 @@ export function Alumnos() {
                       name="nombre"
                       value={valores.nombre}
                       onChange={manejarCambio}
+                      maxLength={100}
                       className={`input-gestion ${
                         errores.nombre ? "input-error" : ""
                       }`}
@@ -807,6 +878,7 @@ export function Alumnos() {
                       name="apellido"
                       value={valores.apellido}
                       onChange={manejarCambio}
+                      maxLength={100}
                       className={`input-gestion ${
                         errores.apellido ? "input-error" : ""
                       }`}
@@ -822,11 +894,13 @@ export function Alumnos() {
                   <div className="form-group">
                     <label htmlFor="dni">DNI *</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       id="dni"
                       name="dni"
                       value={valores.dni}
                       onChange={manejarCambio}
+                      maxLength={8}
                       className={`input-gestion ${
                         errores.dni ? "input-error" : ""
                       }`}
@@ -886,6 +960,8 @@ export function Alumnos() {
                       name="cuil"
                       value={valores.cuil}
                       onChange={manejarCambio}
+                      maxLength={15}
+                      inputMode="numeric"
                       className={`input-gestion ${
                         errores.cuil ? "input-error" : ""
                       }`}
@@ -907,6 +983,7 @@ export function Alumnos() {
                       name="lugarNacimiento"
                       value={valores.lugarNacimiento}
                       onChange={manejarCambio}
+                      maxLength={100}
                       className={`input-gestion ${
                         errores.lugarNacimiento ? "input-error" : ""
                       }`}
@@ -928,6 +1005,7 @@ export function Alumnos() {
                     name="domicilio"
                     value={valores.domicilio}
                     onChange={manejarCambio}
+                    maxLength={200}
                     className={`input-gestion ${
                       errores.domicilio ? "input-error" : ""
                     }`}
@@ -947,8 +1025,15 @@ export function Alumnos() {
                       name="telefono"
                       value={valores.telefono}
                       onChange={manejarCambio}
-                      className="input-gestion"
+                      inputMode="numeric"
+                      maxLength={15}
+                      className={`input-gestion ${
+                        errores.telefono ? "input-error" : ""
+                      }`}
                     />
+                    {errores.telefono && (
+                      <span className="mensaje-error">{errores.telefono}</span>
+                    )}
                   </div>
 
                   <div className="form-group">
@@ -959,6 +1044,7 @@ export function Alumnos() {
                       name="email"
                       value={valores.email}
                       onChange={manejarCambio}
+                      maxLength={200}
                       className={`input-gestion ${
                         errores.email ? "input-error" : ""
                       }`}
@@ -982,6 +1068,8 @@ export function Alumnos() {
                       name="telefonoEmergencia"
                       value={valores.telefonoEmergencia}
                       onChange={manejarCambio}
+                      inputMode="numeric"
+                      maxLength={15}
                       className={`input-gestion ${
                         errores.telefonoEmergencia ? "input-error" : ""
                       }`}
@@ -999,12 +1087,21 @@ export function Alumnos() {
                     <input
                       type="number"
                       min="0"
+                      max="99"
+                      step="1"
                       id="cantidadHijos"
                       name="cantidadHijos"
                       value={valores.cantidadHijos}
                       onChange={manejarCambio}
-                      className="input-gestion"
+                      className={`input-gestion ${
+                        errores.cantidadHijos ? "input-error" : ""
+                      }`}
                     />
+                    {errores.cantidadHijos && (
+                      <span className="mensaje-error">
+                        {errores.cantidadHijos}
+                      </span>
+                    )}
                   </div>
 
                   <div className="form-group checkbox-group">
