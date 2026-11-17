@@ -257,6 +257,11 @@ export function ListadoAlumnos({
                   <strong>
                     {alumno.apellido}, {alumno.nombre}
                   </strong>
+                  {alumno.planEstudio && (
+                    <span className="alumno-plan">
+                      Plan: {alumno.planEstudio.titulo}
+                    </span>
+                  )}
                 </td>
 
                 <td>{formatearDNI(alumno.dni)}</td>
