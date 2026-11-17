@@ -1,0 +1,379 @@
+/* ==========================================================
+   Panel de Inicio (dashboard de gestión)
+   Estilo claro y sutil, alineado con la ficha del alumno.
+   ========================================================== */
+
+.dashboard-inicio {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ---------- Encabezado ---------- */
+
+.dash-encabezado {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 26px;
+}
+
+.dash-encabezado-icono {
+  display: grid;
+  width: 65px;
+  height: 65px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--gestion-radio);
+  background-color: var(--gestion-primario);
+  color: white;
+  font-size: 1.4rem;
+}
+
+.dash-encabezado h1 {
+  margin: 0 0 5px;
+  color: var(--gestion-primario);
+  font-family: var(--gestion-titulos);
+  font-size: 1.8rem;
+}
+
+.dash-subtitulo {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+/* ---------- Bloques (secciones) ---------- */
+
+/* La landing define `main section:not(.hero)` con fondo oscuro; estos
+   selectores la neutralizan sólo dentro del panel. */
+.dashboard-inicio .dash-seccion,
+.dashboard-inicio .dash-panel {
+  padding: 25px;
+  margin-bottom: 22px;
+  background-color: #fff;
+  border: 1px solid #dbe3ed;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgb(15 23 42 / 5%);
+}
+
+.dash-titulo-seccion {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 0 0 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5eaf1;
+}
+
+.dash-titulo-seccion i {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--gestion-radio);
+  background-color: #edf4fa;
+  color: var(--gestion-primario);
+  font-size: 1rem;
+}
+
+.dashboard-inicio .dash-titulo-seccion h2 {
+  margin: 0 0 3px;
+  color: #172b4d;
+  font-family: var(--gestion-titulos);
+  font-size: 1.2rem;
+}
+
+.dash-titulo-detalle {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+/* ---------- Indicadores ---------- */
+
+.dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 15px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-kpi {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background-color: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--gestion-radio);
+  box-shadow: 0 2px 8px rgb(15 23 42 / 3%);
+}
+
+.dash-kpi-icono {
+  display: grid;
+  width: 45px;
+  height: 45px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background-color: #edf4fa;
+  color: var(--gestion-primario);
+  font-size: 1rem;
+}
+
+.dash-kpi--alerta .dash-kpi-icono {
+  background-color: #fdeceb;
+  color: #b42318;
+}
+
+.dash-kpi--atencion .dash-kpi-icono {
+  background-color: #fdf3e3;
+  color: #b26a00;
+}
+
+.dash-kpi-texto {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dash-kpi-etiqueta {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.dash-kpi-valor {
+  color: var(--gestion-primario);
+  font-family: var(--gestion-titulos);
+  font-size: 1.65rem;
+  line-height: 1.15;
+}
+
+.dash-kpi-detalle {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+/* ---------- Paneles con listados ---------- */
+
+.dash-paneles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 22px;
+  margin-bottom: 22px;
+}
+
+.dash-paneles .dash-panel {
+  margin-bottom: 0;
+}
+
+.dash-panel-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5eaf1;
+}
+
+.dash-panel-titulo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.dash-panel-titulo i {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: var(--gestion-radio);
+  background-color: #edf4fa;
+  color: var(--gestion-primario);
+  font-size: 1rem;
+}
+
+.dashboard-inicio .dash-panel-titulo h2 {
+  margin: 0;
+  color: #172b4d;
+  font-family: var(--gestion-titulos);
+  font-size: 1.2rem;
+}
+
+.dash-panel-cabecera a {
+  color: #208080;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dash-panel-cabecera a:hover,
+.dash-panel-cabecera a:focus-visible {
+  text-decoration: underline;
+}
+
+.dash-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-lista li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.dash-lista li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.dash-lista-principal {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.dash-lista-secundario {
+  grid-column: 1;
+  color: #64748b;
+  font-size: 0.83rem;
+}
+
+.dash-lista-valor {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  color: var(--gestion-primario);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Encabezado de grupo dentro de un listado (ej.: módulo del docente). */
+.dash-lista li.dash-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 0 8px;
+  border-bottom: 1px solid #e5eaf1;
+}
+
+.dash-lista li.dash-grupo:first-child {
+  padding-top: 0;
+}
+
+.dash-grupo-titulo {
+  color: #172b4d;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.dash-grupo-detalle {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.dash-fila--atencion .dash-lista-valor {
+  color: #b26a00;
+}
+
+.dash-fila--ok .dash-lista-valor {
+  color: #198754;
+}
+
+/* ---------- Accesos rápidos ---------- */
+
+.dash-accesos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-acceso {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px;
+  background-color: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--gestion-radio);
+  color: #1e293b;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dash-acceso i {
+  color: var(--gestion-primario);
+  font-size: 1rem;
+}
+
+.dash-acceso:hover,
+.dash-acceso:focus-visible {
+  border-color: #9ec8dd;
+  box-shadow: 0 4px 14px rgb(15 23 42 / 7%);
+  transform: translateY(-2px);
+}
+
+.dash-acceso:focus-visible {
+  outline: 3px solid #208080;
+  outline-offset: 3px;
+}
+
+/* ---------- Estados ---------- */
+
+.dash-estado {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+  color: #64748b;
+}
+
+.dash-estado-error {
+  color: #b42318;
+  font-weight: 600;
+}
+
+.dash-vacio {
+  margin: 0;
+  color: #64748b;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 700px) {
+  .dashboard-inicio .dash-seccion,
+  .dashboard-inicio .dash-panel {
+    padding: 18px;
+  }
+
+  .dash-encabezado h1 {
+    font-size: 1.5rem;
+  }
+
+  .dash-paneles {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-lista-valor {
+    grid-row: auto;
+    grid-column: 1;
+  }
+}

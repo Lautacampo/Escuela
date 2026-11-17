@@ -15,6 +15,10 @@ const anioQuery = (anio) => `?anio=${encodeURIComponent(anio)}`;
 
 export const getCiclosCalificaciones = () => apiFetch("/calificaciones/ciclos");
 
+// Progreso de carga: alumnos y calificaciones por módulo y materia.
+export const getResumenCalificaciones = (anio) =>
+  apiFetch(`/calificaciones/resumen${anioQuery(anio)}`);
+
 export async function getModulos(anio) {
   const anios = await apiFetch(`/calificaciones/modulos${anioQuery(anio)}`);
   return anios.map((a) => ({
