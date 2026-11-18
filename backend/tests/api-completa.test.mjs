@@ -13,8 +13,9 @@
  * Crea y borra datos de prueba: solo se ejecuta contra localhost.
  */
 import "dotenv/config";
-import test, { before } from "node:test";
+import test, { before, after } from "node:test";
 import assert from "node:assert/strict";
+import pg from "pg";
 
 const API = process.env.TEST_API_URL ?? `http://localhost:${process.env.PORT ?? 4000}/api`;
 const CLAVE = process.env.TEST_PASSWORD ?? "1234";
@@ -508,6 +509,12 @@ function datosDocente(extra = {}) {
   };
 }
 
+// Eliminación definitiva: primero la baja lógica (inactivo) y después el DELETE.
+async function eliminarDocente(id) {
+  await espera(200, "PATCH", `/docentes/${id}/inactivar`);
+  await espera(204, "DELETE", `/docentes/${id}`);
+}
+
 test("DOCENTES 1. Alta con asignaciones, consulta, filtros, modificación y baja", async () => {
   const modulos = await espera(200, "GET", "/docentes/modulos");
   const mod = modulos.find((m) => m.id === M.I);
@@ -563,17 +570,19 @@ test("DOCENTES 1. Alta con asignaciones, consulta, filtros, modificación y baja
   datos.email = correoNuevo;
   await espera(403, "GET", `/calificaciones/modulos/${M.I}/divisiones/A?anio=${CICLO}`, undefined, sesion.body.token);
 
-  await espera(204, "DELETE", `/docentes/${creado.id}`);
+  // Un docente activo no se elimina de una: primero pasa a inactivo.
+  await espera(409, "DELETE", `/docentes/${creado.id}`);
+  await eliminarDocente(creado.id);
   await espera(404, "GET", `/docentes/${creado.id}`);
   await espera(404, "DELETE", `/docentes/${creado.id}`);
   // Su usuario pierde el acceso...
-  assert.equal((await login(datos.email, "clave1")).status, 401, "Un docente eliminado no inicia sesión");
+  assert.equal((await login(datos.email, "clave1")).status, 403, "Un docente eliminado no inicia sesión");
   // ...y el correo queda libre: se lo puede volver a registrar con otra clave.
   const dniOtraVez = unico();
   const otraVez = await espera(201, "POST", "/docentes", { ...datos, dni: dniOtraVez, cuil: cuilDe(dniOtraVez), password: "clave2" });
   assert.equal((await login(datos.email, "clave1")).status, 401);
   assert.equal((await login(datos.email, "clave2")).status, 200);
-  await espera(204, "DELETE", `/docentes/${otraVez.id}`);
+  await eliminarDocente(otraVez.id);
 });
 
 test("DOCENTES 2. Validaciones y duplicados", async () => {
@@ -605,14 +614,14 @@ test("DOCENTES 2. Validaciones y duplicados", async () => {
   await espera(404, "GET", "/docentes/99999999");
   await espera(404, "PUT", "/docentes/99999999", datos);
   await espera(400, "GET", "/docentes/abc");
-  await espera(204, "DELETE", `/docentes/${creado.id}`);
+  await eliminarDocente(creado.id);
 });
 
 test("DOCENTES 3. Una materia inventada en una asignación no altera el plan de estudios", async () => {
   const antes = (await espera(200, "GET", "/materias")).length;
   const r = await api("POST", "/docentes", datosDocente({ asignaciones: [{ moduloId: M.I, division: "A", materia: `Materia Fantasma ${unico()}` }] }));
   const despues = (await espera(200, "GET", "/materias")).length;
-  if (r.status === 201) await espera(204, "DELETE", `/docentes/${r.body.id}`);
+  if (r.status === 201) await eliminarDocente(r.body.id);
   assert.equal(despues, antes, "Asignar un docente no debe crear materias nuevas en el módulo");
   assert.equal(r.status, 400);
 });
@@ -640,6 +649,12 @@ function datosPreceptor(extra = {}) {
     antiguedad: 2,
     ...extra,
   };
+}
+
+// Eliminación definitiva: primero la baja lógica (inactivo) y después el DELETE.
+async function eliminarPreceptor(id) {
+  await espera(200, "PATCH", `/preceptores/${id}/inactivar`);
+  await espera(204, "DELETE", `/preceptores/${id}`);
 }
 
 // Alta en un solo paso: el usuario de acceso se crea junto con el preceptor.
@@ -680,15 +695,16 @@ test("PRECEPTORES 1. Alta, consulta, modificación, asignación de cursos y baja
   assert.deepEqual(await espera(200, "GET", "/asistencias/modulos", undefined, sesion.body.token), []);
 
   await espera(200, "PUT", `/preceptores/${creado.id}/cursos`, { cursoIds: [curso.id] });
-  await espera(200, "DELETE", `/preceptores/${creado.id}`);
+  await espera(409, "DELETE", `/preceptores/${creado.id}`);
+  await eliminarPreceptor(creado.id);
   await espera(404, "GET", `/preceptores/${creado.id}`);
   const cursoDespues = (await espera(200, "GET", "/preceptores/cursos")).find((c) => c.id === curso.id);
   assert.equal(cursoDespues.preceptor_id, null, "El curso queda sin preceptor");
-  assert.equal((await login(datos.email, "clave1")).status, 401, "Un preceptor eliminado no inicia sesión");
+  assert.equal((await login(datos.email, "clave1")).status, 403, "Un preceptor eliminado no inicia sesión");
   // El correo queda libre para volver a registrarlo.
   const otraVez = await espera(201, "POST", "/preceptores", { ...datosPreceptor(), email: datos.email, password: "clave2" });
   assert.equal((await login(datos.email, "clave2")).status, 200);
-  await espera(200, "DELETE", `/preceptores/${otraVez.id}`);
+  await eliminarPreceptor(otraVez.id);
 });
 
 test("PRECEPTORES 2. Validaciones, duplicados e inexistentes", async () => {
@@ -703,7 +719,7 @@ test("PRECEPTORES 2. Validaciones, duplicados e inexistentes", async () => {
   await espera(201, "POST", "/auth/registro", { nombre: "X", apellido: "Y", email: enDosPasos.email, password: "clave1", rol: "preceptor" });
   const vinculado = await espera(201, "POST", "/preceptores", enDosPasos);
   assert.equal((await login(enDosPasos.email, "clave1")).status, 200);
-  await espera(200, "DELETE", `/preceptores/${vinculado.id}`);
+  await eliminarPreceptor(vinculado.id);
 
   const { datos, creado } = await crearPreceptor();
   const cantidad = (await espera(200, "GET", "/preceptores")).length;
@@ -733,7 +749,7 @@ test("PRECEPTORES 2. Validaciones, duplicados e inexistentes", async () => {
   await espera(400, "PUT", `/preceptores/${creado.id}/cursos`, {});
   await espera(404, "PUT", `/preceptores/${creado.id}/cursos`, { cursoIds: [99999999] });
   await espera(404, "PUT", "/preceptores/99999999/cursos", { cursoIds: [] });
-  await espera(200, "DELETE", `/preceptores/${creado.id}`);
+  await eliminarPreceptor(creado.id);
 });
 
 test("PRECEPTORES 3. Solo directivo", async () => {
@@ -981,4 +997,177 @@ test("REPORTES 3. Solo directivo", async () => {
     await espera(403, "GET", "/reportes/desaprobaciones", undefined, token);
   }
   await espera(401, "GET", "/reportes/inasistencias", undefined, null);
+});
+
+// ============================================ BAJA LÓGICA DEL PERSONAL
+test("DOCENTES 5. Baja lógica: inactivar, reactivar y eliminar definitivamente", async () => {
+  const datos = datosDocente({ asignaciones: [{ moduloId: M.I, division: "A", materia: "Historia" }] });
+  const creado = await espera(201, "POST", "/docentes", datos);
+  assert.equal(creado.activo, true);
+  const sesion = (await login(datos.email, "clave1")).body.token;
+  await espera(200, "GET", `/calificaciones/modulos?anio=${CICLO}`, undefined, sesion);
+
+  // Activo: no se puede eliminar de una.
+  await espera(409, "DELETE", `/docentes/${creado.id}`);
+
+  // Inactivar (licencia): conserva datos y asignaciones.
+  const inactivo = await espera(200, "PATCH", `/docentes/${creado.id}/inactivar`);
+  assert.equal(inactivo.activo, false);
+  assert.deepEqual(inactivo.asignaciones, creado.asignaciones);
+  assert.ok(!(await espera(200, "GET", "/docentes?estado=activos")).some((d) => d.id === creado.id));
+  assert.ok((await espera(200, "GET", "/docentes?estado=inactivos")).some((d) => d.id === creado.id));
+  assert.ok((await espera(200, "GET", "/docentes")).some((d) => d.id === creado.id), "Por defecto se listan todos");
+  await espera(400, "GET", "/docentes?estado=cualquiera");
+
+  // Su sesión abierta se corta y no puede volver a entrar.
+  await espera(401, "GET", `/calificaciones/modulos?anio=${CICLO}`, undefined, sesion);
+  const intento = await login(datos.email, "clave1");
+  assert.equal(intento.status, 403);
+  assert.match(intento.body.error, /dado de baja/);
+  // Una clave equivocada sigue siendo "credenciales inválidas".
+  assert.equal((await login(datos.email, "otra")).status, 401);
+
+  // Inactivo: no se modifica; inactivar de nuevo no cambia nada.
+  await espera(409, "PUT", `/docentes/${creado.id}`, { ...datos, antiguedad: 7 });
+  await espera(200, "PATCH", `/docentes/${creado.id}/inactivar`);
+
+  // Reactivar: vuelve con sus asignaciones y puede entrar.
+  const reactivado = await espera(200, "PATCH", `/docentes/${creado.id}/reactivar`);
+  assert.equal(reactivado.activo, true);
+  assert.deepEqual(reactivado.asignaciones, creado.asignaciones);
+  const nueva = await login(datos.email, "clave1");
+  assert.equal(nueva.status, 200);
+  const vista = await espera(200, "GET", `/calificaciones/modulos/${M.I}/divisiones/A?anio=${CICLO}`, undefined, nueva.body.token);
+  assert.deepEqual(vista.materias.map((m) => m.nombre), ["Historia"]);
+  await espera(200, "PUT", `/docentes/${creado.id}`, { ...datos, antiguedad: 7 });
+
+  // Eliminación definitiva (estando inactivo).
+  await espera(200, "PATCH", `/docentes/${creado.id}/inactivar`);
+  await espera(204, "DELETE", `/docentes/${creado.id}`);
+  await espera(404, "GET", `/docentes/${creado.id}`);
+  await espera(404, "PATCH", `/docentes/${creado.id}/reactivar`);
+  await espera(404, "PATCH", "/docentes/99999999/inactivar");
+  await espera(400, "PATCH", "/docentes/abc/inactivar");
+  for (const token of [T.docente, T.preceptor]) {
+    await espera(403, "PATCH", `/docentes/${creado.id}/inactivar`, undefined, token);
+  }
+});
+
+test("PRECEPTORES 5. Baja lógica: inactivar, reactivar y eliminar definitivamente", async () => {
+  const { datos, creado } = await crearPreceptor();
+  const libres = (await espera(200, "GET", "/preceptores/cursos")).filter((c) => c.preceptor_id === null);
+  assert.ok(libres.length >= 1, "Hay al menos un curso sin preceptor para la prueba");
+  const curso = libres[0];
+  await espera(200, "PUT", `/preceptores/${creado.id}/cursos`, { cursoIds: [curso.id] });
+  const sesion = (await login(datos.email, "clave1")).body.token;
+  await espera(200, "GET", "/asistencias/modulos", undefined, sesion);
+
+  await espera(409, "DELETE", `/preceptores/${creado.id}`);
+
+  const inactivo = await espera(200, "PATCH", `/preceptores/${creado.id}/inactivar`);
+  assert.equal(inactivo.activo, false);
+  // Conserva sus cursos mientras está inactivo; el listado de cursos lo indica.
+  assert.deepEqual(inactivo.cursos.map((c) => c.id), [curso.id]);
+  const enCursos = (await espera(200, "GET", "/preceptores/cursos")).find((c) => c.id === curso.id);
+  assert.equal(enCursos.preceptor_id, creado.id);
+  assert.equal(enCursos.preceptor_activo, false);
+  assert.ok(!(await espera(200, "GET", "/preceptores?estado=activos")).some((p) => p.id === creado.id));
+  assert.ok((await espera(200, "GET", "/preceptores?estado=inactivos")).some((p) => p.id === creado.id));
+  await espera(400, "GET", "/preceptores?estado=x");
+
+  // Sesión cortada, sin acceso, sin cambios ni asignaciones nuevas.
+  await espera(401, "GET", "/asistencias/modulos", undefined, sesion);
+  await espera(401, "GET", "/cursos", undefined, sesion);
+  assert.equal((await login(datos.email, "clave1")).status, 403);
+  await espera(409, "PUT", `/preceptores/${creado.id}`, { ...datos, antiguedad: 9 });
+  await espera(409, "PUT", `/preceptores/${creado.id}/cursos`, { cursoIds: [] });
+
+  const reactivado = await espera(200, "PATCH", `/preceptores/${creado.id}/reactivar`);
+  assert.equal(reactivado.activo, true);
+  const nueva = await login(datos.email, "clave1");
+  assert.equal(nueva.status, 200);
+  const vista = await espera(200, "GET", "/asistencias/modulos", undefined, nueva.body.token);
+  assert.deepEqual([...new Set(vista.flatMap((a) => a.modulos.flatMap((m) => m.divisiones)))], [curso.division.trim()]);
+
+  // Eliminación definitiva: libera el curso.
+  await espera(200, "PATCH", `/preceptores/${creado.id}/inactivar`);
+  await espera(204, "DELETE", `/preceptores/${creado.id}`);
+  await espera(404, "GET", `/preceptores/${creado.id}`);
+  assert.equal((await espera(200, "GET", "/preceptores/cursos")).find((c) => c.id === curso.id).preceptor_id, null);
+  await espera(404, "PATCH", "/preceptores/99999999/reactivar");
+  await espera(400, "PATCH", "/preceptores/abc/reactivar");
+  for (const token of [T.docente, T.preceptor]) {
+    await espera(403, "PATCH", `/preceptores/${creado.id}/reactivar`, undefined, token);
+  }
+});
+
+// ================================================== SEGURIDAD Y RUTAS
+test("SEGURIDAD. Login sin distinguir mayúsculas, límite de intentos y 404 de rutas inexistentes", async () => {
+  assert.equal((await login("  DIRECTOR@Escuela.com ", CLAVE)).status, 200);
+
+  // 10 intentos fallidos con el mismo correo: el siguiente queda bloqueado.
+  const correo = `bloqueo${unico()}@example.com`;
+  for (let i = 0; i < 10; i += 1) {
+    assert.equal((await login(correo, "mala")).status, 401);
+  }
+  const bloqueado = await login(correo, "mala");
+  assert.equal(bloqueado.status, 429);
+  assert.match(bloqueado.body.error, /Demasiados intentos/);
+  // El bloqueo es por correo: los demás usuarios siguen entrando.
+  assert.equal((await login("director@escuela.com", CLAVE)).status, 200);
+
+  // Una ruta que no existe responde 404 con o sin token.
+  await espera(404, "GET", "/no-existe", undefined, null);
+  await espera(404, "GET", "/no-existe", undefined, T.preceptor);
+  await espera(404, "GET", "/no-existe");
+});
+
+// ============================================= REGISTROS CARGADOS ANTES
+// Alumnos, docentes y preceptores cargados antes de las validaciones nuevas
+// (CUIL que no coincide con el DNI, menor de 18, teléfonos cortos) se pueden
+// seguir editando: las reglas se aplican solo a los datos que cambian.
+const db = new pg.Pool({
+  host: process.env.PGHOST,
+  port: Number(process.env.PGPORT ?? 5432),
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
+});
+after(() => db.end());
+
+test("REGISTROS VIEJOS. Se editan sin corregir los datos que no cambian", async () => {
+  const a = await espera(201, "POST", "/alumnos", datosAlumno());
+  const anio = new Date().getFullYear();
+  // Se lo deja como quedó cargado antes: CUIL de otro DNI, 16 años, teléfonos de 3 dígitos.
+  await db.query(
+    "UPDATE persona SET cuil = '20-11111111-1', telefono = '123' WHERE id = $1",
+    [a.id],
+  );
+  await db.query(
+    "UPDATE alumno SET fecha_nacimiento = $2, telefono_emergencia = '456' WHERE id = $1",
+    [a.id, `${anio - 16}-03-03`],
+  );
+  const viejo = await espera(200, "GET", `/alumnos/${a.id}`);
+  const base = {
+    nombre: viejo.nombre, apellido: viejo.apellido, dni: viejo.dni, cuil: viejo.cuil,
+    fechaNacimiento: viejo.fechaNacimiento, lugarNacimiento: viejo.lugarNacimiento,
+    domicilio: viejo.domicilio, telefono: viejo.telefono, email: viejo.email,
+    trabaja: viejo.trabaja, telefonoEmergencia: viejo.telefonoEmergencia, cantidadHijos: viejo.cantidadHijos,
+  };
+  // Cambiar solo el domicilio funciona.
+  const editado = await espera(200, "PUT", `/alumnos/${a.id}`, { ...base, domicilio: "Otra 99" });
+  assert.equal(editado.domicilio, "Otra 99");
+  // Pero un dato que cambia se valida con las reglas nuevas.
+  await espera(400, "PUT", `/alumnos/${a.id}`, { ...base, cuil: "20-22222222-2" });
+  await espera(400, "PUT", `/alumnos/${a.id}`, { ...base, telefono: "99" });
+  await espera(400, "PUT", `/alumnos/${a.id}`, { ...base, fechaNacimiento: `${anio - 15}-01-01` });
+  await espera(200, "PUT", `/alumnos/${a.id}`, { ...base, cuil: cuilDe(viejo.dni), telefono: "2664000000" });
+
+  // Lo mismo para un docente.
+  const d = await espera(201, "POST", "/docentes", datosDocente());
+  await db.query("UPDATE persona SET cuil = '20-11111111-1', telefono = '12' WHERE id = $1", [d.id]);
+  const dv = await espera(200, "GET", `/docentes/${d.id}`);
+  await espera(200, "PUT", `/docentes/${d.id}`, { ...dv, antiguedad: 8 });
+  await espera(400, "PUT", `/docentes/${d.id}`, { ...dv, telefono: "34" });
+  await eliminarDocente(d.id);
 });
