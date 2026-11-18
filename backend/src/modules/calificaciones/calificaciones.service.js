@@ -194,10 +194,16 @@ export const actualizar = async (
   const anio = validarAnio(anioParametro);
   if (
     !Number.isInteger(cursadaModuloId) ||
-    !Number.isInteger(materiaId) ||
-    !ESTADOS.includes(estado)
+    !Number.isInteger(materiaId)
   ) {
-    throw new HttpError(400, "Datos inválidos");
+    throw new HttpError(400, "cursadaModuloId y materiaId deben ser números enteros");
+  }
+  // Se acepta con cualquier combinación de mayúsculas ("aprobado", "APROBADO").
+  estado = ESTADOS.find(
+    (e) => e.toLowerCase() === String(estado ?? "").trim().toLowerCase(),
+  );
+  if (!estado) {
+    throw new HttpError(400, "El estado debe ser Aprobado, Desaprobado o En Curso");
   }
 
   const cursada = await repo.buscarCursadaConMateria(
