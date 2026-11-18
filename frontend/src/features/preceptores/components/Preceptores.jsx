@@ -11,6 +11,7 @@ import {
   soloDigitos,
   esNombreValido,
   MENSAJE_NOMBRE_INVALIDO,
+  ANTIGUEDAD_MAXIMA,
 } from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
 import { exportarExcel } from "../../../shared/utils/exportarExcel.js";
@@ -362,10 +363,10 @@ export function Preceptores() {
       valores.antiguedad === "" ||
       !Number.isInteger(antiguedad) ||
       antiguedad < 0 ||
-      antiguedad > 99
+      (antiguedad > ANTIGUEDAD_MAXIMA &&
+        !igual("antiguedad", valores.antiguedad))
     ) {
-      nuevosErrores.antiguedad =
-        "Ingrese la antigüedad en años (entero entre 0 y 99).";
+      nuevosErrores.antiguedad = `Ingrese la antigüedad en años (entero entre 0 y ${ANTIGUEDAD_MAXIMA}).`;
     }
 
     if (
