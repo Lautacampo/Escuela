@@ -1,3 +1,10 @@
+// Fecha local de hoy en AAAA-MM-DD: no se carga asistencia de días futuros.
+const fechaDeHoy = () => {
+  const hoy = new Date();
+  const dos = (n) => String(n).padStart(2, "0");
+  return `${hoy.getFullYear()}-${dos(hoy.getMonth() + 1)}-${dos(hoy.getDate())}`;
+};
+
 const MOTIVO_LIBRE = {
   INASISTENCIAS: "superó las 25 inasistencias",
   MATERIA_DESAPROBADA: "materia desaprobada",
@@ -25,6 +32,7 @@ export function AsistenciaAlumnos({
                 type="date"
                 disabled={guardando}
                 value={fecha}
+                max={fechaDeHoy()}
                 onChange={(e) => onCambiarFecha(e.target.value)}
               />
             </label>
