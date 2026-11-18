@@ -2,6 +2,8 @@ const encoder = new TextEncoder();
 
 function escaparXML(valor) {
   return String(valor ?? "")
+    // Se quitan a propósito los caracteres de control que XML no admite.
+    // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -134,7 +136,7 @@ export function crearExcel({ nombreHoja = "Listado", columnas, filas }) {
   }
 
   const nombreSeguro =
-    nombreHoja.replace(/[\\/?*\[\]:]/g, " ").slice(0, 31) || "Listado";
+    nombreHoja.replace(/[\\/?*[\]:]/g, " ").slice(0, 31) || "Listado";
 
   const ultimaCol = letraColumna(columnas.length - 1);
   const ultimaFila = filas.length + 1;
