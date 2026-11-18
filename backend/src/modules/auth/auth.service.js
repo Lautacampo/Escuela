@@ -9,9 +9,15 @@ const ROLES_VALIDOS = ["directivo", "docente", "preceptor"];
 
 export const autenticar = async (email, password) => {
   const usuario = await authRepository.buscarPorEmail(email);
-  const coincide = usuario && usuario.activo && (await bcrypt.compare(password, usuario.contrahash));
+  const coincide = usuario && (await bcrypt.compare(password, usuario.contrahash));
 
   if (!coincide) throw new HttpError(401,"Credenciales inválidas");
+
+  // Solo con la clave correcta se informa que el usuario está dado de baja
+  // (así no se revela qué correos existen).
+  if (!usuario.activo) {
+    throw new HttpError(403, "Tu usuario está dado de baja. Consultá con la dirección de la escuela.");
+  }
 
   const datos = {
     id: usuario.id,
