@@ -15,12 +15,17 @@ export const esFechaISOValida = (valor) => {
   );
 };
 
-// Fecha de hoy en AAAA-MM-DD (hora local del servidor).
-export const hoyISO = () => {
-  const hoy = new Date();
-  const dosDigitos = (n) => String(n).padStart(2, "0");
-  return `${hoy.getFullYear()}-${dosDigitos(hoy.getMonth() + 1)}-${dosDigitos(hoy.getDate())}`;
-};
+// Fecha de hoy en AAAA-MM-DD en la hora de Argentina. El servidor de Render
+// corre en UTC: con la hora local, después de las 21 h ya sería "mañana".
+const FORMATO_FECHA_ARGENTINA = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Argentina/Buenos_Aires",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+export const hoyISO = (fecha = new Date()) =>
+  FORMATO_FECHA_ARGENTINA.format(fecha);
 
 export const esMayorDeEdad = (fechaNacimiento, fechaActual = hoyISO()) => {
   if (!esFechaISOValida(fechaNacimiento) || !esFechaISOValida(fechaActual)) {
