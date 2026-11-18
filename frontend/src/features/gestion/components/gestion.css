@@ -2624,7 +2624,7 @@ body:has(.contenedor-dashboard) {
   flex-basis: 100%;
 }
 
-/* ---------- CORRELATIVIDADES, EQUIVALENCIAS Y CONDICIÓN LIBRE ---------- */
+/* ---------- CORRELATIVIDADES, MÓDULO DE INGRESO Y CONDICIÓN LIBRE ---------- */
 
 .nota-obligatorios {
   margin: 0 0 12px;
@@ -2633,36 +2633,11 @@ body:has(.contenedor-dashboard) {
   opacity: 0.8;
 }
 
-.ingreso-equivalencia {
-  margin: 12px 0;
-  padding: 14px 16px;
-  background-color: #fff8e1;
-  border-left: 4px solid #d39e00;
-  border-radius: var(--gestion-radio);
-}
-
-.ingreso-equivalencia p {
-  margin: 0 0 10px;
-  color: #665a3c;
+/* Aclaración del alta: el primer módulo es el de ingreso. */
+.texto-ayuda-matricula {
+  margin: 4px 0 0;
+  color: #526176;
   font-size: 0.85rem;
-}
-
-.ingreso-equivalencia-confirmar {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 10px;
-  color: #4d4326;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.ingreso-equivalencia-confirmar input {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
-  cursor: pointer;
 }
 
 .ficha-academica-info + .ficha-advertencia {
@@ -2709,19 +2684,11 @@ body:has(.contenedor-dashboard) {
   font-weight: 600;
 }
 
-.ficha-sin-equivalencias {
-  margin: 0 0 16px;
-  color: var(--gestion-texto);
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
-.ficha-equivalencia-form {
-  margin-top: 16px;
-}
-
-.ficha-equivalencia-observacion {
-  flex: 2 1 320px;
+/* Módulo anterior al de ingreso: aprobado por equivalencia (solo informativo). */
+.modulo-nota-equivalencia {
+  margin: 10px 0 0;
+  color: #526176;
+  font-size: 0.85rem;
 }
 
 .etiqueta-situacion {
