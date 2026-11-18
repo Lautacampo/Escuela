@@ -28,17 +28,14 @@ import {
   reactivarAlumno,
 } from "../services/AlumnosServices";
 import { useAutoActualizar } from "../../../shared/hooks/useAutoActualizar";
-import { IngresoEquivalencia } from "./IngresoEquivalencia";
 import {
   DESCRIPCION_MOTIVO_LIBRE,
-  INGRESO_INICIAL,
   analizarMatricula,
   catalogoDeModulos,
   correlativosFaltantes,
   esLibre,
   etiquetaModulo,
   listar,
-  validarIngreso,
 } from "../utils/correlatividades";
 
 // Campos de texto obligatorios (NOT NULL en la base) además de DNI, CUIL,
@@ -238,9 +235,6 @@ export function Alumnos() {
   const [guardandoMatricula, setGuardandoMatricula] = useState(false);
   const [errorMatricula, setErrorMatricula] = useState("");
   const [mensajeMatricula, setMensajeMatricula] = useState("");
-  // Ingreso por equivalencia: uno para el alta y otro para el editor de matrícula.
-  const [ingresoAlta, setIngresoAlta] = useState(INGRESO_INICIAL);
-  const [ingresoMatricula, setIngresoMatricula] = useState(INGRESO_INICIAL);
   const [aviso, setAviso] = useState("");
   const [errores, setErrores] = useState({});
   const [cargando, setCargando] = useState(true);
@@ -382,9 +376,6 @@ export function Alumnos() {
       ...(name === "curso" ? { division: "", moduloId: "" } : {}),
       ...(name === "division" ? { moduloId: "" } : {}),
     }));
-    if (["curso", "division", "moduloId"].includes(name)) {
-      setIngresoAlta(INGRESO_INICIAL);
-    }
     if (errores[name]) {
       setErrores((anteriores) => ({ ...anteriores, [name]: undefined }));
     }
@@ -399,7 +390,6 @@ export function Alumnos() {
       ...(name === "curso" ? { division: "", moduloId: "" } : {}),
       ...(name === "division" ? { moduloId: "" } : {}),
     }));
-    setIngresoMatricula(INGRESO_INICIAL);
     setErrorMatricula("");
     setMensajeMatricula("");
   };
@@ -424,11 +414,9 @@ export function Alumnos() {
   );
   const modulosMatricula = modulosDe(cursoMatricula);
 
-  // Correlatividades: qué necesita el alumno para el módulo elegido.
+  // Correlatividades: qué necesita el alumno para el módulo elegido. En el alta
+  // no hay ninguna: el módulo elegido es su módulo de ingreso.
   const catalogo = catalogoDeModulos(cursos);
-  const analisisAlta = moduloSeleccionado
-    ? analizarMatricula(null, moduloSeleccionado.id, catalogo)
-    : null;
   const moduloMatriculaElegido = modulosMatricula.find(
     (modulo) => String(modulo.id) === String(matricula.moduloId)
   );
@@ -437,20 +425,14 @@ export function Alumnos() {
     : null;
   const matriculaBloqueada =
     analisisMatricula != null &&
-    (analisisMatricula.yaAcreditado ||
+    (analisisMatricula.yaAprobado ||
       analisisMatricula.bloqueantes.length > 0);
-
-  const reiniciarIngresos = () => {
-    setIngresoAlta(INGRESO_INICIAL);
-    setIngresoMatricula(INGRESO_INICIAL);
-  };
 
   const abrirFormulario = () => {
     setAlumnoEditando(null);
     setValores(ALUMNO_INICIAL);
     setMatricula(MATRICULA_INICIAL);
     setEditorMatricula(false);
-    reiniciarIngresos();
     setErrorMatricula("");
     setMensajeMatricula("");
     setAviso("");
@@ -464,7 +446,6 @@ export function Alumnos() {
     setValores(valoresDesdeAlumno(alumno));
     setMatricula(matriculaInicial(alumno));
     setEditorMatricula(false);
-    reiniciarIngresos();
     setErrorMatricula("");
     setMensajeMatricula("");
     setAviso("");
@@ -479,7 +460,6 @@ export function Alumnos() {
     setValores(ALUMNO_INICIAL);
     setMatricula(MATRICULA_INICIAL);
     setEditorMatricula(false);
-    reiniciarIngresos();
     setErrorMatricula("");
     setMensajeMatricula("");
     setErrorGuardar("");
@@ -488,7 +468,6 @@ export function Alumnos() {
 
   const abrirEditorMatricula = () => {
     setMatricula(matriculaInicial(alumnoEditando));
-    setIngresoMatricula(INGRESO_INICIAL);
     setErrorMatricula("");
     setMensajeMatricula("");
     setEditorMatricula(true);
@@ -518,22 +497,12 @@ export function Alumnos() {
       mensaje = "El módulo seleccionado no corresponde al curso.";
     } else if (matriculaBloqueada) {
       mensaje = "El alumno no cumple las correlatividades de ese módulo.";
-    } else if (analisisMatricula.porEquivalencia.length > 0) {
-      mensaje = validarIngreso(ingresoMatricula);
     }
 
     if (mensaje) {
       setErrorMatricula(mensaje);
       return;
     }
-
-    const ingreso =
-      analisisMatricula.porEquivalencia.length > 0
-        ? {
-            equivalencias: analisisMatricula.porEquivalencia.map((m) => m.id),
-            observacion: ingresoMatricula.observacion.trim(),
-          }
-        : null;
 
     try {
       setGuardandoMatricula(true);
@@ -543,8 +512,7 @@ export function Alumnos() {
       const actualizado = await actualizarMatricula(
         alumnoEditando.id,
         cursoMatricula.id,
-        Number(matricula.moduloId),
-        ingreso
+        Number(matricula.moduloId)
       );
 
       setAlumnoEditando((anterior) => ({
@@ -560,7 +528,7 @@ export function Alumnos() {
         estadoAcademico: actualizado.estadoAcademico,
         motivoLibre: actualizado.motivoLibre,
         trayectoria: actualizado.trayectoria,
-        equivalencias: actualizado.equivalencias,
+        moduloIngresoId: actualizado.moduloIngresoId,
         modulosAcreditados: actualizado.modulosAcreditados,
       }));
       setValores((anterior) => ({
@@ -579,7 +547,6 @@ export function Alumnos() {
         )
       );
       setEditorMatricula(false);
-      setIngresoMatricula(INGRESO_INICIAL);
       setMensajeMatricula(
         (MENSAJE_MATRICULA[actualizado.matricula] ?? MENSAJE_MATRICULA.NUEVA)(
           actualizado.moduloActual
@@ -742,10 +709,6 @@ export function Alumnos() {
       } else if (!moduloSeleccionado) {
         nuevosErrores.moduloId =
           "El módulo seleccionado no corresponde al curso.";
-      } else if (analisisAlta.porEquivalencia.length > 0) {
-        // Empieza en un módulo avanzado: debe acreditar los anteriores.
-        const errorIngreso = validarIngreso(ingresoAlta);
-        if (errorIngreso) nuevosErrores.ingreso = errorIngreso;
       }
     }
 
@@ -793,13 +756,7 @@ export function Alumnos() {
         await matricularAlumno(
           guardado.id,
           cursoSeleccionado.id,
-          Number(valores.moduloId),
-          analisisAlta.porEquivalencia.length > 0
-            ? {
-                equivalencias: analisisAlta.porEquivalencia.map((m) => m.id),
-                observacion: ingresoAlta.observacion.trim(),
-              }
-            : null
+          Number(valores.moduloId)
         );
       } catch (e) {
         // El alumno ya quedó registrado: se informa el problema de matrícula
@@ -1393,7 +1350,7 @@ export function Alumnos() {
                                 <option
                                   key={modulo.id}
                                   value={modulo.id}
-                                  disabled={analisis.yaAcreditado}
+                                  disabled={analisis.yaAprobado}
                                 >
                                   {etiquetaModulo(modulo, analisis)}
                                 </option>
@@ -1416,18 +1373,6 @@ export function Alumnos() {
                           .
                         </p>
                       )}
-
-                      {analisisMatricula &&
-                        !matriculaBloqueada &&
-                        analisisMatricula.porEquivalencia.length > 0 && (
-                          <IngresoEquivalencia
-                            idBase="ingreso-matricula"
-                            modulo={moduloMatriculaElegido.numeroLeyenda}
-                            modulosPrevios={analisisMatricula.porEquivalencia}
-                            valor={ingresoMatricula}
-                            onCambiar={setIngresoMatricula}
-                          />
-                        )}
 
                       {analisisMatricula &&
                         !matriculaBloqueada &&
@@ -1546,10 +1491,7 @@ export function Alumnos() {
                         <option value="">Seleccione un módulo</option>
                         {modulos.map((modulo) => (
                           <option key={modulo.id} value={modulo.id}>
-                            {etiquetaModulo(
-                              modulo,
-                              analizarMatricula(null, modulo.id, catalogo)
-                            )}
+                            {modulo.numeroLeyenda}
                           </option>
                         ))}
                       </select>
@@ -1561,22 +1503,10 @@ export function Alumnos() {
                     </div>
                   </div>
 
-                  {analisisAlta?.porEquivalencia.length > 0 && (
-                    <IngresoEquivalencia
-                      idBase="ingreso-alta"
-                      modulo={moduloSeleccionado.numeroLeyenda}
-                      modulosPrevios={analisisAlta.porEquivalencia}
-                      valor={ingresoAlta}
-                      onCambiar={(valor) => {
-                        setIngresoAlta(valor);
-                        setErrores((anteriores) => ({
-                          ...anteriores,
-                          ingreso: undefined,
-                        }));
-                      }}
-                      error={errores.ingreso}
-                    />
-                  )}
+                  <p className="texto-ayuda-matricula">
+                    Al registrarlo se lo puede matricular en cualquier módulo:
+                    ese es su módulo de ingreso y los anteriores no se le exigen.
+                  </p>
                 </fieldset>
               )}
 
