@@ -60,3 +60,6 @@ export const esNombreValido = (valor) => {
   const texto = String(valor ?? "").trim();
   return texto.length >= 2 && texto.length <= 100 && REGEX_NOMBRE.test(texto);
 };
+
+// Antigüedad máxima de docentes y preceptores (en años).
+export const ANTIGUEDAD_MAXIMA = 35;
