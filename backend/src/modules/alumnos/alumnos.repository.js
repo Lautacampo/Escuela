@@ -321,12 +321,14 @@ export const correlativosPendientesDeCursadas = async (cursadaIds) => {
  * Casos:
  * - Mismo módulo y cursada todavía abierta  -> solo cambia el curso/división.
  * - Módulo distinto, o mismo módulo en el que quedó LIBRE -> nueva inscripción:
- *     1. rechaza si el módulo ya está aprobado;
+ *     1. rechaza si el módulo ya está aprobado, o si es anterior al módulo de
+ *        ingreso (ya está aprobado por equivalencia);
  *     2. rechaza si faltan correlativos (correlatividades). En la primera
  *        matrícula no falta ninguno: el módulo elegido es el de ingreso;
  *     3. si ya había una cursada abierta de ese módulo, la reactiva en lugar
  *        de duplicarla;
- *     4. si la cursada actual estaba vacía (error de carga) la corrige;
+ *     4. si la cursada actual estaba vacía (error de carga) la corrige, solo
+ *        hacia el mismo módulo o uno posterior;
  *     5. si no, la cursada actual pasa al historial y se crea la nueva. Si el
  *        alumno estaba LIBRE en ese módulo, la nueva cursada es la recursada.
  */
@@ -387,12 +389,27 @@ export const guardarMatricula = async (
         }
 
         // --- Nueva inscripción en el módulo ---
-        const { rows: aprobado } = await db.query(
-            "SELECT modulo_aprobado($1, $2) AS aprobado",
+        const { rows: situacion } = await db.query(
+            `SELECT modulo_aprobado($1, $2) AS aprobado,
+                    modulo_acreditado($1, $2) AS acreditado,
+                    (SELECT m.numero_leyenda
+                       FROM cursada_modulo cm
+                       JOIN modulo m ON m.id = cm.modulo_id
+                      WHERE cm.alumno_id = $1
+                      ORDER BY modulo_orden(cm.modulo_id), cm.id
+                      LIMIT 1) AS modulo_ingreso`,
             [alumnoId, moduloId]
         );
-        if (aprobado[0].aprobado) {
+        if (situacion[0].aprobado) {
             throw new ReglaNegocio("MODULO_APROBADO");
+        }
+        // Los módulos anteriores al de ingreso ya están aprobados por
+        // equivalencia: no se puede volver a matricular al alumno en ellos,
+        // tampoco corrigiendo una matrícula recién cargada.
+        if (situacion[0].acreditado) {
+            throw new ReglaNegocio("MODULO_POR_EQUIVALENCIA", {
+                moduloIngreso: situacion[0].modulo_ingreso,
+            });
         }
 
         // Una cursada actual vacía (error de carga) se corrige: no cuenta para
