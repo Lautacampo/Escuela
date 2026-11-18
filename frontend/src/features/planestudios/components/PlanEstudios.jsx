@@ -228,7 +228,8 @@ export function PlanEstudios() {
           id="pe-selector-plan"
           value={planSeleccionadoId}
           onChange={(e) => setPlanSeleccionadoId(e.target.value)}
-          style={{ minWidth: "320px" }}
+          // En celular no puede ser más ancho que la pantalla.
+          style={{ minWidth: "min(320px, 100%)" }}
         >
           {planActual && (
             <option value="actual">
