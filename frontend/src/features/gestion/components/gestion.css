@@ -2671,3 +2671,52 @@ body:has(.contenedor-dashboard) {
   font-weight: 400;
   opacity: 0.75;
 }
+
+/* ---------- BAJA LÓGICA: ALUMNOS, DOCENTES Y PRECEPTORES ---------- */
+
+.etiqueta-situacion.inactivo {
+  background-color: #eef0f3;
+  color: #475569;
+}
+
+.btn-baja {
+  background-color: #fff4e5;
+  color: #9a3412;
+}
+
+.btn-baja:hover {
+  background-color: #ffe8cc;
+}
+
+.btn-reactivar {
+  background-color: #e6f4ea;
+  color: #166534;
+}
+
+.btn-reactivar:hover {
+  background-color: #d3ecdb;
+}
+
+.btn-accion:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+tr.fila-inactiva td {
+  color: #64748b;
+}
+
+/* La columna de acciones queda siempre visible al desplazar la tabla. */
+.personal-tabla th:last-child,
+.personal-tabla td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: #fff;
+  box-shadow: -1px 0 0 #edf2f7;
+}
+
+.personal-tabla tbody tr:hover td:last-child {
+  background: #f0f2f4;
+}
