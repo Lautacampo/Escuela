@@ -98,12 +98,13 @@ async function cargarDirectivo() {
     throw new Error("No hay un ciclo lectivo activo para mostrar los indicadores.");
   }
 
-  const [inasistencias, desaprobaciones] = await Promise.all([
+  const [inasistencias, enRiesgo, desaprobaciones] = await Promise.all([
     getReporteInasistencias(anio),
+    getReporteInasistencias(anio, "", "riesgo"),
     getReporteDesaprobaciones(anio),
   ]);
 
-  const umbralFaltas = inasistencias?.umbralFaltas ?? 25;
+  const umbralRiesgo = enRiesgo?.umbralRiesgo ?? 20;
   const alertas = [...(inasistencias?.alertas ?? [])].sort(
     (a, b) => Number(b.faltas) - Number(a.faltas),
   );
@@ -115,8 +116,9 @@ async function cargarDirectivo() {
     (materia) => Number(materia.porcentaje) >= UMBRAL_DESAPROBACION,
   );
   const peorMateria = materias[0] ?? null;
+  // En riesgo: todavía regulares, con 20 faltas o más (se acercan al límite de 25).
   const alumnosEnRiesgo = contarUnicos(
-    alertas.map((alumno) => alumno.alumnoId ?? alumno.id),
+    (enRiesgo?.alertas ?? []).map((alumno) => alumno.alumnoId ?? alumno.id),
   );
 
   return {
@@ -124,9 +126,9 @@ async function cargarDirectivo() {
       {
         etiqueta: "Alumnos en riesgo",
         valor: alumnosEnRiesgo,
-        detalle: `Con ${umbralFaltas} faltas o más acumuladas`,
+        detalle: `Con ${umbralRiesgo} faltas o más, todavía regulares`,
         icono: "fa-triangle-exclamation",
-        tono: alertas.length > 0 ? "alerta" : "ok",
+        tono: alumnosEnRiesgo > 0 ? "alerta" : "ok",
       },
       {
         etiqueta: "Casos con desaprobación alta",
@@ -155,10 +157,10 @@ async function cargarDirectivo() {
     paneles: [
       {
         id: "alertas",
-        titulo: "Alertas de inasistencia",
+        titulo: "Libres por inasistencias",
         icono: "fa-triangle-exclamation",
         enlace: { to: "/gestion/reportes", texto: "Ver reporte" },
-        vacio: "Ningún alumno alcanzó el umbral de faltas en el ciclo.",
+        vacio: "Ningún alumno superó las 25 faltas en el ciclo.",
         filas: alertas.slice(0, LIMITE_LISTADOS).map((alumno) => ({
           id: alumno.id,
           principal: alumno.nombre,
