@@ -354,3 +354,13 @@
 		grid-column: auto;
 	}
 }
+
+/* Día sin clase (fin de semana o fuera del período del módulo). */
+.pagina-asistencia-division > .aviso-asistencia {
+	margin: 0 0 16px;
+	padding: 11px 14px;
+	border: 1px solid #f1d48a;
+	border-radius: 6px;
+	background: #fff8e1;
+	color: #6b5410;
+}
