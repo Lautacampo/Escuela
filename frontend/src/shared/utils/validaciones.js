@@ -68,3 +68,14 @@ export function sinCambios(
 }
 
 export const soloDigitos = (valor) => String(valor ?? "").replace(/\D/g, "");
+
+// Nombre o apellido: letras (con tildes y ñ), espacios, apóstrofo, guion y
+// punto; de 2 a 100 caracteres. Igual que en el backend.
+const REGEX_NOMBRE = /^[\p{L}][\p{L}\p{M} .'’-]*$/u;
+export function esNombreValido(valor) {
+  const texto = String(valor ?? "").trim();
+  return texto.length >= 2 && texto.length <= 100 && REGEX_NOMBRE.test(texto);
+}
+
+export const MENSAJE_NOMBRE_INVALIDO =
+  "Solo letras, espacios, apóstrofos o guiones (mínimo 2).";
