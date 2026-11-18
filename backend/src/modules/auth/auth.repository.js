@@ -5,7 +5,9 @@ export const buscarPorEmail = async (email) => {
     `SELECT u.id, u.nombre, u.apellido, u.email, u.contrahash, u.activo,  r.nombre AS rol
        FROM usuarios u
        JOIN roles r ON r.id = u.rol_id
-      WHERE u.email = $1`,
+      WHERE LOWER(u.email) = LOWER($1)
+      ORDER BY u.activo DESC, u.id
+      LIMIT 1`,
     [email]
   );
   return rows[0];
