@@ -2640,6 +2640,21 @@ body:has(.contenedor-dashboard) {
   font-size: 0.85rem;
 }
 
+/* Aviso en rojo: los módulos anteriores al de ingreso quedan aprobados por
+   equivalencia y no se pueden matricular. */
+.aviso-equivalencia {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #f5c2c0;
+  border-left: 4px solid #c0262d;
+  border-radius: 6px;
+  background: #fdecec;
+  color: #9b1c22;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .ficha-academica-info + .ficha-advertencia {
   margin-top: 22px;
   margin-bottom: 0;
