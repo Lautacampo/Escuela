@@ -8,6 +8,8 @@
 //   es su módulo de ingreso. Los módulos anteriores no se le exigen.
 // - Desde el ingreso en adelante: III o IV piden I y II aprobados; V o VI
 //   piden III y IV aprobados. Dentro del mismo año no hay correlatividad.
+// - Los módulos anteriores al de ingreso quedan aprobados por equivalencia:
+//   ya no se puede matricular al alumno en ellos (el backend responde 409).
 
 export const DESCRIPCION_MOTIVO_LIBRE = {
   INASISTENCIAS: "superó el límite de 25 inasistencias",
@@ -70,6 +72,30 @@ export function ordenIngreso(alumno, catalogo) {
   return ordenes.length > 0 ? Math.min(...ordenes) : null;
 }
 
+/**
+ * Posición del módulo de ingreso contando TODAS las cursadas, también la
+ * activa vacía. Los módulos anteriores ya están aprobados por equivalencia y
+ * no se pueden matricular. null = el alumno todavía no tiene cursadas.
+ */
+export function ordenIngresoFijo(alumno, catalogo) {
+  const ordenes = trayectoriaDe(alumno)
+    .map((cursada) => ordenModulo(catalogo[cursada.moduloId]))
+    .filter((orden) => orden !== null);
+  return ordenes.length > 0 ? Math.min(...ordenes) : null;
+}
+
+// Módulos anteriores a `modulo`, en orden (I, II, ...).
+export function modulosAnteriores(modulo, catalogo) {
+  const destino = ordenModulo(modulo);
+  if (destino === null) return [];
+  return Object.values(catalogo ?? {})
+    .filter((m) => {
+      const orden = ordenModulo(m);
+      return orden !== null && orden < destino;
+    })
+    .sort((a, b) => ordenModulo(a) - ordenModulo(b));
+}
+
 // Última cursada del alumno en ese módulo (o undefined si nunca lo cursó).
 export function ultimaCursada(alumno, moduloId) {
   return trayectoriaDe(alumno)
@@ -83,6 +109,11 @@ export function ultimaCursada(alumno, moduloId) {
  * Devuelve:
  * - yaAprobado: ya aprobó ese módulo (no se vuelve a cursar).
  * - recursa: quedó LIBRE en ese módulo; la matrícula crea la recursada.
+ * - porEquivalencia: el módulo es anterior al de ingreso; ya está aprobado
+ *     por equivalencia y no se puede matricular.
+ * - dejaPorEquivalencia: nombres de los módulos que quedarían aprobados por
+ *     equivalencia si se lo matricula en este (cuando esta matrícula fija el
+ *     módulo de ingreso). Después no se lo puede matricular en ellos.
  * - bloqueantes: correlativos que le faltan aprobar. Un correlativo anterior
  *     al módulo de ingreso no se exige; un alumno sin cursadas ingresa en el
  *     módulo elegido, así que no tiene bloqueantes.
@@ -114,8 +145,21 @@ export function analizarMatricula(alumno, moduloId, catalogo) {
     }
   }
 
+  const yaAprobado = aprobados.has(Number(moduloId));
+  const destino = ordenModulo(modulo);
+  const ingresoFijo = ordenIngresoFijo(alumno, catalogo);
+  const porEquivalencia =
+    !yaAprobado && ingresoFijo !== null && destino !== null && destino < ingresoFijo;
+  // Sin cursadas con datos, esta matrícula fija el módulo de ingreso.
+  const fijaIngreso = !porEquivalencia && ordenIngreso(alumno, catalogo) === null;
+  const dejaPorEquivalencia = fijaIngreso
+    ? modulosAnteriores(modulo, catalogo).map((m) => m.numeroLeyenda)
+    : [];
+
   return {
-    yaAprobado: aprobados.has(Number(moduloId)),
+    yaAprobado,
+    porEquivalencia,
+    dejaPorEquivalencia,
     recursa: actual?.estadoAcademico === "A_RECURSAR",
     enCurso: ESTADOS_ABIERTOS.includes(actual?.estadoAcademico),
     bloqueantes: bloqueantes.sort((a, b) => a.id - b.id),
@@ -137,6 +181,9 @@ export function correlativosFaltantes(analisis) {
 // Texto corto para la opción del módulo en un <select>.
 export function etiquetaModulo(modulo, analisis) {
   if (analisis.yaAprobado) return `${modulo.numeroLeyenda} — ya aprobado`;
+  if (analisis.porEquivalencia) {
+    return `${modulo.numeroLeyenda} — aprobado por equivalencia`;
+  }
   if (analisis.bloqueantes.length > 0) {
     return `${modulo.numeroLeyenda} — requiere aprobar ${listar(
       correlativosFaltantes(analisis).map((m) => m.nombre),
@@ -144,6 +191,19 @@ export function etiquetaModulo(modulo, analisis) {
   }
   if (analisis.recursa) return `${modulo.numeroLeyenda} — recursar`;
   return modulo.numeroLeyenda;
+}
+
+// Aviso en rojo al elegir un módulo que fija el ingreso y deja anteriores
+// aprobados por equivalencia.
+export function avisoEquivalencia(nombreModulo, anteriores) {
+  if (!anteriores?.length) return "";
+  const varios = anteriores.length > 1;
+  return (
+    `Atención: si lo matriculás en ${nombreModulo}, ` +
+    `${varios ? "los módulos anteriores" : "el módulo anterior"} (${listar(anteriores)}) ` +
+    `${varios ? "quedarán aprobados" : "quedará aprobado"} por equivalencia ` +
+    `y no vas a poder matricularlo en ${varios ? "ellos" : "él"}.`
+  );
 }
 
 export function listar(nombres) {
