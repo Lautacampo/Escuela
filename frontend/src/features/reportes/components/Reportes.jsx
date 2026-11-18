@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAutoActualizar } from "../../../shared/hooks/useAutoActualizar";
 import {
   getReporteInasistencias,
   getReporteDesaprobaciones,
@@ -6,20 +7,58 @@ import {
 import { getCicloLectivo } from "../../planestudios/services/planEstudiosService.js";
 import { getModulos as getModulosCalificaciones } from "../../calificaciones/services/CalificacionesServices.js";
 
+// Pide los dos reportes y los módulos del ciclo, y los deja listos para la vista.
+async function cargarReportes(anio, moduloId) {
+  const [resInasistencias, resDesaprobaciones, grupos] = await Promise.all([
+    getReporteInasistencias(anio, moduloId),
+    getReporteDesaprobaciones(anio),
+    getModulosCalificaciones(anio),
+  ]);
+
+  const mapaModulos = new Map();
+  for (const grupo of grupos ?? []) {
+    for (const modulo of grupo.modulos ?? []) {
+      mapaModulos.set(String(modulo.id), {
+        ...modulo,
+        anioCurso: grupo.anio,
+      });
+    }
+  }
+
+  return {
+    alertas: resInasistencias?.alertas ?? [],
+    umbral: resInasistencias?.umbralFaltas ?? 25,
+    materias: resDesaprobaciones?.resultados ?? [],
+    modulos: [...mapaModulos.values()].sort(
+      (a, b) => Number(a.id) - Number(b.id),
+    ),
+  };
+}
+
 export function Reportes() {
   const [curso, setCurso] = useState("");
   const [division, setDivision] = useState("");
   const [materiaId, setMateriaId] = useState("");
   const [moduloId, setModuloId] = useState("");
-  const [modulosDisponibles, setModulosDisponibles] = useState([]);
   // Los reportes son siempre del ciclo lectivo vigente (no se elige en pantalla).
   const [anioSeleccionado, setAnioSeleccionado] = useState("");
   const [cargandoCiclos, setCargandoCiclos] = useState(true);
-  const [alertas, setAlertas] = useState([]);
-  const [materias, setMaterias] = useState([]);
-  const [umbral, setUmbral] = useState(25);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState("");
+  const [errorCiclo, setErrorCiclo] = useState("");
+
+  // Los datos cargados quedan asociados al ciclo y al módulo elegidos: si
+  // cambian, se muestra "Cargando..." hasta tener los nuevos.
+  const clave = `${anioSeleccionado}|${moduloId}`;
+  const [resultado, setResultado] = useState({
+    clave: null,
+    alertas: [],
+    umbral: 25,
+    materias: [],
+    modulos: [],
+    error: "",
+  });
+  const cargando = !anioSeleccionado || resultado.clave !== clave;
+  const error = errorCiclo || (cargando ? "" : resultado.error);
+  const { alertas, umbral, materias, modulos: modulosDisponibles } = resultado;
 
   useEffect(() => {
     let activo = true;
@@ -34,7 +73,7 @@ export function Reportes() {
         setAnioSeleccionado(vigente == null ? "" : String(vigente));
       })
       .catch((err) => {
-        if (activo) setError(err.message);
+        if (activo) setErrorCiclo(err.message);
       })
       .finally(() => {
         if (activo) setCargandoCiclos(false);
@@ -49,45 +88,37 @@ export function Reportes() {
     if (!anioSeleccionado) return;
 
     let activo = true;
-    setCargando(true);
-    setError("");
-
-    Promise.all([
-      getReporteInasistencias(anioSeleccionado, moduloId),
-      getReporteDesaprobaciones(anioSeleccionado),
-      getModulosCalificaciones(anioSeleccionado),
-    ])
-      .then(([resInasistencias, resDesaprobaciones, grupos]) => {
-        if (!activo) return;
-
-        setAlertas(resInasistencias?.alertas ?? []);
-        setUmbral(resInasistencias?.umbralFaltas ?? 25);
-        setMaterias(resDesaprobaciones?.resultados ?? []);
-
-        const mapaModulos = new Map();
-        for (const grupo of grupos ?? []) {
-          for (const modulo of grupo.modulos ?? []) {
-            mapaModulos.set(String(modulo.id), {
-              ...modulo,
-              anioCurso: grupo.anio,
-            });
-          }
-        }
-        setModulosDisponibles(
-          [...mapaModulos.values()].sort((a, b) => Number(a.id) - Number(b.id)),
-        );
+    const claveActual = `${anioSeleccionado}|${moduloId}`;
+    cargarReportes(anioSeleccionado, moduloId)
+      .then((datos) => {
+        if (activo) setResultado({ clave: claveActual, ...datos, error: "" });
       })
       .catch((err) => {
-        if (activo) setError(err.message);
-      })
-      .finally(() => {
-        if (activo) setCargando(false);
+        if (activo) {
+          setResultado((previo) => ({
+            ...previo,
+            clave: claveActual,
+            error: err.message,
+          }));
+        }
       });
 
     return () => {
       activo = false;
     };
   }, [anioSeleccionado, moduloId]);
+
+  // Los reportes se actualizan solos: un alumno que queda libre por faltas
+  // aparece sin recargar la página.
+  useAutoActualizar(
+    async () => {
+      const datos = await cargarReportes(anioSeleccionado, moduloId);
+      setResultado((previo) =>
+        previo.clave === clave ? { ...previo, ...datos, error: "" } : previo,
+      );
+    },
+    { activo: !cargando && !error },
+  );
 
   const divisiones = curso === "3" ? ["A", "B", "C"] : ["A", "B", "C", "D"];
   const modulosVisibles = modulosDisponibles.filter(
