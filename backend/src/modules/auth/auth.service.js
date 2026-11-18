@@ -40,6 +40,10 @@ export const registrar = async ({ nombre, apellido, email, password, rol }) => {
     throw new HttpError(400,"La contraseña debe tener al menos 4 caracteres");
   }
 
+  if (await authRepository.buscarPorEmail(String(email ?? "").trim())) {
+    throw new HttpError(409, "Ese correo ya pertenece a otro usuario del sistema");
+  }
+
   const hash = await bcrypt.hash(password, SALT_ROUNDS);
   
  
