@@ -1,9 +1,5 @@
 import { apiFetch } from "../../../shared/services/api.js";
 
-export async function getAsistencias() {
-  return apiFetch("/asistencias");
-}
-
 export async function getAlumnos(incluirInactivos = false) {
   return apiFetch(
     incluirInactivos ? "/alumnos?incluirInactivos=true" : "/alumnos"
@@ -31,6 +27,11 @@ export async function setAlumno(alumno) {
     method: alumno.id ? "PUT" : "POST",
     body: JSON.stringify(alumno),
   });
+}
+
+// Vuelve a dar de alta a un alumno dado de baja, con su matrícula e historial.
+export async function reactivarAlumno(id) {
+  return apiFetch(`/alumnos/${id}/reactivar`, { method: "PATCH" });
 }
 
 export async function borrarAlumno(id) {
