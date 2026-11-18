@@ -9,6 +9,7 @@ import { traducirUnicidadPersona } from "../../utils/errorUnicidadPersona.js";
 import {
   esCuilValido,
   esDniValido,
+  esNombreValido,
   esTelefonoValido,
   normalizarCuil,
   normalizarDni,
@@ -47,6 +48,16 @@ const validar = (body, anterior = null) => {
       throw new HttpError(
         400,
         `${ETIQUETAS_REQUERIDOS[campo]} es obligatorio`,
+        { campo },
+      );
+    }
+  }
+
+  for (const [campo, etiqueta] of [["nombre", "El nombre"], ["apellido", "El apellido"]]) {
+    if (!sinCambios(anterior, campo, d[campo]) && !esNombreValido(d[campo])) {
+      throw new HttpError(
+        400,
+        `${etiqueta} solo puede tener letras, espacios, apóstrofos o guiones (de 2 a 100 caracteres)`,
         { campo },
       );
     }
@@ -161,7 +172,13 @@ const validar = (body, anterior = null) => {
     );
   }
 
-  d.trabaja = Boolean(body.trabaja);
+  // "trabaja" es sí o no. Boolean("false") daría true, por eso se valida.
+  if (![true, false, "true", "false", undefined, null].includes(body.trabaja)) {
+    throw new HttpError(400, "El campo trabaja debe ser verdadero o falso", {
+      campo: "trabaja",
+    });
+  }
+  d.trabaja = body.trabaja === true || body.trabaja === "true";
   d.cantidadHijos = Number(body.cantidadHijos ?? 0);
   if (
     !Number.isInteger(d.cantidadHijos) ||
@@ -672,6 +689,9 @@ export const evaluarModulo = async (body = {}) => {
       400,
       "La fecha debe ser válida y tener el formato AAAA-MM-DD",
     );
+  }
+  if (fecha > hoyISO()) {
+    throw new HttpError(400, "La fecha de la evaluación no puede ser futura");
   }
 
   if (!Number.isFinite(nota) || nota < 0 || nota > 10) {
