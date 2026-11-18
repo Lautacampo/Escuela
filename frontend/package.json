@@ -8,7 +8,7 @@
     "server": "json-server --watch ../database/db.json --port 3000",
     "build": "vite build",
     "lint": "eslint .",
-    "test": "node --test src/features/alumnos/utils/correlatividades.test.js",
+    "test": "node --test src/features/alumnos/utils/correlatividades.test.js src/features/asistencia/utils/diasDeClase.test.js",
     "preview": "vite preview"
   },
   "dependencies": {
