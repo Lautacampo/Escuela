@@ -107,19 +107,9 @@ El sistema requiere dos terminales en ejecución simultánea:
 
 ---
 
-## 5. Usuario de prueba
 
-Para iniciar sesión desde el formulario de Login en el front-end (`http://localhost:5173/login`) o probar los endpoints protegidos en Postman, utilizar las siguientes credenciales (la contraseña está almacenada hasheada con `bcrypt` en la tabla `usuarios`):
 
-| Rol | Correo electrónico (`email`) | Contraseña (`password`) | Permisos en el sistema |
-| :--- | :--- | :--- | :--- |
-| **Directivo** | `director@escuela.com` | `1234` | Acceso total (ABM de preceptores, docentes, alumnos, calificaciones, asistencias, plan de estudio y reportes) |
-| **Docente** | `docente@escuela.com` | `1234` | Gestión de calificaciones de sus módulos, divisiones y materias asignadas |
-| **Preceptor** | `preceptor@escuela.com` | `1234` | Gestión de asistencias de los cursos y divisiones asignados a su cargo |
-
----
-
-## 6. Pruebas de las reglas académicas
+## 5. Pruebas de las reglas académicas
 
 Con una base local y el backend corriendo, desde `backend/`:
 
