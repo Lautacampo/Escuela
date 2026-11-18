@@ -7,10 +7,13 @@ import {
   esTelefonoValido,
   limitarDigitos,
   normalizarCuil,
+  sinCambios,
+  soloDigitos,
 } from "../../../shared/utils/validaciones";
 import { capitalizarNombre } from "../../../shared/utils/formato";
 import { ListadoAlumnos } from "./ListadoAlumnos";
 import { ListadoEgresados } from "./ListadoEgresados";
+import { ListadoBajas } from "./ListadoBajas";
 import {
   getAlumnos,
   getAlumnosEgresados,
@@ -20,8 +23,9 @@ import {
   matricularAlumno,
   actualizarMatricula,
   borrarAlumno,
-  getAsistencias,
+  reactivarAlumno,
 } from "../services/AlumnosServices";
+import { useAutoActualizar } from "../../../shared/hooks/useAutoActualizar";
 import { IngresoEquivalencia } from "./IngresoEquivalencia";
 import {
   DESCRIPCION_MOTIVO_LIBRE,
@@ -237,12 +241,17 @@ export function Alumnos() {
   const [ingresoMatricula, setIngresoMatricula] = useState(INGRESO_INICIAL);
   const [aviso, setAviso] = useState("");
   const [errores, setErrores] = useState({});
-  const [asistencias, setAsistencias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   // Vista de egresados (solo lectura): /gestion/alumnos?vista=egresados
   const [searchParams, setSearchParams] = useSearchParams();
-  const viendoEgresados = searchParams.get("vista") === "egresados";
+  const vista = searchParams.get("vista");
+  const viendoEgresados = vista === "egresados";
+  // Alumnos dados de baja (baja lógica): /gestion/alumnos?vista=bajas
+  const viendoBajas = vista === "bajas";
+  const [bajas, setBajas] = useState(null);
+  const [errorBajas, setErrorBajas] = useState("");
+  const [reactivando, setReactivando] = useState(null);
   const [egresados, setEgresados] = useState(null);
   const [errorEgresados, setErrorEgresados] = useState("");
 
@@ -263,6 +272,24 @@ export function Alumnos() {
       activo = false;
     };
   }, [viendoEgresados]);
+
+  useEffect(() => {
+    if (!viendoBajas) return;
+    let activo = true;
+    getAlumnos(true)
+      .then((datos) => {
+        if (activo) {
+          setBajas(datos.filter((alumno) => !alumno.activo));
+          setErrorBajas("");
+        }
+      })
+      .catch((e) => {
+        if (activo) setErrorBajas(e.message);
+      });
+    return () => {
+      activo = false;
+    };
+  }, [viendoBajas]);
   const [errorGuardar, setErrorGuardar] = useState("");
   const [errorEliminar, setErrorEliminar] = useState("");
 
@@ -277,12 +304,13 @@ export function Alumnos() {
   useEffect(() => {
     async function cargar() {
       try {
-        const [datosAlumnos, datosAsistencias, datosCursos] =
-          await Promise.all([getAlumnos(), getAsistencias(), getCursos()]);
+        const [datosAlumnos, datosCursos] = await Promise.all([
+          getAlumnos(),
+          getCursos(),
+        ]);
         setAlumnos(
           datosAlumnos.map((alumno) => prepararAlumnoLista(alumno, datosCursos))
         );
-        setAsistencias(datosAsistencias);
         setCursos(datosCursos);
       } catch (e) {
         setError(e.message);
@@ -292,6 +320,49 @@ export function Alumnos() {
     }
     cargar();
   }, []);
+
+  // El padrón se actualiza solo: si un docente desaprueba o un preceptor carga
+  // faltas, la condición del alumno cambia sin recargar la página. Se pausa
+  // mientras hay un formulario abierto.
+  useAutoActualizar(
+    async () => {
+      if (viendoEgresados) {
+        setEgresados(await getAlumnosEgresados());
+      } else if (viendoBajas) {
+        const todos = await getAlumnos(true);
+        setBajas(todos.filter((alumno) => !alumno.activo));
+      } else {
+        const datosAlumnos = await getAlumnos();
+        setAlumnos(
+          datosAlumnos.map((alumno) => prepararAlumnoLista(alumno, cursos))
+        );
+      }
+    },
+    { activo: !cargando && !mostrarFormulario && reactivando === null }
+  );
+
+  async function reactivar(alumno) {
+    try {
+      setReactivando(alumno.id);
+      setErrorBajas("");
+      setAviso("");
+      await reactivarAlumno(alumno.id);
+      setBajas((anteriores) =>
+        (anteriores ?? []).filter((registro) => registro.id !== alumno.id)
+      );
+      const datosAlumnos = await getAlumnos();
+      setAlumnos(
+        datosAlumnos.map((registro) => prepararAlumnoLista(registro, cursos))
+      );
+      setAviso(
+        `${alumno.apellido}, ${alumno.nombre} volvió al padrón con su matrícula y su historial.`
+      );
+    } catch (e) {
+      setErrorBajas(e.message);
+    } finally {
+      setReactivando(null);
+    }
+  }
 
   const manejarCambio = (e) => {
     const { name, type, checked } = e.target;
@@ -525,7 +596,9 @@ export function Alumnos() {
     if (!alumno) return;
 
     const confirmar = window.confirm(
-      `¿Está seguro de eliminar al alumno ${alumno.apellido}, ${alumno.nombre}?`
+      `¿Dar de baja a ${alumno.apellido}, ${alumno.nombre}?\n\n` +
+        "Sale del padrón y de las planillas, pero se conserva su historial. " +
+        'Podés reactivarlo desde "Dados de baja".'
     );
 
     if (!confirmar) return;
@@ -535,6 +608,9 @@ export function Alumnos() {
       await borrarAlumno(id);
       setAlumnos((anteriores) =>
         anteriores.filter((alumno) => alumno.id !== id)
+      );
+      setAviso(
+        `${alumno.apellido}, ${alumno.nombre} quedó dado de baja. Podés reactivarlo desde "Dados de baja".`
       );
     } catch (e) {
       setErrorEliminar(e.message);
@@ -548,6 +624,11 @@ export function Alumnos() {
 
     const nuevosErrores = {};
     const dni = limitarDigitos(valores.dni, 8);
+    // Al editar, las reglas de formato se aplican solo a lo que cambia.
+    const original = alumnoEditando;
+    const igual = (campo, valor, normalizar) =>
+      sinCambios(original, campo, valor, normalizar);
+    const mismoDni = igual("dni", dni, soloDigitos);
 
     for (const [campo, mensaje] of Object.entries(CAMPOS_OBLIGATORIOS)) {
       if (!String(valores[campo] ?? "").trim()) {
@@ -557,14 +638,17 @@ export function Alumnos() {
 
     if (!dni) {
       nuevosErrores.dni = "Debe ingresar el DNI.";
-    } else if (!esDniValido(dni)) {
+    } else if (!mismoDni && !esDniValido(dni)) {
       nuevosErrores.dni =
         "El DNI debe tener entre 7 y 8 dígitos numéricos.";
     }
 
     if (!valores.cuil.trim()) {
       nuevosErrores.cuil = "Debe ingresar el CUIL.";
-    } else if (!esCuilValido(valores.cuil, dni)) {
+    } else if (
+      !(mismoDni && igual("cuil", valores.cuil, soloDigitos)) &&
+      !esCuilValido(valores.cuil, dni)
+    ) {
       nuevosErrores.cuil =
         "El CUIL debe tener 11 dígitos y corresponder al DNI.";
     }
@@ -572,7 +656,7 @@ export function Alumnos() {
     if (!valores.email.trim()) {
       nuevosErrores.email = "Debe ingresar el correo electrónico.";
     } else if (
-      !esEmailValido(valores.email) ||
+      (!igual("email", valores.email) && !esEmailValido(valores.email)) ||
       valores.email.trim().length > 200
     ) {
       nuevosErrores.email =
@@ -584,19 +668,24 @@ export function Alumnos() {
     } else if (calcularEdad(valores.fechaNacimiento) < 0) {
       nuevosErrores.fechaNacimiento =
         "La fecha de nacimiento no puede ser futura.";
-    } else if (calcularEdad(valores.fechaNacimiento) < 18) {
+    } else if (
+      !igual("fechaNacimiento", valores.fechaNacimiento) &&
+      calcularEdad(valores.fechaNacimiento) < 18
+    ) {
       nuevosErrores.fechaNacimiento =
         "El alumno debe tener 18 años o más.";
     }
     if (
-      !esTelefonoValido(valores.telefono) ||
+      (!igual("telefono", valores.telefono) &&
+        !esTelefonoValido(valores.telefono)) ||
       (valores.telefono && valores.telefono.length > 20)
     ) {
       nuevosErrores.telefono = "El teléfono debe tener entre 8 y 15 dígitos.";
     }
     if (
       valores.telefonoEmergencia.trim() &&
-      (!esTelefonoValido(valores.telefonoEmergencia, true) ||
+      ((!igual("telefonoEmergencia", valores.telefonoEmergencia) &&
+        !esTelefonoValido(valores.telefonoEmergencia, true)) ||
         valores.telefonoEmergencia.length > 30)
     ) {
       nuevosErrores.telefonoEmergencia =
@@ -755,26 +844,44 @@ export function Alumnos() {
           <p>
             {viendoEgresados
               ? "Alumnos que completaron los 6 módulos. Sus legajos son de solo consulta."
-              : "Administración de los alumnos registrados en la institución."}
+              : viendoBajas
+                ? "Alumnos dados de baja: no figuran en el padrón ni en las planillas. Se pueden reactivar."
+                : "Administración de los alumnos registrados en la institución."}
           </p>
         </div>
 
         <div className="encabezado-acciones">
-          <button
-            type="button"
-            className="btn-secundario"
-            onClick={() =>
-              setSearchParams(viendoEgresados ? {} : { vista: "egresados" })
-            }
-          >
-            <i
-              className={`fa-solid ${viendoEgresados ? "fa-users" : "fa-graduation-cap"}`}
-              aria-hidden="true"
-            ></i>{" "}
-            {viendoEgresados ? "Volver a alumnos" : "Alumnos egresados"}
-          </button>
+          {viendoEgresados || viendoBajas ? (
+            <button
+              type="button"
+              className="btn-secundario"
+              onClick={() => setSearchParams({})}
+            >
+              <i className="fa-solid fa-users" aria-hidden="true"></i>{" "}
+              Volver a alumnos
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn-secundario"
+                onClick={() => setSearchParams({ vista: "egresados" })}
+              >
+                <i className="fa-solid fa-graduation-cap" aria-hidden="true"></i>{" "}
+                Alumnos egresados
+              </button>
+              <button
+                type="button"
+                className="btn-secundario"
+                onClick={() => setSearchParams({ vista: "bajas" })}
+              >
+                <i className="fa-solid fa-user-slash" aria-hidden="true"></i>{" "}
+                Dados de baja
+              </button>
+            </>
+          )}
 
-          {!viendoEgresados && (
+          {!viendoEgresados && !viendoBajas && (
             <button
               type="button"
               className="btn-primario-gestion"
@@ -809,6 +916,23 @@ export function Alumnos() {
         ) : (
           <ListadoEgresados egresados={egresados} />
         )
+      ) : viendoBajas ? (
+        <>
+          {errorBajas && (
+            <p className="mensaje-error" role="alert">
+              {errorBajas}
+            </p>
+          )}
+          {bajas === null ? (
+            <p>Cargando alumnos dados de baja...</p>
+          ) : (
+            <ListadoBajas
+              bajas={bajas}
+              onReactivar={reactivar}
+              reactivando={reactivando}
+            />
+          )}
+        </>
       ) : (
         <ListadoAlumnos
           alumnos={alumnos}
