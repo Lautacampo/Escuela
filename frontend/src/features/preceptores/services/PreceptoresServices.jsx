@@ -14,6 +14,17 @@ export async function setPreceptor(preceptor) {
   });
 }
 
+// Baja lógica: el preceptor queda inactivo (no inicia sesión) y conserva sus
+// datos y sus cursos.
+export async function inactivarPreceptor(id) {
+  return apiFetch(`/preceptores/${id}/inactivar`, { method: "PATCH" });
+}
+
+export async function reactivarPreceptor(id) {
+  return apiFetch(`/preceptores/${id}/reactivar`, { method: "PATCH" });
+}
+
+// Eliminación definitiva: el backend solo la permite si está inactivo.
 export async function borrarPreceptor(id) {
   await apiFetch(`/preceptores/${id}`, { method: "DELETE" });
 }
