@@ -11,8 +11,13 @@ import alumnosRoutes from "./modules/alumnos/alumnos.routes.js"
 import planEstudiosRoutes from "./modules/planestudios/planEstudios.routes.js";
 import reportesRoutes from "./modules/reportes/reportes.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { exigirEsquema } from "./config/esquema.js";
 
 const app = express();
+
+// En Render la API está detrás de un proxy: así req.ip es la IP del cliente
+// (la usa el límite de intentos de inicio de sesión).
+app.set("trust proxy", 1);
 
 // 1. Middleware propio: Logger de peticiones
 app.use((req, res, next) => {
@@ -23,6 +28,9 @@ app.use((req, res, next) => {
 // 2. CORS y parseo de JSON
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Verifica una sola vez que la base tenga las columnas de la migración 007.
+app.use("/api", exigirEsquema);
 
 // 3. Rutas de la API REST
 app.use("/api/auth", authRoutes);
