@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router";
+import { useAutoActualizar } from "../../../shared/hooks/useAutoActualizar";
 import {
   getCiclosCalificaciones,
   getGrilla,
@@ -18,43 +19,82 @@ export function DivisionCalificacionesPage() {
       ? anioUrl
       : null,
   );
-  const [grilla, setGrilla] = useState(null);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState(null);
+  const [errorCiclo, setErrorCiclo] = useState(null);
   const [errorGuardar, setErrorGuardar] = useState(null);
 
+  // La grilla cargada queda asociada a su módulo, división y ciclo: si alguno
+  // cambia, se muestra "Cargando..." hasta tener la nueva.
+  const clave = `${moduloId}|${division}|${anio}`;
+  const [resultado, setResultado] = useState({
+    clave: null,
+    grilla: null,
+    error: null,
+  });
+  const cargando =
+    anio === null ? errorCiclo === null : resultado.clave !== clave;
+  const grilla = cargando ? null : resultado.grilla;
+  const error = errorCiclo ?? (cargando ? null : resultado.error);
+  const setGrilla = (cambio) =>
+    setResultado((previo) => ({
+      ...previo,
+      grilla: typeof cambio === "function" ? cambio(previo.grilla) : cambio,
+    }));
+
+  // Guardados en curso y realizados: una actualización de fondo que empezó
+  // antes de un guardado trae datos viejos y se descarta.
+  const guardados = useRef({ enCurso: 0, total: 0 });
+
+  // Sin ciclo en la URL se usa el vigente.
   useEffect(() => {
+    if (anio !== null) return undefined;
     let activo = true;
-    setCargando(true);
-    setError(null);
-    if (anio === null) {
-      getCiclosCalificaciones()
-        .then((respuesta) => {
-          if (!activo) return;
-          const vigente = respuesta?.cicloActivo?.anio;
-          if (vigente) setAnio(Number(vigente));
-          else {
-            setError("No hay un ciclo lectivo vigente.");
-            setCargando(false);
-          }
-        })
-        .catch((e) => {
-          if (!activo) return;
-          setError(e.message);
-          setCargando(false);
-        });
-      return () => {
-        activo = false;
-      };
-    }
+    getCiclosCalificaciones()
+      .then((respuesta) => {
+        if (!activo) return;
+        const vigente = respuesta?.cicloActivo?.anio;
+        if (vigente) setAnio(Number(vigente));
+        else setErrorCiclo("No hay un ciclo lectivo vigente.");
+      })
+      .catch((e) => activo && setErrorCiclo(e.message));
+    return () => {
+      activo = false;
+    };
+  }, [anio]);
+
+  useEffect(() => {
+    if (anio === null) return undefined;
+    let activo = true;
+    const claveActual = `${moduloId}|${division}|${anio}`;
     getGrilla(moduloId, division, anio)
-      .then((datos) => activo && setGrilla(datos))
-      .catch((e) => activo && setError(e.message))
-      .finally(() => activo && setCargando(false));
+      .then(
+        (datos) =>
+          activo && setResultado({ clave: claveActual, grilla: datos, error: null }),
+      )
+      .catch(
+        (e) =>
+          activo &&
+          setResultado({ clave: claveActual, grilla: null, error: e.message }),
+      );
     return () => {
       activo = false;
     };
   }, [moduloId, division, anio]);
+
+  // Lo que cargan otros usuarios (otro docente, el directivo) aparece solo.
+  useAutoActualizar(
+    async () => {
+      if (guardados.current.enCurso > 0) return;
+      const antes = guardados.current.total;
+      const datos = await getGrilla(moduloId, division, anio);
+      if (guardados.current.enCurso > 0 || guardados.current.total !== antes) {
+        return;
+      }
+      setResultado((previo) =>
+        previo.clave === clave ? { ...previo, grilla: datos } : previo,
+      );
+    },
+    { activo: !cargando && !error },
+  );
 
   async function cambiarEstado(cursadaId, materiaId, estado) {
     const anterior = grilla;
@@ -81,6 +121,8 @@ export function DivisionCalificacionesPage() {
       ),
     });
 
+    guardados.current.enCurso += 1;
+    guardados.current.total += 1;
     try {
       const guardada = await setCalificacion(cursadaId, materiaId, estado, anio);
       // El backend devuelve la situación recalculada (REGULAR / LIBRE).
@@ -100,6 +142,8 @@ export function DivisionCalificacionesPage() {
     } catch (e) {
       setGrilla(anterior); // se vuelve como se veia antes  si la API rechaza el cambio
       setErrorGuardar(e.message);
+    } finally {
+      guardados.current.enCurso -= 1;
     }
   }
 
@@ -147,8 +191,6 @@ export function DivisionCalificacionesPage() {
         alumnos={grilla.alumnos}
         materias={grilla.materias}
         notas={notas}
-        moduloId={moduloId}
-        division={division}
         onCambiar={cambiarEstado}
       />
     </section>
