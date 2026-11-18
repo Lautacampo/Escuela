@@ -1,4 +1,5 @@
 import { pool } from "../../config/db.js";
+import { HttpError } from "../../utils/httpError.js";
 
 export const buscarPorEmail = async (email) => {
   const { rows } = await pool.query(
@@ -40,7 +41,9 @@ export const vincularOCrearUsuario = async (
     `SELECT u.id, u.persona_id, r.nombre AS rol
        FROM usuarios u
        JOIN roles r ON r.id = u.rol_id
-      WHERE u.email = $1
+      WHERE LOWER(u.email) = LOWER($1)
+      ORDER BY u.id
+      LIMIT 1
         FOR UPDATE OF u`,
     [email],
   );
@@ -85,6 +88,19 @@ export const desvincularUsuario = async (client, personaId) => {
 
 // Mantiene el correo de inicio de sesión igual al de la persona.
 export const sincronizarEmailUsuario = async (client, personaId, email) => {
+  // El login no distingue mayúsculas: "Director@escuela.com" es el mismo
+  // correo que "director@escuela.com" y no puede quedar en otro usuario.
+  const { rowCount } = await client.query(
+    `SELECT 1 FROM usuarios
+      WHERE LOWER(email) = LOWER($2)
+        AND persona_id IS DISTINCT FROM $1`,
+    [personaId, email],
+  );
+  if (rowCount > 0) {
+    throw new HttpError(409, "Ese correo ya pertenece a otro usuario del sistema", {
+      campo: "email",
+    });
+  }
   await client.query(
     "UPDATE usuarios SET email = $2 WHERE persona_id = $1 AND email <> $2",
     [personaId, email],
