@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { analizarMatricula, ordenIngreso } from "./correlatividades.js";
+import { analizarMatricula, avisoEquivalencia, etiquetaModulo, ordenIngreso } from "./correlatividades.js";
 
 // Catálogo como lo manda GET /cursos: III y IV piden I y II; V y VI piden III y IV.
 const modulos = [
@@ -109,4 +109,51 @@ test("con datos cargados en I, ya no se puede saltar a V", () => {
 
 test("un módulo aprobado no se vuelve a cursar", () => {
   assert.equal(analizarMatricula(conCursadas([1, "APROBADO"]), 1, catalogo).yaAprobado, true);
+});
+
+// --- Módulos anteriores al ingreso: aprobados por equivalencia --------------
+const analisis = (alumno, moduloId) => analizarMatricula(alumno, moduloId, catalogo);
+
+test("ingresó en III: I y II están aprobados por equivalencia y no se pueden elegir", () => {
+  const alumno = conCursadas([3, "EN_CURSO", { activa: true }]);
+  for (const moduloId of [1, 2]) {
+    assert.equal(analisis(alumno, moduloId).porEquivalencia, true);
+    assert.equal(etiquetaModulo(catalogo[moduloId], analisis(alumno, moduloId)), `${catalogo[moduloId].numeroLeyenda} — aprobado por equivalencia`);
+  }
+  assert.equal(analisis(alumno, 3).porEquivalencia, false);
+  assert.equal(analisis(alumno, 4).porEquivalencia, false);
+});
+
+test("recién matriculado en III, sin datos: tampoco puede volver a I o II", () => {
+  const alumno = conCursadas([3, "EN_CURSO", { activa: true, tieneDatos: false }]);
+  assert.equal(analisis(alumno, 1).porEquivalencia, true);
+  assert.equal(analisis(alumno, 2).porEquivalencia, true);
+  // Hacia adelante sí se corrige, y avisa qué quedaría por equivalencia.
+  assert.equal(analisis(alumno, 5).porEquivalencia, false);
+  assert.deepEqual(analisis(alumno, 5).dejaPorEquivalencia, ["Modulo I", "Modulo II", "Modulo III", "Modulo IV"]);
+});
+
+test("alumno nuevo: avisa qué módulos quedan aprobados por equivalencia", () => {
+  assert.deepEqual(analisis(null, 1).dejaPorEquivalencia, []);
+  assert.deepEqual(analisis(null, 3).dejaPorEquivalencia, ["Modulo I", "Modulo II"]);
+  assert.deepEqual(analisis({ trayectoria: [] }, 6).dejaPorEquivalencia, ["Modulo I", "Modulo II", "Modulo III", "Modulo IV", "Modulo V"]);
+});
+
+test("con un ingreso ya fijado no hay aviso: el ingreso no cambia", () => {
+  const alumno = conCursadas([1, "APROBADO"], [2, "EN_CURSO", { activa: true }]);
+  assert.deepEqual(analisis(alumno, 2).dejaPorEquivalencia, []);
+  assert.deepEqual(analisis(alumno, 3).dejaPorEquivalencia, []);
+  assert.equal(analisis(alumno, 1).porEquivalencia, false, "I es el ingreso, no es por equivalencia");
+});
+
+test("texto del aviso en rojo", () => {
+  assert.equal(
+    avisoEquivalencia("Modulo III", ["Modulo I", "Modulo II"]),
+    "Atención: si lo matriculás en Modulo III, los módulos anteriores (Modulo I y Modulo II) quedarán aprobados por equivalencia y no vas a poder matricularlo en ellos.",
+  );
+  assert.equal(
+    avisoEquivalencia("Modulo II", ["Modulo I"]),
+    "Atención: si lo matriculás en Modulo II, el módulo anterior (Modulo I) quedará aprobado por equivalencia y no vas a poder matricularlo en él.",
+  );
+  assert.equal(avisoEquivalencia("Modulo I", []), "");
 });
