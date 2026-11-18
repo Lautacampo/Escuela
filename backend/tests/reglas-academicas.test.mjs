@@ -764,15 +764,37 @@ test("E1. Ya no hay equivalencias: la ruta no existe y la ficha no las trae", as
   assert.equal(tabla.rows[0].tabla, null, "La tabla equivalencia_modulo se eliminó (migración 008)");
 });
 
-test("E2. Volver a un módulo anterior al ingreso se permite; uno aprobado, no", async () => {
+test("E2. Los módulos anteriores al ingreso no se matriculan: ya están aprobados por equivalencia", async () => {
   const id = await crearAlumno();
   await alta(id, M.III);
+  // Ni siquiera recién matriculado, sin datos, se puede volver atrás.
+  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.I), 409, /Modulo I ya está aprobado por equivalencia: el alumno ingresó en Modulo III/);
+  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.II), 409, /Modulo II ya está aprobado por equivalencia/);
   await faltar((await cursadaActiva(id)).idCursada, 1);
-  // Anterior al ingreso: se puede cursar (pasa a ser el nuevo ingreso).
-  assert.equal((await cambiar(id, M.I)).status, 200);
-  assert.equal((await ficha(id)).moduloIngresoId, M.I);
-  await aprobarActivo(id);
-  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.I), 409, /ya aprobó Modulo I/);
+  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.I), 409, /aprobado por equivalencia/);
+  assert.equal((await cursadaActiva(id)).moduloId, M.III, "La matrícula no cambia");
+  const f = await ficha(id);
+  assert.equal(f.moduloIngresoId, M.III);
+  assert.deepEqual(f.modulosPorEquivalencia.map((m) => m.moduloId), [M.I, M.II]);
+  // Hacia adelante sí: el IV es del mismo año y no tiene correlatividad con el III.
+  assert.equal((await cambiar(id, M.IV)).status, 200);
+
+  // Un módulo aprobado en la institución tampoco se vuelve a matricular.
+  const otro = await crearAlumno();
+  await alta(otro, M.I);
+  await aprobarActivo(otro);
+  await falla("PUT", `/alumnos/${otro}/cursadas`, matricula(M.I), 409, /ya aprobó Modulo I/);
+});
+
+test("E3. Corregir hacia adelante una matrícula vacía cambia el ingreso, y después no se vuelve atrás", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.III);
+  const corregida = await cambiar(id, M.V);
+  assert.equal(corregida.body.matricula, "CORREGIDA");
+  assert.equal((await ficha(id)).moduloIngresoId, M.V);
+  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.III), 409, /Modulo III ya está aprobado por equivalencia: el alumno ingresó en Modulo V/);
+  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.IV), 409, /aprobado por equivalencia/);
+  assert.equal((await cursadaActiva(id)).moduloId, M.V);
 });
 
 // ======================================================= F. BAJA / PERMISOS
