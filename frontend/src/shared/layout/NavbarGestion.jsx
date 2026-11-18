@@ -9,14 +9,27 @@ const ETIQUETAS_ROL = {
 
 export default function NavabarGestion() {
   const { usuario, cerrarSesion } = useSesion();
+  const nombreUsuario = [usuario?.nombre, usuario?.apellido]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <header className="navhorizontal">
       <div className="navhorizontal-usuario">
         <p>
-          <i className="fa-solid fa-circle-user"></i>
-          Usuario:{""}<strong> {usuario ? `${usuario.nombre} ${usuario.apellido}` : ""}</strong>
-          {usuario && ` (${ETIQUETAS_ROL[usuario.rol] ?? usuario.rol})`}
+          <i className="fa-solid fa-circle-user" aria-hidden="true"></i>
+          <span className="navhorizontal-etiqueta">Usuario:</span>
+          <strong
+            className="navhorizontal-nombre"
+            title={nombreUsuario || "Usuario"}
+          >
+            {nombreUsuario || "Usuario"}
+          </strong>
+          {usuario && (
+            <span className="navhorizontal-rol">
+              ({ETIQUETAS_ROL[usuario.rol] ?? usuario.rol})
+            </span>
+          )}
         </p>
         <Link
           to="/login"

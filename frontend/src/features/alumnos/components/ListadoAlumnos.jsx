@@ -237,7 +237,7 @@ export function ListadoAlumnos({
       </div>
 
       <div className="tabla-responsive">
-        <table className="tabla-gestion">
+        <table className="tabla-gestion tabla-listado-personas">
           <thead>
             <tr>
               <th>Apellido y Nombre</th>

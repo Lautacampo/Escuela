@@ -31,6 +31,7 @@ export default function NavBarGestionLateral() {
         className="btn-menu-hamburguesa"
         onClick={() => setMenuAbierto(!menuAbierto)}
         aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
+        aria-controls="menu-gestion"
         aria-expanded={menuAbierto}
       >
         <i
@@ -48,7 +49,11 @@ export default function NavBarGestionLateral() {
         ></div>
       )}
 
-      <nav className={`navlateral ${menuAbierto ? "menu-abierto" : ""}`}>
+      <nav
+        id="menu-gestion"
+        aria-label="Navegación de gestión"
+        className={`navlateral ${menuAbierto ? "menu-abierto" : ""}`}
+      >
         <div className="logo-sidebar">
           <img
             src="/img/logos/logo-principal.png"

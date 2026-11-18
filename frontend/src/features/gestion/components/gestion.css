@@ -255,31 +255,22 @@ body:has(.contenedor-dashboard) {
   min-width: 100%;
 }
 
-.personal-tabla th,
-.personal-tabla td:first-child,
-.personal-tabla td:last-child,
-.personal-tabla .personal-contacto > span {
+.personal-tabla th {
   white-space: nowrap;
 }
 
 .personal-tabla th:first-child,
 .personal-tabla td:first-child {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: #fff;
+  min-width: 170px;
 }
 
-.personal-tabla th:first-child {
-  z-index: 3;
+.personal-tabla th:last-child,
+.personal-tabla td:last-child {
+  min-width: 190px;
 }
 
-.personal-tabla td:first-child {
-  box-shadow: 1px 0 0 #edf2f7;
-}
-
-.personal-tabla tbody tr:hover td:first-child {
-  background: #f0f2f4;
+.personal-tabla .personal-contacto > span {
+  overflow-wrap: anywhere;
 }
 
 .gestion-personal .personal-aviso {
@@ -2707,16 +2698,90 @@ tr.fila-inactiva td {
   color: #64748b;
 }
 
-/* La columna de acciones queda siempre visible al desplazar la tabla. */
-.personal-tabla th:last-child,
-.personal-tabla td:last-child {
-  position: sticky;
-  right: 0;
-  z-index: 2;
-  background: #fff;
-  box-shadow: -1px 0 0 #edf2f7;
+/* Listados de personas: misma tabla y desplazamiento horizontal en móvil. */
+.tabla-listado-personas {
+  width: max-content;
+  min-width: 100%;
 }
 
-.personal-tabla tbody tr:hover td:last-child {
-  background: #f0f2f4;
+.tabla-listado-personas th {
+  background-color: #f8fafc;
+  color: #526176;
+}
+
+.tabla-listado-personas tbody tr:nth-child(even) {
+  background-color: #fafbfd;
+}
+
+@media (max-width: 768px) {
+  .navhorizontal {
+    position: sticky;
+    top: 0;
+    z-index: 1200;
+    height: 68px;
+    min-height: 68px;
+    box-sizing: border-box;
+    padding-left: 70px;
+    flex-shrink: 0;
+  }
+
+  .navhorizontal-usuario,
+  .navhorizontal-usuario p {
+    min-width: 0;
+  }
+
+  .navhorizontal-usuario {
+    max-width: 100%;
+  }
+
+  .navhorizontal-usuario p {
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .navhorizontal-nombre {
+    display: inline-block;
+    max-width: min(42vw, 360px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+    white-space: nowrap;
+  }
+
+  .navlateral {
+    top: 68px;
+    height: calc(100vh - 68px);
+    height: calc(100dvh - 68px);
+  }
+
+  .overlay-menu {
+    inset: 68px 0 0;
+  }
+
+  .tabla-responsive {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .tabla-listado-personas {
+    min-width: 760px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navhorizontal {
+    padding-right: 12px;
+  }
+
+  .navhorizontal-etiqueta,
+  .navhorizontal-rol {
+    display: none;
+  }
+
+  .navhorizontal-usuario p .navhorizontal-nombre {
+    display: block;
+    min-width: 0;
+    max-width: calc(100vw - 130px);
+  }
 }

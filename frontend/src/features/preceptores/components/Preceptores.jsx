@@ -620,7 +620,7 @@ export function Preceptores() {
         </div>
 
         <div className="tabla-responsive">
-          <table className="tabla-gestion personal-tabla">
+          <table className="tabla-gestion tabla-listado-personas personal-tabla">
             <thead>
               <tr>
                 <th>Apellido y nombre</th>
