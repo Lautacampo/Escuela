@@ -64,9 +64,9 @@ const obtenerMapaAsignaciones = async (docenteId = null) => {
        JOIN docente_curso_materia dcm ON dcm.docente_id = d.id
        JOIN curso c ON c.id = dcm.curso_id
        JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
-       JOIN curso_modulo cm ON cm.curso_id = c.id
-       JOIN materia_modulo mm
-         ON mm.modulo_id = cm.modulo_id AND mm.materia_id = dcm.materia_id
+       -- Cada asignación es de un módulo puntual (migración 009).
+       JOIN curso_modulo cm
+         ON cm.curso_id = c.id AND cm.modulo_id = dcm.modulo_id
        JOIN materia ma ON ma.id = dcm.materia_id
        ${filtro}
       ORDER BY cm.modulo_id, TRIM(c.division), ma.nombre`,
@@ -144,8 +144,9 @@ export const buscarDocentePorId = async (id) => {
 };
 
 // Sincroniza la tabla docente_curso_materia dentro de la transacción.
-// Cada asignación del formulario (módulo + división + materia) se guarda como
-// el par (curso, materia), que es lo que acota los permisos del docente.
+// Cada asignación del formulario (módulo + división + materia) se guarda tal
+// cual: curso, módulo y materia. Asignar el Módulo I no asigna el II del
+// mismo curso (migración 009).
 const guardarAsignacionesDocente = async (client, docenteId, asignaciones) => {
   await client.query("DELETE FROM docente_curso_materia WHERE docente_id = $1", [
     docenteId,
@@ -153,11 +154,15 @@ const guardarAsignacionesDocente = async (client, docenteId, asignaciones) => {
 
   for (const asig of asignaciones) {
     // 1. Buscar el curso correspondiente a ese moduloId y division
+    //    (el del ciclo lectivo vigente si hay más de uno).
     const resCurso = await client.query(
       `SELECT c.id
          FROM curso c
          JOIN curso_modulo cm ON cm.curso_id = c.id
+         JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
         WHERE cm.modulo_id = $1 AND TRIM(c.division) = $2
+        ORDER BY (cl.anio <= EXTRACT(YEAR FROM CURRENT_DATE)) DESC,
+                 cl.anio DESC, c.id DESC
         LIMIT 1`,
       [asig.moduloId, asig.division],
     );
@@ -191,12 +196,12 @@ const guardarAsignacionesDocente = async (client, docenteId, asignaciones) => {
     }
     const materiaId = resMateria.rows[0].id;
 
-    // Vincular al docente con la materia en ese curso
+    // Vincular al docente con la materia en ese curso y ese módulo
     await client.query(
-      `INSERT INTO docente_curso_materia (docente_id, curso_id, materia_id)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (docente_id, curso_id, materia_id) DO NOTHING`,
-      [docenteId, cursoId, materiaId],
+      `INSERT INTO docente_curso_materia (docente_id, curso_id, modulo_id, materia_id)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (docente_id, curso_id, modulo_id, materia_id) DO NOTHING`,
+      [docenteId, cursoId, asig.moduloId, materiaId],
     );
   }
 };
