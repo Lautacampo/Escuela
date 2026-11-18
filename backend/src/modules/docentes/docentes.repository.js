@@ -98,7 +98,8 @@ export const listarDocentes = async () => {
             COALESCE(p.telefono, '') AS telefono,
             COALESCE(p.email, '') AS email,
             pe.titulo AS especialidad,
-            pe.antiguedad
+            pe.antiguedad,
+            d.activo
        FROM docente d
        JOIN personal pe ON pe.id = d.id
        JOIN persona p ON p.id = pe.id
@@ -124,7 +125,8 @@ export const buscarDocentePorId = async (id) => {
             COALESCE(p.telefono, '') AS telefono,
             COALESCE(p.email, '') AS email,
             pe.titulo AS especialidad,
-            pe.antiguedad
+            pe.antiguedad,
+            d.activo
        FROM docente d
        JOIN personal pe ON pe.id = d.id
        JOIN persona p ON p.id = pe.id
@@ -311,6 +313,34 @@ export const actualizarDocente = async (id, datos) => {
   }
 };
 
+/**
+ * Baja lógica (inactivo) o reactivación. No se borra ningún dato: el docente
+ * conserva sus asignaciones y su usuario. Mientras está inactivo su usuario
+ * no puede iniciar sesión y una sesión abierta deja de funcionar.
+ */
+export const cambiarEstadoDocente = async (id, activo) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("UPDATE docente SET activo = $2 WHERE id = $1", [
+      id,
+      activo,
+    ]);
+    await client.query(
+      "UPDATE usuarios SET activo = $2 WHERE persona_id = $1",
+      [id, activo],
+    );
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
+// Eliminación definitiva: solo para un docente que ya está inactivo (lo
+// controla el servicio). Borra sus asignaciones y sus datos personales.
 export const eliminarDocente = async (id) => {
   const client = await pool.connect();
   try {
