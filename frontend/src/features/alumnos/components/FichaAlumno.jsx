@@ -1,19 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { useAutoActualizar } from "../../../shared/hooks/useAutoActualizar";
-import {
-  getAlumno,
-  getCursos,
-  registrarEquivalencias,
-} from "../services/AlumnosServices";
+import { getAlumno } from "../services/AlumnosServices";
 import { crearEvaluacionModulo } from "../services/EvaluacionesModuloService";
 import {
   DESCRIPCION_MOTIVO_LIBRE,
-  analizarMatricula,
-  catalogoDeModulos,
   esLibre,
   listar,
-  ultimaCursada,
 } from "../utils/correlatividades";
 
 const NOMBRE_CURSO = {
@@ -111,7 +104,6 @@ export function FichaAlumno() {
   const [alumno, setAlumno] = useState(location.state?.alumno ?? null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [cursos, setCursos] = useState([]);
   // Cursada elegida para calificar (por defecto, la activa).
   const [cursadaElegida, setCursadaElegida] = useState(null);
   const [evaluacion, setEvaluacion] = useState({
@@ -121,12 +113,6 @@ export function FichaAlumno() {
   const [guardandoEvaluacion, setGuardandoEvaluacion] = useState(false);
   const [errorEvaluacion, setErrorEvaluacion] = useState("");
   const [evaluacionGuardada, setEvaluacionGuardada] = useState(null);
-  const [equivalencia, setEquivalencia] = useState({
-    moduloId: "",
-    observacion: "",
-  });
-  const [guardandoEquivalencia, setGuardandoEquivalencia] = useState(false);
-  const [errorEquivalencia, setErrorEquivalencia] = useState("");
 
   useEffect(() => {
     let activa = true;
@@ -135,14 +121,10 @@ export function FichaAlumno() {
       try {
         // GET /alumnos/:id trae, por cada cursada, sus materias, los
         // correlativos pendientes y si admite una evaluación de módulo.
-        const [alumnoDesdeApi, cursosDesdeApi] = await Promise.all([
-          getAlumno(id),
-          getCursos().catch(() => []),
-        ]);
+        const alumnoDesdeApi = await getAlumno(id);
 
         if (activa) {
           setAlumno(alumnoDesdeApi);
-          setCursos(cursosDesdeApi);
         }
       } catch (e) {
         if (activa) {
@@ -174,7 +156,7 @@ export function FichaAlumno() {
     },
     {
       activo:
-        !cargando && !error && !guardandoEvaluacion && !guardandoEquivalencia,
+        !cargando && !error && !guardandoEvaluacion,
     },
   );
 
@@ -234,33 +216,6 @@ export function FichaAlumno() {
     }
   }
 
-  async function guardarEquivalencia(e) {
-    e.preventDefault();
-    setErrorEquivalencia("");
-
-    if (!equivalencia.moduloId) {
-      setErrorEquivalencia("Seleccioná el módulo a acreditar.");
-      return;
-    }
-
-    try {
-      setGuardandoEquivalencia(true);
-      guardadosFicha.current += 1;
-      setAlumno(
-        await registrarEquivalencias(
-          id,
-          [Number(equivalencia.moduloId)],
-          equivalencia.observacion.trim(),
-        ),
-      );
-      setEquivalencia({ moduloId: "", observacion: "" });
-    } catch (e) {
-      setErrorEquivalencia(e.message);
-    } finally {
-      setGuardandoEquivalencia(false);
-    }
-  }
-
   if (cargando) {
     return <p>Cargando ficha del alumno...</p>;
   }
@@ -306,9 +261,6 @@ export function FichaAlumno() {
   const trayectoria = Array.isArray(alumno.trayectoria)
     ? alumno.trayectoria
     : [];
-  const equivalencias = Array.isArray(alumno.equivalencias)
-    ? alumno.equivalencias
-    : [];
   const cursadaActiva = trayectoria.find((cursada) => cursada.activa);
   // Se puede calificar la cursada activa y también una anterior que siga
   // abierta (ej.: Módulo I pendiente mientras ya cursa el Módulo II).
@@ -326,20 +278,12 @@ export function FichaAlumno() {
   const moduloActual = alumno.moduloActual ?? cursadaActiva?.modulo;
   const alumnoLibre = esLibre(alumno.condicion);
 
-  // Módulos que admiten equivalencia: nunca cursados, sin acreditar y con sus
-  // propios correlativos ya acreditados.
-  const catalogo = catalogoDeModulos(cursos);
-  const modulosParaEquivalencia = Object.values(catalogo)
-    .sort((a, b) => a.id - b.id)
-    .filter((modulo) => {
-      if (ultimaCursada(alumno, modulo.id)) return false;
-      const analisis = analizarMatricula(alumno, modulo.id, catalogo);
-      return (
-        !analisis.yaAcreditado &&
-        analisis.bloqueantes.length === 0 &&
-        analisis.porEquivalencia.length === 0
-      );
-    });
+  // Módulo de ingreso: el primero que cursó en la escuela. Los anteriores no
+  // se le exigen y cuentan como acreditados.
+  const moduloIngreso =
+    trayectoria.find(
+      (cursada) => Number(cursada.moduloId) === Number(alumno.moduloIngresoId),
+    )?.modulo ?? null;
   const faltasActuales = alumno.faltas ?? alumno.faltasAcumuladas;
   const condicionActual = formatearCondicion(alumno.condicion);
   // Egresado: completó los 6 módulos. Su legajo es de solo lectura.
@@ -397,7 +341,14 @@ export function FichaAlumno() {
   const modulosAprobados = datosAcademicos.filter(
     (modulo) => modulo.estado.toLowerCase() === "aprobado",
   ).length;
-  const modulosAcreditados = modulosAprobados + equivalencias.length;
+  const modulosAcreditados = Array.isArray(alumno.modulosAcreditados)
+    ? alumno.modulosAcreditados.length
+    : modulosAprobados;
+  // Módulos anteriores al de ingreso: figuran como aprobados por
+  // equivalencia en la trayectoria (no se cursaron en la escuela).
+  const modulosPorEquivalencia = Array.isArray(alumno.modulosPorEquivalencia)
+    ? alumno.modulosPorEquivalencia
+    : [];
   const totalFaltas = datosAcademicos.reduce(
     (total, modulo) => total + (Number(modulo.faltas) || 0),
     0,
@@ -515,8 +466,8 @@ export function FichaAlumno() {
             <span>Módulos acreditados</span>
             <strong>
               {modulosAcreditados} de 6
-              {equivalencias.length > 0 &&
-                ` (${equivalencias.length} por equivalencia)`}
+              {modulosPorEquivalencia.length > 0 &&
+                ` (${modulosPorEquivalencia.length} por equivalencia)`}
             </strong>
           </div>
         </div>
@@ -922,6 +873,42 @@ export function FichaAlumno() {
                   </div>
                 </div>
               )}
+              {modulosPorEquivalencia.map((modulo) => (
+                <div
+                  className="modulo-trayectoria modulo-equivalencia"
+                  key={`equivalencia-${modulo.moduloId}`}
+                >
+                  <div className="modulo-indicador">
+                    <span></span>
+                  </div>
+
+                  <div className="modulo-contenido">
+                    <div className="modulo-cabecera">
+                      <div>
+                        <span className="modulo-año">
+                          {NOMBRE_CURSO[String(modulo.anioCurso)] ??
+                            (modulo.anioCurso ? `${modulo.anioCurso}° Año` : "-")}
+                          {modulo.periodoDictado
+                            ? ` · ${modulo.periodoDictado}`
+                            : ""}
+                        </span>
+                        <h3>{modulo.modulo}</h3>
+                      </div>
+
+                      <span className="estado-modulo estado-aprobado">
+                        {" "}
+                        Aprobado por equivalencia{" "}
+                      </span>
+                    </div>
+
+                    <p className="modulo-nota-equivalencia">
+                      Anterior a su módulo de ingreso
+                      {moduloIngreso ? ` (${moduloIngreso})` : ""}: no lo cursó
+                      en la escuela y se considera aprobado.
+                    </p>
+                  </div>
+                </div>
+              ))}
               {datosAcademicos.map((modulo) => (
                 <div className="modulo-trayectoria" key={modulo.id}>
                   <div className="modulo-indicador">
@@ -1031,111 +1018,6 @@ export function FichaAlumno() {
 
       <section className="ficha-seccion">
         <div className="ficha-seccion-titulo">
-          <i className="fa-solid fa-right-left"></i>
-          <div>
-            <h2>Equivalencias</h2>
-            <p>
-              Módulos acreditados en otra institución (Res. N.º 195-ME-2024).
-              Cuentan como aprobados para las correlatividades.
-            </p>
-          </div>
-        </div>
-
-        {equivalencias.length === 0 ? (
-          <p className="ficha-sin-equivalencias">
-            El alumno no tiene módulos acreditados por equivalencia.
-          </p>
-        ) : (
-          <div className="tabla-responsive">
-            <table className="tabla-gestion tabla-tarjetas">
-              <thead>
-                <tr>
-                  <th>Módulo</th>
-                  <th>Fecha de registro</th>
-                  <th>Observación</th>
-                </tr>
-              </thead>
-              <tbody>
-                {equivalencias.map((item) => (
-                  <tr key={item.moduloId}>
-                    <td data-label="Módulo">
-                      <strong>{item.modulo}</strong>
-                    </td>
-                    <td data-label="Fecha de registro">{formatearFecha(item.fecha)}</td>
-                    <td data-label="Observación">{item.observacion || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {!esEgresado && modulosParaEquivalencia.length > 0 && (
-          <form
-            className="ficha-evaluacion-form ficha-equivalencia-form"
-            onSubmit={guardarEquivalencia}
-          >
-            <label>
-              <span>Módulo a acreditar *</span>
-              <select
-                className="input-gestion"
-                value={equivalencia.moduloId}
-                onChange={(e) =>
-                  setEquivalencia((anterior) => ({
-                    ...anterior,
-                    moduloId: e.target.value,
-                  }))
-                }
-              >
-                <option value="">Seleccione un módulo</option>
-                {modulosParaEquivalencia.map((modulo) => (
-                  <option key={modulo.id} value={modulo.id}>
-                    {modulo.numeroLeyenda}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="ficha-equivalencia-observacion">
-              <span>Observación (opcional)</span>
-              <input
-                className="input-gestion"
-                type="text"
-                maxLength={300}
-                placeholder="Ej.: escuela de origen"
-                value={equivalencia.observacion}
-                onChange={(e) =>
-                  setEquivalencia((anterior) => ({
-                    ...anterior,
-                    observacion: e.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <button
-              className="btn-primario-gestion"
-              type="submit"
-              disabled={guardandoEquivalencia}
-            >
-              {guardandoEquivalencia ? "Guardando..." : "Registrar equivalencia"}
-            </button>
-          </form>
-        )}
-
-        {errorEquivalencia && (
-          <div
-            className="ficha-advertencia ficha-evaluacion-mensaje"
-            role="alert"
-          >
-            <i className="fa-solid fa-circle-exclamation"></i>
-            <p>{errorEquivalencia}</p>
-          </div>
-        )}
-      </section>
-
-      <section className="ficha-seccion">
-        <div className="ficha-seccion-titulo">
           <i className="fa-solid fa-calendar-check"></i>
 
           <div>
@@ -1202,7 +1084,9 @@ export function FichaAlumno() {
           <p>
             Correlatividades: para cursar o acreditar los módulos de 2.º año
             (III y IV) hay que tener aprobados los módulos I y II; para los de
-            3.º año (V y VI), los módulos III y IV. Un alumno queda LIBRE y debe
+            3.º año (V y VI), los módulos III y IV. Los módulos anteriores al de
+            ingreso del alumno se consideran aprobados por equivalencia. Un
+            alumno queda LIBRE y debe
             recursar el módulo si supera las 25 inasistencias, si desaprueba una
             materia del módulo o si agota las 4 instancias de acreditación.
           </p>
