@@ -4401,6 +4401,26 @@ $$;
 
 COMMIT;
 
+-- =====================================================================
+-- MIGRACIÓN 010 (integrada): usuarios de docentes y preceptores eliminados.
+-- Copia de database/migrations/010_borrar_usuarios_de_personal_eliminado.sql
+-- =====================================================================
+
+DO $$
+DECLARE
+  borrados integer;
+BEGIN
+  DELETE FROM public.usuarios u
+   USING public.roles r
+   WHERE r.id = u.rol_id
+     AND r.nombre IN ('docente', 'preceptor')
+     AND u.persona_id IS NULL
+     AND u.activo = false;
+  GET DIAGNOSTICS borrados = ROW_COUNT;
+  RAISE NOTICE 'Usuarios de docentes o preceptores eliminados que se borraron: %', borrados;
+END $$;
+
+
 -- Completed on 2026-11-14 17:14:26
 
 --
