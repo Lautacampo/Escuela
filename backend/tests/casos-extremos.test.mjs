@@ -237,6 +237,10 @@ for (const [nombre, body] of Object.entries({
   let r = await matricular(a.id, 5, { equivalencias: [1, 2, 3, 4], observacionEquivalencia: "vieja" }); check("Ingreso", "Si llega el campo equivalencias se ignora (alta en V)", r.s === 201, `-> ${r.s} ${JSON.stringify(r.b).slice(0, 100)}`);
   r = await matricular(a.id, 5); check("Correlatividades", "Matricular de nuevo en V estando en curso", r.s === 409, `-> ${r.s}`);
   r = await D("POST", `/alumnos/${a.id}/equivalencias`, { modulosIds: [1] }); check("Ingreso", "La ruta de equivalencias ya no existe", r.s === 404, `-> ${r.s}`);
+  // Los anteriores al ingreso ya están aprobados por equivalencia: no se matricula en ellos.
+  for (const m of [1, 2, 3, 4]) {
+    r = await rematricular(a.id, m); check("Ingreso", `Ingresó en V: matricularlo en el módulo ${m} se rechaza (aprobado por equivalencia)`, r.s === 409 && /aprobado por equivalencia/.test(r.b.error), `-> ${r.s} ${r.b?.error}`);
+  }
   const fa = await ficha(a.id);
   check("Ingreso", "La ficha informa el módulo de ingreso y no trae equivalencias", fa.moduloIngresoId === 5 && fa.equivalencias === undefined && JSON.stringify(fa.modulosAcreditados) === "[1,2,3,4]", `-> ingreso ${fa.moduloIngresoId} acreditados ${JSON.stringify(fa.modulosAcreditados)}`);
 
