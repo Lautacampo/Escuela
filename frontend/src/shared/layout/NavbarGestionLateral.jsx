@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { NavLink } from "react-router";
 import { useSesion } from "../../features/auth/context/SesionContext";
 import { ROLES } from "../../features/auth/roles";
@@ -15,44 +14,34 @@ const ITEMS = [
   { to: "/gestion/reportes", label: "Reportes", icono: "fa-chart-column", roles: [DIRECTIVO] },
 ];
 
+const ETIQUETAS_ROL = {
+  directivo: "Directivo",
+  docente: "Docente",
+  preceptor: "Preceptor",
+};
 
-export default function NavBarGestionLateral() {
-  const [menuAbierto, setMenuAbierto] = useState(false);
+// El estado del menú lo maneja LayoutPrivado; el botón que lo abre está
+// en la barra superior (NavbarGestion).
+export default function NavBarGestionLateral({ menuAbierto = false, onCerrar }) {
   const { usuario } = useSesion();
- 
-  const cerrarMenu = () => {
-    setMenuAbierto(false);
-  };
+  const nombreCompleto = usuario
+    ? [usuario.nombre, usuario.apellido].filter(Boolean).join(" ")
+    : "";
 
   return (
     <>
-      <button
-        type="button"
-        className="btn-menu-hamburguesa"
-        onClick={() => setMenuAbierto(!menuAbierto)}
-        aria-label={menuAbierto ? "Cerrar menú" : "Abrir menú"}
-        aria-controls="menu-gestion"
-        aria-expanded={menuAbierto}
-      >
-        <i
-          className={`fa-solid ${
-            menuAbierto ? "fa-xmark" : "fa-bars"
-          }`}
-        ></i>
-      </button>
-
       {menuAbierto && (
         <div
           className="overlay-menu"
-          onClick={cerrarMenu}
+          onClick={onCerrar}
           aria-hidden="true"
         ></div>
       )}
 
       <nav
         id="menu-gestion"
-        aria-label="Navegación de gestión"
         className={`navlateral ${menuAbierto ? "menu-abierto" : ""}`}
+        aria-label="Menú de gestión"
       >
         <div className="logo-sidebar">
           <img
@@ -61,10 +50,18 @@ export default function NavBarGestionLateral() {
           />
         </div>
 
+        {/* En celular se muestra arriba del menú quién tiene la sesión abierta. */}
+        {usuario && (
+          <div className="sesion-sidebar">
+            <strong>{nombreCompleto}</strong>
+            <span>{ETIQUETAS_ROL[usuario.rol] ?? usuario.rol}</span>
+          </div>
+        )}
+
         <ul className="menu-sidebar">
           {ITEMS.filter((item) => item.roles.includes(usuario?.rol)).map((item) => (
             <li key={item.to}>
-              <NavLink to={item.to} end={item.end} className={({ isActive }) => (isActive ? "activo" : "")} onClick={cerrarMenu}>
+              <NavLink to={item.to} end={item.end} className={({ isActive }) => (isActive ? "activo" : "")} onClick={onCerrar}>
                 <i className={`fa-solid ${item.icono}`}></i>
                 {item.label}
               </NavLink>
