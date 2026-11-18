@@ -58,7 +58,7 @@ export function ListadoEgresados({ egresados }) {
       </div>
 
       <div className="tabla-responsive">
-        <table className="tabla-gestion">
+        <table className="tabla-gestion tabla-tarjetas">
           <thead>
             <tr>
               <th>Apellido y Nombre</th>
@@ -74,19 +74,19 @@ export function ListadoEgresados({ egresados }) {
           <tbody>
             {visibles.map((alumno) => (
               <tr key={alumno.id}>
-                <td>
+                <td data-label="Apellido y nombre">
                   <strong>
                     {alumno.apellido}, {alumno.nombre}
                   </strong>
                 </td>
-                <td>{formatearDNI(alumno.dni)}</td>
-                <td>{alumno.planEstudio?.titulo ?? "-"}</td>
-                <td>{alumno.modulosAcreditados?.length ?? 6} de 6</td>
-                <td>{formatearFecha(alumno.fechaEgreso)}</td>
-                <td>
+                <td data-label="DNI">{formatearDNI(alumno.dni)}</td>
+                <td data-label="Plan de estudios">{alumno.planEstudio?.titulo ?? "-"}</td>
+                <td data-label="Módulos acreditados">{alumno.modulosAcreditados?.length ?? 6} de 6</td>
+                <td data-label="Fecha de egreso">{formatearFecha(alumno.fechaEgreso)}</td>
+                <td data-label="Estado">
                   <span className="condicion-egresado">Egresado</span>
                 </td>
-                <td>
+                <td data-label="Acciones">
                   <div className="acciones-tabla">
                     <button
                       type="button"
