@@ -530,6 +530,14 @@ const traducirRegla = (err, modulo = null) => {
       );
     case "MODULO_APROBADO":
       return new HttpError(409, `El alumno ya aprobó ${nombreModulo}`);
+    case "MODULO_POR_EQUIVALENCIA": {
+      const error = new HttpError(
+        409,
+        `${nombreModulo} ya está aprobado por equivalencia: el alumno ingresó en ${d.moduloIngreso ?? "un módulo posterior"} y no se lo puede matricular en módulos anteriores`,
+      );
+      error.detalle = { codigo: "MODULO_POR_EQUIVALENCIA" };
+      return error;
+    }
     case "CORRELATIVAS_PENDIENTES": {
       const error = new HttpError(
         409,
@@ -556,7 +564,8 @@ const traducirRegla = (err, modulo = null) => {
  * Lógica común de POST y PUT /alumnos/:id/cursadas.
  * En la primera matrícula el alumno puede empezar en cualquier módulo (su
  * módulo de ingreso). Después, las correlatividades se validan siempre, desde
- * el módulo de ingreso en adelante.
+ * el módulo de ingreso en adelante, y los módulos anteriores al de ingreso
+ * quedan cerrados: están aprobados por equivalencia.
  */
 const guardarMatricula = async (id, body, { soloAlta }) => {
   await buscarActivoOFallar(id);
