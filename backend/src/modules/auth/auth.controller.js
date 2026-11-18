@@ -14,6 +14,9 @@ export const login = async (req, res, next) => {
     if (!email || !password) {
       return res.status(400).json({ error: "Email y password son obligatorios" });
     }
+    if (typeof req.body.email !== "string" || typeof password !== "string") {
+      return res.status(400).json({ error: "Email y password deben ser texto" });
+    }
 
     const espera = minutosDeBloqueo(req.ip, email);
     if (espera > 0) {
