@@ -64,9 +64,12 @@ export const listarDivisionesDeModulo = async (
 
 export const buscarCurso = async (moduloId, division) => {
   const { rows } = await pool.query(
-    `SELECT c.id, c.preceptor_id
+    `SELECT c.id, c.preceptor_id, cl.anio AS ciclo_anio,
+            m.periodo, m.numero_leyenda AS modulo_nombre
        FROM curso c
        JOIN curso_modulo cm ON cm.curso_id = c.id
+       JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
+       JOIN modulo m ON m.id = cm.modulo_id
       WHERE cm.modulo_id = $1 AND c.division = $2`,
     [moduloId, division],
   );
@@ -172,6 +175,7 @@ export const buscarCursada = async (cursadaId) => {
   const { rows } = await pool.query(
     `SELECT cm.id, cm.alumno_id, cm.modulo_id, cm.curso_id,
             cm.estado_academico, al.activo AS alumno_activo, cl.anio AS ciclo_anio,
+            m.periodo, m.numero_leyenda AS modulo_nombre,
             EXISTS (SELECT 1 FROM cursada_modulo nueva
                      WHERE nueva.alumno_id = cm.alumno_id
                        AND nueva.modulo_id = cm.modulo_id
@@ -180,6 +184,7 @@ export const buscarCursada = async (cursadaId) => {
        JOIN alumno al ON al.id = cm.alumno_id
        JOIN curso c ON c.id = cm.curso_id
        JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
+       JOIN modulo m ON m.id = cm.modulo_id
       WHERE cm.id = $1`,
     [cursadaId],
   );
@@ -194,6 +199,7 @@ export const buscarAsistenciaPorId = async (id) => {
             a.valor_falta::float AS valor_falta,
             cm.curso_id,
             cm.estado_academico, al.activo AS alumno_activo, cl.anio AS ciclo_anio,
+            m.periodo, m.numero_leyenda AS modulo_nombre,
             EXISTS (SELECT 1 FROM cursada_modulo nueva
                      WHERE nueva.alumno_id = cm.alumno_id
                        AND nueva.modulo_id = cm.modulo_id
@@ -203,6 +209,7 @@ export const buscarAsistenciaPorId = async (id) => {
        JOIN alumno al ON al.id = cm.alumno_id
        JOIN curso c ON c.id = cm.curso_id
        JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
+       JOIN modulo m ON m.id = cm.modulo_id
       WHERE a.id = $1`,
     [id],
   );
