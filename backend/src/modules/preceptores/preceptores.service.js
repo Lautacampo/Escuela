@@ -7,6 +7,7 @@ import {
   esTelefonoValido,
   normalizarCuil,
   normalizarDni,
+  esNombreValido,
   sinCambios,
   soloDigitos,
 } from "../../utils/validacionesPersona.js";
@@ -94,6 +95,15 @@ const validarDatos = (datos = {}, anterior = null) => {
   if (d.nombre.length > 100 || d.apellido.length > 100) {
     const campo = d.nombre.length > 100 ? "nombre" : "apellido";
     throw new HttpError(400, "No puede superar los 100 caracteres", { campo });
+  }
+  for (const [campo, valor] of [["nombre", d.nombre], ["apellido", d.apellido]]) {
+    if (!sinCambios(anterior, campo, valor) && !esNombreValido(valor)) {
+      throw new HttpError(
+        400,
+        `${campo === "nombre" ? "El nombre" : "El apellido"} solo puede tener letras, espacios, apóstrofos o guiones`,
+        { campo },
+      );
+    }
   }
   if (d.cuil.length > 15) {
     throw new HttpError(400, "El CUIL no puede superar los 15 caracteres", {
