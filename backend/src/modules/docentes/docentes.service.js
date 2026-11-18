@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { traducirUnicidadPersona } from "../../utils/errorUnicidadPersona.js";
 import { HttpError } from "../../utils/httpError.js";
 import {
+  ANTIGUEDAD_MAXIMA,
   esCuilValido,
   esDniValido,
   esTelefonoValido,
@@ -123,14 +124,16 @@ function validarDatosDocente(datos, anterior = null) {
     );
   }
 
+  // Antigüedad: de 0 a 35 años. Un dato viejo mayor que no cambia se respeta.
   if (
     !Number.isInteger(antiguedad) ||
     antiguedad < 0 ||
-    antiguedad > 99
+    (antiguedad > ANTIGUEDAD_MAXIMA &&
+      !sinCambios(anterior, "antiguedad", antiguedad, Number))
   ) {
     throw new HttpError(
       400,
-      "La antigüedad debe ser un número entero entre 0 y 99",
+      `La antigüedad debe ser un número entero entre 0 y ${ANTIGUEDAD_MAXIMA}`,
       { campo: "antiguedad" },
     );
   }
