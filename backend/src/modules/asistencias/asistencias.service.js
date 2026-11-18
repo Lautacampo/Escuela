@@ -12,6 +12,40 @@ const exigirCursadaVigente = (registro) => {
       "Esta cursada está cerrada: el alumno ya se reinscribió para recursar el módulo",
     );
   }
+  if (registro.estado_academico === "APROBADO") {
+    throw new HttpError(
+      409,
+      "El alumno ya aprobó este módulo: su asistencia no se modifica",
+    );
+  }
+  if (registro.alumno_activo === false) {
+    throw new HttpError(409, "El alumno está dado de baja");
+  }
+};
+
+// La fecha de una asistencia no puede ser futura y tiene que ser del ciclo
+// lectivo de la cursada (una falta cargada en 2030 o en 2019 por error de
+// tipeo contaría para el límite de 25).
+const exigirFechaDeLaCursada = (fecha, cursada) => {
+  if (fecha > fechaHoyISO()) {
+    throw new HttpError(400, "No se puede cargar asistencia de una fecha futura", {
+      campo: "fecha",
+    });
+  }
+  if (cursada.ciclo_anio && Number(fecha.slice(0, 4)) !== Number(cursada.ciclo_anio)) {
+    throw new HttpError(
+      400,
+      `La fecha tiene que ser del ciclo lectivo ${cursada.ciclo_anio}, el de la cursada`,
+      { campo: "fecha" },
+    );
+  }
+};
+
+// 0, 0.5 o 1 (como número o como texto numérico). null, true o "" no valen.
+const leerValorFalta = (valor) => {
+  if (typeof valor === "number") return valor;
+  if (typeof valor === "string" && valor.trim() !== "") return Number(valor);
+  return NaN;
 };
 
 const resolverPreceptorId = async (usuario) => {
@@ -141,7 +175,7 @@ export const registrar = async (
   usuario,
   { cursadaModuloId, fecha, valorFalta },
 ) => {
-  const numValor = Number(valorFalta);
+  const numValor = leerValorFalta(valorFalta);
   if (
     !Number.isInteger(cursadaModuloId) ||
     !esFechaISOValida(fecha) ||
@@ -170,6 +204,7 @@ export const registrar = async (
   }
 
   exigirCursadaVigente(cursada);
+  exigirFechaDeLaCursada(fecha, cursada);
 
   return repo.guardarAsistencia(cursadaModuloId, fecha, numValor);
 };
@@ -179,7 +214,7 @@ export const actualizar = async (usuario, id, { valorFalta, fecha }) => {
     throw new HttpError(400, "ID de asistencia inválido");
   }
 
-  const numValor = Number(valorFalta);
+  const numValor = leerValorFalta(valorFalta);
   if (!VALORES_FALTA_VALIDOS.includes(numValor)) {
     throw new HttpError(400, "valorFalta inválido (debe ser 0, 0.5 o 1)");
   }
@@ -204,6 +239,7 @@ export const actualizar = async (usuario, id, { valorFalta, fecha }) => {
   }
 
   exigirCursadaVigente(existente);
+  exigirFechaDeLaCursada(fecha ?? existente.fecha_iso, existente);
 
   try {
     return await repo.actualizarAsistenciaPorId(
