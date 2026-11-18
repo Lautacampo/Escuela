@@ -65,8 +65,9 @@ export function CalificacionesAlumnos({
                       const estado = nota?.estado ?? "en_curso";
 
                       return (
-                        <td key={m.id}>
+                        <td key={m.id} data-label={m.nombre}>
                           <select
+                            aria-label={`${m.nombre} de ${a.apellido}, ${a.nombre}`}
                             className={`select-estado ${CLASES[estado]}`}
                             value={estado}
                             // Un módulo aprobado ya no admite cambios de nota.
