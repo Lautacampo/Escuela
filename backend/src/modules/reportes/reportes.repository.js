@@ -66,14 +66,12 @@ export const listarInasistenciasCriticas = async ({
                 c.anio_curso::text AS curso,
                 TRIM(c.division) AS division,
                 m.numero_leyenda AS modulo,
-                GREATEST(
-                  cm.cantidad_faltas_acumuladas::numeric,
-                  COALESCE((
-                    SELECT SUM(a.valor_falta)
-                      FROM asistencia a
-                     WHERE a.cursada_modulo_id = cm.id
-                  ), 0)
-                )::float AS faltas,
+                -- Total real de faltas (con medias faltas): 25,5 y no 26.
+                COALESCE((
+                  SELECT SUM(a.valor_falta)
+                    FROM asistencia a
+                   WHERE a.cursada_modulo_id = cm.id
+                ), cm.cantidad_faltas_acumuladas)::float AS faltas,
                 cm.condicion,
                 pe.titulo AS "planEstudio"
            FROM cursada_modulo cm
