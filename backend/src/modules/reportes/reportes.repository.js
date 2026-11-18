@@ -5,10 +5,15 @@ import { asegurarEsquemaPlanEstudio } from "../planestudios/planEstudios.reposit
 // Lista los alumnos que quedaron LIBRES por inasistencias: superaron las 25
 // faltas en un módulo que no tienen aprobado. Quien llegó a 25 justas sigue
 // regular y no figura; tampoco quien ya aprobó el módulo.
+// Con situacion = "riesgo" lista, en cambio, a los alumnos todavía REGULARES
+// (módulo en curso o pendiente) con umbralRiesgo faltas o más: los que se
+// acercan a quedar libres.
 // Reporta faltas por cursada de módulo, sin sumarlas entre módulos.
 // Sin filtro de módulo, muestra la cursada más reciente por alumno y módulo
 // dentro del ciclo seleccionado. Con módulo, permite consultar su historial.
 export const listarInasistenciasCriticas = async ({
+  situacion = "libres",
+  umbralRiesgo = 20,
   minFaltas = null,
   curso = null,
   division = null,
@@ -17,6 +22,20 @@ export const listarInasistenciasCriticas = async ({
 } = {}) => {
   const params = [minFaltas];
   const filtros = [];
+
+  // Qué cursadas entran: las libres por inasistencias o las que están en riesgo.
+  let filtroSituacion;
+  if (situacion === "riesgo") {
+    params.push(umbralRiesgo);
+    filtroSituacion = `cm.condicion = 'REGULAR'
+            AND cm.estado_academico IN ('EN_CURSO', 'PENDIENTE')
+            AND COALESCE((SELECT SUM(a.valor_falta) FROM asistencia a
+                           WHERE a.cursada_modulo_id = cm.id),
+                         cm.cantidad_faltas_acumuladas) >= $${params.length}`;
+  } else {
+    filtroSituacion = `cm.condicion = 'LIBRE'
+            AND cm.motivo_libre = 'INASISTENCIAS'`;
+  }
 
   if (anio !== null) {
     params.push(anio);
@@ -83,9 +102,8 @@ export const listarInasistenciasCriticas = async ({
            JOIN modulo m ON m.id = cm.modulo_id
           -- Los alumnos dados de baja no generan alertas.
           WHERE al.activo
-            -- Solo cursadas LIBRES por inasistencias (nunca las aprobadas).
-            AND cm.condicion = 'LIBRE'
-            AND cm.motivo_libre = 'INASISTENCIAS'
+            -- Libres por inasistencias, o regulares en riesgo (nunca las aprobadas).
+            AND ${filtroSituacion}
             ${whereExtra}
             ${filtroCursadaActual}
        ) sub
