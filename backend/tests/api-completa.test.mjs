@@ -539,9 +539,10 @@ test("DOCENTES 1. Alta con asignaciones, consulta, filtros, modificación y baja
   const datos = datosDocente({ asignaciones: [{ moduloId: M.I, division: "C", materia: "Historia" }] });
   const creado = await espera(201, "POST", "/docentes", datos);
   assert.equal(creado.especialidad, "Profesor de Historia");
-  // La asignación se guarda por curso + materia: si la materia se dicta en los
-  // dos módulos de ese curso, el docente queda habilitado en ambos.
-  assert.ok(creado.asignaciones.some((x) => x.moduloId === M.I));
+  // La asignación es del módulo elegido (migración 009): Módulo I no lo
+  // habilita también en el Módulo II del mismo curso.
+  assert.ok(creado.asignaciones.length > 0);
+  assert.ok(creado.asignaciones.every((x) => x.moduloId === M.I));
   assert.ok(creado.asignaciones.every((x) => x.division === "C" && x.materia === "Historia"));
   assert.equal(creado.password, undefined);
 
@@ -591,9 +592,17 @@ test("DOCENTES 1. Alta con asignaciones, consulta, filtros, modificación y baja
   await eliminarDocente(creado.id);
   await espera(404, "GET", `/docentes/${creado.id}`);
   await espera(404, "DELETE", `/docentes/${creado.id}`);
-  // Su usuario pierde el acceso...
-  assert.equal((await login(datos.email, "clave1")).status, 403, "Un docente eliminado no inicia sesión");
-  // ...y el correo queda libre: se lo puede volver a registrar con otra clave.
+  // Su usuario se borra: el correo y la clave ya no inician sesión (como si
+  // nunca hubiera existido) y la sesión que tenía abierta se corta.
+  const loginEliminado = await login(datos.email, "clave1");
+  assert.equal(loginEliminado.status, 401, "Un docente eliminado no inicia sesión");
+  assert.equal(loginEliminado.body.error, "Credenciales inválidas");
+  await espera(401, "GET", "/auth/perfil", undefined, sesion.body.token);
+  // El correo queda libre también para otro rol...
+  const comoPreceptor = await espera(201, "POST", "/preceptores", { ...datosPreceptor(), email: datos.email, password: "clave3" });
+  assert.equal((await login(datos.email, "clave3")).body.usuario?.rol, "preceptor");
+  await eliminarPreceptor(comoPreceptor.id);
+  // ...y para volver a registrarlo como docente con otra clave.
   const dniOtraVez = unico();
   const otraVez = await espera(201, "POST", "/docentes", { ...datos, dni: dniOtraVez, cuil: cuilDe(dniOtraVez), password: "clave2" });
   assert.equal((await login(datos.email, "clave1")).status, 401);
@@ -716,8 +725,15 @@ test("PRECEPTORES 1. Alta, consulta, modificación, asignación de cursos y baja
   await espera(404, "GET", `/preceptores/${creado.id}`);
   const cursoDespues = (await espera(200, "GET", "/preceptores/cursos")).find((c) => c.id === curso.id);
   assert.equal(cursoDespues.preceptor_id, null, "El curso queda sin preceptor");
-  assert.equal((await login(datos.email, "clave1")).status, 403, "Un preceptor eliminado no inicia sesión");
-  // El correo queda libre para volver a registrarlo.
+  const loginEliminado = await login(datos.email, "clave1");
+  assert.equal(loginEliminado.status, 401, "Un preceptor eliminado no inicia sesión");
+  assert.equal(loginEliminado.body.error, "Credenciales inválidas");
+  await espera(401, "GET", "/auth/perfil", undefined, sesion.body.token);
+  // Dar de alta a otro preceptor con ese correo y sin clave no revive la
+  // clave del eliminado: no hay usuario para vincular.
+  await espera(409, "POST", "/preceptores", { ...datosPreceptor(), email: datos.email });
+  assert.equal((await login(datos.email, "clave1")).status, 401);
+  // El correo queda libre para volver a registrarlo con otra clave.
   const otraVez = await espera(201, "POST", "/preceptores", { ...datosPreceptor(), email: datos.email, password: "clave2" });
   assert.equal((await login(datos.email, "clave2")).status, 200);
   await eliminarPreceptor(otraVez.id);
@@ -1168,6 +1184,44 @@ const db = new pg.Pool({
   database: process.env.PGDATABASE,
 });
 after(() => db.end());
+
+// Antes, la eliminación definitiva dejaba el usuario sin persona y dado de
+// baja. Si en la base de Neon quedó alguno (y todavía no se ejecutó la
+// migración 010), el backend lo trata como si no existiera.
+async function usuarioQuedadoDeVersionVieja() {
+  const { datos, creado } = await crearPreceptor();
+  await espera(200, "PATCH", `/preceptores/${creado.id}/inactivar`);
+  await db.query("UPDATE usuarios SET persona_id = NULL, activo = false WHERE persona_id = $1", [creado.id]);
+  await espera(204, "DELETE", `/preceptores/${creado.id}`);
+  const quedo = await db.query("SELECT 1 FROM usuarios WHERE LOWER(email) = LOWER($1)", [datos.email]);
+  assert.equal(quedo.rowCount, 1, "La prueba arma un usuario suelto como los de antes");
+  return datos.email;
+}
+
+test("USUARIO DE UN ELIMINADO (versión anterior). No inicia sesión ni revive su clave", async () => {
+  const email = await usuarioQuedadoDeVersionVieja();
+  const r = await login(email, "clave1");
+  assert.equal(r.status, 401);
+  assert.equal(r.body.error, "Credenciales inválidas");
+  // Un preceptor nuevo sin clave no hereda la clave vieja.
+  await espera(409, "POST", "/preceptores", { ...datosPreceptor(), email });
+  assert.equal((await login(email, "clave1")).status, 401);
+  // El correo sirve para otro rol, con la clave nueva.
+  const dni = unico();
+  const docente = await espera(201, "POST", "/docentes", datosDocente({ dni, cuil: cuilDe(dni), email, password: "nueva1" }));
+  assert.equal((await login(email, "nueva1")).body.usuario?.rol, "docente");
+  assert.equal((await login(email, "clave1")).status, 401);
+  await eliminarDocente(docente.id);
+  const queda = await db.query("SELECT 1 FROM usuarios WHERE LOWER(email) = LOWER($1)", [email]);
+  assert.equal(queda.rowCount, 0, "Eliminar al docente borra su usuario");
+
+  // También queda libre para el registro de usuarios.
+  const otro = await usuarioQuedadoDeVersionVieja();
+  await espera(201, "POST", "/auth/registro", { nombre: "Reg", apellido: "Prueba", email: otro, password: "abcd", rol: "docente" });
+  assert.equal((await login(otro, "clave1")).status, 401);
+  assert.equal((await login(otro, "abcd")).status, 200);
+  await db.query("DELETE FROM usuarios WHERE LOWER(email) = LOWER($1)", [otro]);
+});
 
 test("REGISTROS VIEJOS. Se editan sin corregir los datos que no cambian", async () => {
   const a = await espera(201, "POST", "/alumnos", datosAlumno());
