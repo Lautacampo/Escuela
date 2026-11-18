@@ -31,10 +31,12 @@ import { useAutoActualizar } from "../../../shared/hooks/useAutoActualizar";
 import {
   DESCRIPCION_MOTIVO_LIBRE,
   analizarMatricula,
+  avisoEquivalencia,
   catalogoDeModulos,
   correlativosFaltantes,
   esLibre,
   etiquetaModulo,
+  modulosAnteriores,
   listar,
 } from "../utils/correlatividades";
 
@@ -426,7 +428,27 @@ export function Alumnos() {
   const matriculaBloqueada =
     analisisMatricula != null &&
     (analisisMatricula.yaAprobado ||
+      analisisMatricula.porEquivalencia ||
       analisisMatricula.bloqueantes.length > 0);
+  // Módulos del año elegido que ya están aprobados por equivalencia (anteriores
+  // al de ingreso): se muestran deshabilitados.
+  const modulosPorEquivalenciaMatricula = modulosMatricula
+    .filter(
+      (modulo) =>
+        analizarMatricula(alumnoEditando, modulo.id, catalogo).porEquivalencia
+    )
+    .map((modulo) => modulo.numeroLeyenda);
+
+  // Alta: si el módulo elegido no es el I, los anteriores quedan aprobados por
+  // equivalencia y después no se lo puede matricular en ellos.
+  const moduloAltaElegido = modulos.find(
+    (modulo) => String(modulo.id) === String(valores.moduloId)
+  );
+  const anterioresAlta = moduloAltaElegido
+    ? modulosAnteriores(moduloAltaElegido, catalogo).map(
+        (modulo) => modulo.numeroLeyenda
+      )
+    : [];
 
   const abrirFormulario = () => {
     setAlumnoEditando(null);
@@ -1350,7 +1372,10 @@ export function Alumnos() {
                                 <option
                                   key={modulo.id}
                                   value={modulo.id}
-                                  disabled={analisis.yaAprobado}
+                                  disabled={
+                                    analisis.yaAprobado ||
+                                    analisis.porEquivalencia
+                                  }
                                 >
                                   {etiquetaModulo(modulo, analisis)}
                                 </option>
@@ -1373,6 +1398,36 @@ export function Alumnos() {
                           .
                         </p>
                       )}
+
+                      {modulosPorEquivalenciaMatricula.length > 0 && (
+                        <p className="aviso-equivalencia" role="alert">
+                          {listar(modulosPorEquivalenciaMatricula)}{" "}
+                          {modulosPorEquivalenciaMatricula.length > 1
+                            ? "ya están aprobados"
+                            : "ya está aprobado"}{" "}
+                          por equivalencia porque{" "}
+                          {modulosPorEquivalenciaMatricula.length > 1
+                            ? "son anteriores"
+                            : "es anterior"}{" "}
+                          al módulo de ingreso del alumno: no se lo puede
+                          matricular en{" "}
+                          {modulosPorEquivalenciaMatricula.length > 1
+                            ? "ellos"
+                            : "él"}
+                          .
+                        </p>
+                      )}
+
+                      {analisisMatricula &&
+                        !matriculaBloqueada &&
+                        analisisMatricula.dejaPorEquivalencia.length > 0 && (
+                          <p className="aviso-equivalencia" role="alert">
+                            {avisoEquivalencia(
+                              moduloMatriculaElegido.numeroLeyenda,
+                              analisisMatricula.dejaPorEquivalencia
+                            )}
+                          </p>
+                        )}
 
                       {analisisMatricula &&
                         !matriculaBloqueada &&
@@ -1505,8 +1560,19 @@ export function Alumnos() {
 
                   <p className="texto-ayuda-matricula">
                     Al registrarlo se lo puede matricular en cualquier módulo:
-                    ese es su módulo de ingreso y los anteriores no se le exigen.
+                    ese es su módulo de ingreso. Los anteriores quedan aprobados
+                    por equivalencia y después no se lo puede matricular en
+                    ellos.
                   </p>
+
+                  {anterioresAlta.length > 0 && (
+                    <p className="aviso-equivalencia" role="alert">
+                      {avisoEquivalencia(
+                        moduloAltaElegido.numeroLeyenda,
+                        anterioresAlta
+                      )}
+                    </p>
+                  )}
                 </fieldset>
               )}
 
