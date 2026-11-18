@@ -58,6 +58,11 @@ export function AsistenciaPage() {
   return (
     <section className="pagina-asistencia-modulos">
       <h2>Asistencia</h2>
+      {gruposConAsignaciones.size === 0 && (
+        <p className="asistencia-sin-modulos" role="status">
+          No hay módulos ni divisiones asignados para cargar asistencia.
+        </p>
+      )}
       {ANIOS.filter(({ anio }) => gruposConAsignaciones.has(anio)).map(
         ({ anio, titulo }) => {
           const grupo = gruposConAsignaciones.get(anio);
