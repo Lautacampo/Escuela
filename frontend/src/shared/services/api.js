@@ -1,6 +1,8 @@
 import { getToken, logout } from "../../features/auth/services/authServices";
+import { normalizarUrlApi } from "./urlApi";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+// Acepta VITE_API_URL con o sin "/api" y con o sin barra final (ver urlApi.js).
+const API = normalizarUrlApi(import.meta.env.VITE_API_URL) || "http://localhost:4000/api";
 
 
 
