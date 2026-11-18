@@ -78,11 +78,20 @@ function cuilDe(dni) {
   return `20-${dni}-0`;
 }
 
+// Sufijo solo con letras: el nombre no admite números.
+const letras = (n) => {
+  let texto = "";
+  for (let x = n; x > 0; x = Math.floor((x - 1) / 26)) {
+    texto = String.fromCharCode(97 + ((x - 1) % 26)) + texto;
+  }
+  return texto;
+};
+
 function datosAlumno(extra = {}) {
   secuencia += 1;
   const dni = String(80000000 + Math.floor(Math.random() * 9000000) + secuencia);
   return {
-    nombre: `Caso${secuencia}`,
+    nombre: `Caso${letras(secuencia)}`,
     apellido: "ZZ-TEST",
     dni,
     cuil: cuilDe(dni),
@@ -499,7 +508,15 @@ test("C7. Módulo aprobado es definitivo: ni notas ni faltas lo cambian", async 
   });
   assert.equal(r.status, 409);
   assert.match(r.body.error, /ya está aprobado/);
-  await faltar(c.idCursada, 27);
+  // La API ya no deja cargarle faltas...
+  const falta = await api("POST", "/asistencias", { cursadaModuloId: c.idCursada, fecha: `${CICLO}-05-04`, valorFalta: 1 });
+  assert.equal(falta.status, 409);
+  // ...y aunque se carguen directo en la base, el módulo sigue aprobado.
+  await db.query(
+    `INSERT INTO asistencia (cursada_modulo_id, fecha, valor_falta)
+     SELECT $1, DATE '${CICLO}-03-01' + g, 1 FROM generate_series(0, 26) g`,
+    [c.idCursada],
+  );
   const s = await situacion(id, c.idCursada);
   assert.deepEqual([s.condicion, s.estado, s.motivo], ["REGULAR", "APROBADO", null]);
   assert.equal((await evaluar(c.idCursada, 2, 9)).status, 409);
