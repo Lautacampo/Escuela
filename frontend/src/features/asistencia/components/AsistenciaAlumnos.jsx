@@ -1,9 +1,4 @@
-// Fecha local de hoy en AAAA-MM-DD: no se carga asistencia de días futuros.
-const fechaDeHoy = () => {
-  const hoy = new Date();
-  const dos = (n) => String(n).padStart(2, "0");
-  return `${hoy.getFullYear()}-${dos(hoy.getMonth() + 1)}-${dos(hoy.getDate())}`;
-};
+import { fechaDeHoy } from "../utils/diasDeClase.js";
 
 const MOTIVO_LIBRE = {
   INASISTENCIAS: "superó las 25 inasistencias",
@@ -14,6 +9,11 @@ const MOTIVO_LIBRE = {
 export function AsistenciaAlumnos({
   alumnos,
   fecha,
+  // Días de clase del módulo (período y ciclo); sin datos, solo hasta hoy.
+  fechaMinima,
+  fechaMaxima = fechaDeHoy(),
+  // Día sin clase: se ve la planilla pero no se carga asistencia.
+  bloqueado = false,
   onCambiarFecha,
   registrosDia,
   totales,
@@ -32,7 +32,8 @@ export function AsistenciaAlumnos({
                 type="date"
                 disabled={guardando}
                 value={fecha}
-                max={fechaDeHoy()}
+                min={fechaMinima}
+                max={fechaMaxima}
                 onChange={(e) => onCambiarFecha(e.target.value)}
               />
             </label>
@@ -93,7 +94,7 @@ export function AsistenciaAlumnos({
                             <input
                               type="checkbox"
                               checked={Boolean(registro) && valorFalta === 0}
-                              disabled={guardando}
+                              disabled={guardando || bloqueado}
                               onChange={(e) => {
                                 if (e.target.checked) onCambiar(a.id, 0);
                               }}
@@ -104,7 +105,7 @@ export function AsistenciaAlumnos({
                             <input
                               type="checkbox"
                               checked={valorFalta === 0.5}
-                              disabled={guardando}
+                              disabled={guardando || bloqueado}
                               onChange={(e) =>
                                 onCambiar(a.id, e.target.checked ? 0.5 : 0)
                               }
@@ -115,7 +116,7 @@ export function AsistenciaAlumnos({
                             <input
                               type="checkbox"
                               checked={valorFalta === 1}
-                              disabled={guardando}
+                              disabled={guardando || bloqueado}
                               onChange={(e) =>
                                 onCambiar(a.id, e.target.checked ? 1 : 0)
                               }
