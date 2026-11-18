@@ -9,6 +9,8 @@ import {
   normalizarCuil,
   sinCambios,
   soloDigitos,
+  esNombreValido,
+  MENSAJE_NOMBRE_INVALIDO,
 } from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
 import { exportarExcel } from "../../../shared/utils/exportarExcel.js";
@@ -305,12 +307,16 @@ export function Preceptores() {
       nuevosErrores.nombre = "Debe ingresar el nombre.";
     } else if (valores.nombre.trim().length > 100) {
       nuevosErrores.nombre = "No puede superar los 100 caracteres.";
+    } else if (!igual("nombre", valores.nombre) && !esNombreValido(valores.nombre)) {
+      nuevosErrores.nombre = MENSAJE_NOMBRE_INVALIDO;
     }
 
     if (!valores.apellido.trim()) {
       nuevosErrores.apellido = "Debe ingresar el apellido.";
     } else if (valores.apellido.trim().length > 100) {
       nuevosErrores.apellido = "No puede superar los 100 caracteres.";
+    } else if (!igual("apellido", valores.apellido) && !esNombreValido(valores.apellido)) {
+      nuevosErrores.apellido = MENSAJE_NOMBRE_INVALIDO;
     }
 
     if (!dni) {
@@ -620,7 +626,7 @@ export function Preceptores() {
         </div>
 
         <div className="tabla-responsive">
-          <table className="tabla-gestion tabla-listado-personas personal-tabla">
+          <table className="tabla-gestion tabla-tarjetas personal-tabla">
             <thead>
               <tr>
                 <th>Apellido y nombre</th>
@@ -638,7 +644,7 @@ export function Preceptores() {
                   key={preceptor.id}
                   className={preceptor.activo ? undefined : "fila-inactiva"}
                 >
-                  <td>
+                  <td data-label="Apellido y nombre">
                     <strong>
                       {preceptor.apellido}, {preceptor.nombre}
                     </strong>
@@ -649,7 +655,7 @@ export function Preceptores() {
                     )}
                   </td>
 
-                  <td>
+                  <td data-label="DNI / CUIL">
                     <div className="personal-contacto">
                       <span>
                         <span className="personal-contacto-etiqueta">DNI:</span>{" "}
@@ -664,7 +670,7 @@ export function Preceptores() {
                     </div>
                   </td>
 
-                  <td>
+                  <td data-label="Contacto">
                     <div className="personal-contacto">
                       <span>
                         <span className="personal-contacto-etiqueta">
@@ -687,7 +693,7 @@ export function Preceptores() {
                     </div>
                   </td>
 
-                  <td>
+                  <td data-label="Título y antigüedad">
                     <div className="personal-contacto">
                       <span>
                         <span className="personal-contacto-etiqueta">
@@ -705,7 +711,7 @@ export function Preceptores() {
                     </div>
                   </td>
 
-                  <td>
+                  <td data-label="Módulos y divisiones a cargo">
                     <div className="personal-asignaciones">
                       {(preceptor.cursos ?? []).length === 0
                         ? "Sin módulos asignados"
@@ -717,7 +723,7 @@ export function Preceptores() {
                     </div>
                   </td>
 
-                  <td>
+                  <td data-label="Acciones">
                     <div className="acciones-tabla">
                       {preceptor.activo ? (
                         <>
