@@ -2,6 +2,7 @@ import { HttpError } from "../../utils/httpError.js";
 import bcrypt from "bcryptjs";
 import { traducirUnicidadPersona } from "../../utils/errorUnicidadPersona.js";
 import {
+  ANTIGUEDAD_MAXIMA,
   esCuilValido,
   esDniValido,
   esTelefonoValido,
@@ -140,14 +141,16 @@ const validarDatos = (datos = {}, anterior = null) => {
       { campo: "telefono" },
     );
   }
+  // Antigüedad: de 0 a 35 años. Un dato viejo mayor que no cambia se respeta.
   if (
     !Number.isInteger(d.antiguedad) ||
     d.antiguedad < 0 ||
-    d.antiguedad > 99
+    (d.antiguedad > ANTIGUEDAD_MAXIMA &&
+      !sinCambios(anterior, "antiguedad", d.antiguedad, Number))
   ) {
     throw new HttpError(
       400,
-      "La antigüedad debe ser un número entero entre 0 y 99",
+      `La antigüedad debe ser un número entero entre 0 y ${ANTIGUEDAD_MAXIMA}`,
       { campo: "antiguedad" },
     );
   }
