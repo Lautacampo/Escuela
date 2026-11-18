@@ -2,7 +2,7 @@ import * as service from "./preceptores.service.js";
 
 export const listar = async(req , res , next)=>{
     try{
-        res.json(await service.listar());
+        res.json(await service.listar(req.query));
     }catch (err){
         next(err);
     }
@@ -35,11 +35,30 @@ export const actualizar = async (req, res, next)=>{
     }
 };
 
+// PATCH /api/preceptores/:id/inactivar
+export const inactivar = async (req, res, next) => {
+    try {
+        res.json(await service.inactivar(Number(req.params.id)));
+    } catch (err) {
+        next(err);
+    }
+};
+
+// PATCH /api/preceptores/:id/reactivar
+export const reactivar = async (req, res, next) => {
+    try {
+        res.json(await service.reactivar(Number(req.params.id)));
+    } catch (err) {
+        next(err);
+    }
+};
+
+// DELETE /api/preceptores/:id (definitivo; el preceptor debe estar inactivo)
 export const eliminar = async (req,res,next) =>{
     try{
         const id = Number(req.params.id);
         await service.eliminar(id);
-        res.status(200).json({mensaje:"Preceptor eliminado correctamente"});
+        res.status(204).end();
     }catch(err){
         next(err);
     }
