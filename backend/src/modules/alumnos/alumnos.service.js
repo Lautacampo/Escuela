@@ -12,6 +12,8 @@ import {
   esTelefonoValido,
   normalizarCuil,
   normalizarDni,
+  sinCambios,
+  soloDigitos,
 } from "../../utils/validacionesPersona.js";
 import * as repo from "./alumnos.repository.js";
 
@@ -35,7 +37,9 @@ const DESCRIPCION_MOTIVO_LIBRE = {
 
 const NOMBRE_PERIODO = { 1: "marzo a julio", 2: "agosto a diciembre" };
 
-const validar = (body) => {
+// `anterior`: el alumno tal como está guardado (solo al modificar). Las reglas
+// de formato se aplican a los datos que cambian; ver sinCambios().
+const validar = (body, anterior = null) => {
   const d = {};
   for (const campo of REQUERIDOS) {
     d[campo] = String(body[campo] ?? "").trim();
@@ -49,7 +53,9 @@ const validar = (body) => {
   }
 
   d.dni = normalizarDni(body.dni);
-  if (!esDniValido(body.dni)) {
+  const mismoDni = sinCambios(anterior, "dni", body.dni, soloDigitos);
+  const mismoCuil = sinCambios(anterior, "cuil", body.cuil, soloDigitos);
+  if (!mismoDni && !esDniValido(body.dni)) {
     throw new HttpError(
       400,
       "El DNI debe tener entre 7 y 8 dígitos numéricos",
@@ -62,7 +68,7 @@ const validar = (body) => {
       campo: "cuil",
     });
   }
-  if (!esCuilValido(d.cuil, d.dni)) {
+  if (!(mismoDni && mismoCuil) && !esCuilValido(d.cuil, d.dni)) {
     throw new HttpError(
       400,
       "El CUIL debe tener 11 dígitos y corresponder al DNI",
@@ -89,14 +95,15 @@ const validar = (body) => {
   }
 
   d.email = String(body.email ?? "").trim();
-  if (!d.email) {
+  if (!d.email && !sinCambios(anterior, "email", d.email)) {
     throw new HttpError(400, "El correo electrónico es obligatorio", {
       campo: "email",
     });
   }
   if (
     d.email.length > 200 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)
+    (!sinCambios(anterior, "email", d.email) &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email))
   ) {
     throw new HttpError(400, "El correo electrónico no es válido", {
       campo: "email",
@@ -105,7 +112,8 @@ const validar = (body) => {
 
   d.telefono = String(body.telefono ?? "").trim() || null;
   if (
-    !esTelefonoValido(d.telefono) ||
+    (!sinCambios(anterior, "telefono", d.telefono) &&
+      !esTelefonoValido(d.telefono)) ||
     (d.telefono && d.telefono.length > 20)
   ) {
     throw new HttpError(
@@ -116,7 +124,8 @@ const validar = (body) => {
   }
 
   if (
-    !esTelefonoValido(d.telefonoEmergencia, true) ||
+    (!sinCambios(anterior, "telefono_emergencia", d.telefonoEmergencia) &&
+      !esTelefonoValido(d.telefonoEmergencia, true)) ||
     d.telefonoEmergencia.length > 30
   ) {
     throw new HttpError(
@@ -141,7 +150,10 @@ const validar = (body) => {
       { campo: "fechaNacimiento" },
     );
   }
-  if (!esMayorDeEdad(d.fechaNacimiento)) {
+  if (
+    !sinCambios(anterior, "fecha_nacimiento", d.fechaNacimiento) &&
+    !esMayorDeEdad(d.fechaNacimiento)
+  ) {
     throw new HttpError(
       400,
       "El alumno debe tener 18 años o más",
@@ -434,8 +446,8 @@ export const crear = async (body) => {
 };
 
 export const actualizar = async (id, body) => {
-  await buscarActivoOFallar(id);
-  const datos = validar(body);
+  const anterior = await buscarActivoOFallar(id);
+  const datos = validar(body, anterior);
   try {
     await repo.actualizarAlumno(id, datos);
   } catch (err) {
