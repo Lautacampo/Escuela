@@ -1,9 +1,9 @@
 /**
- * Pruebas de las reglas académicas (correlatividades, condición LIBRE,
- * recursadas y equivalencias) contra la API real.
+ * Pruebas de las reglas académicas (correlatividades desde el módulo de
+ * ingreso, condición LIBRE, recursadas y egresados) contra la API real.
  *
  * Requisitos:
- *   1. Base LOCAL con database/schema.sql (incluye la migración 005).
+ *   1. Base LOCAL con database/schema.sql (incluye las migraciones 005 a 008).
  *   2. Backend corriendo:           npm run dev
  *   3. En otra terminal (backend/): npm run test:reglas
  *
@@ -99,7 +99,8 @@ function datosAlumno(extra = {}) {
     lugarNacimiento: "San Luis",
     domicilio: "Calle Falsa 123",
     telefono: "2664000000",
-    email: `caso${secuencia}@example.com`,
+    // Derivado del DNI: dos alumnos no pueden tener el mismo correo.
+    email: `caso${dni}@example.com`,
     trabaja: false,
     telefonoEmergencia: "2664111111",
     cantidadHijos: 0,
@@ -122,10 +123,6 @@ function cursoDe(moduloId, division = "A") {
 const matricula = (moduloId, extra = {}) => ({
   idCurso: cursoDe(moduloId, extra.division),
   idModulo: moduloId,
-  ...(extra.equivalencias && {
-    equivalencias: extra.equivalencias,
-    observacionEquivalencia: extra.observacion ?? "Res. 195 - analítico parcial de otra escuela",
-  }),
 });
 
 const alta = (id, moduloId, extra) => api("POST", `/alumnos/${id}/cursadas`, matricula(moduloId, extra));
@@ -177,11 +174,30 @@ async function dejarLibreActivo(id) {
   return c;
 }
 
+// Días de clase de la cursada hasta hoy: de lunes a viernes, de marzo a julio
+// (módulos I, III y V) o de agosto a diciembre (II, IV y VI).
+const HOY = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }).format(new Date());
+async function diasDeClase(cursadaId) {
+  const { rows } = await db.query(
+    "SELECT m.periodo FROM cursada_modulo cm JOIN modulo m ON m.id = cm.modulo_id WHERE cm.id = $1",
+    [cursadaId],
+  );
+  const [desde, hasta] = rows[0]?.periodo === 2 ? [8, 12] : [3, 7];
+  const dias = [];
+  for (let d = new Date(Date.UTC(CICLO, desde - 1, 1)); d.getUTCMonth() <= hasta - 1 && d.getUTCFullYear() === CICLO; d.setUTCDate(d.getUTCDate() + 1)) {
+    const fecha = d.toISOString().slice(0, 10);
+    if (fecha > HOY) break;
+    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) dias.push(fecha);
+  }
+  return dias;
+}
+
 async function faltar(cursadaId, cantidad, valor = 1, desdeDia = 1) {
+  const dias = await diasDeClase(cursadaId);
   let ultimo;
   for (let i = 0; i < cantidad; i++) {
-    const dia = desdeDia + i;
-    const fecha = `${CICLO}-${String(3 + Math.floor((dia - 1) / 28)).padStart(2, "0")}-${String(((dia - 1) % 28) + 1).padStart(2, "0")}`;
+    const fecha = dias[desdeDia - 1 + i];
+    assert.ok(fecha, `No quedan días de clase para cargar la falta ${desdeDia + i}`);
     ultimo = await ok("POST", "/asistencias", { cursadaModuloId: cursadaId, fecha, valorFalta: valor }, 201);
   }
   return ultimo;
@@ -222,71 +238,69 @@ test("A1. Alta en Módulo I: queda REGULAR y EN_CURSO", async () => {
   assert.deepEqual([c.condicion, c.estadoAcademico, c.motivoLibre], ["REGULAR", "EN_CURSO", null]);
 });
 
-test("A2. Alta directa en Módulo III sin equivalencias: bloqueada y no crea nada", async () => {
+test("A2. Alta directa en Módulo III: permitida, es su módulo de ingreso", async () => {
   const id = await crearAlumno();
   const r = await alta(id, M.III);
-  assert.equal(r.status, 409);
-  assert.match(r.body.error, /Correlatividad/);
-  assert.equal(r.body.codigo, "CORRELATIVAS_PENDIENTES");
-  assert.deepEqual(r.body.pendientes.map((p) => p.id), [M.I, M.II]);
-  assert.ok(r.body.pendientes.every((p) => p.admiteEquivalencia));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.equal(r.body.tipo, "NUEVA");
   const a = await ficha(id);
-  assert.equal(a.trayectoria.length, 0);
-  assert.equal(a.equivalencias.length, 0);
+  assert.equal(a.moduloId, M.III);
+  assert.equal(a.moduloIngresoId, M.III);
+  // Los anteriores al ingreso no se le exigen: cuentan como acreditados.
+  assert.deepEqual(a.modulosAcreditados, [M.I, M.II]);
+  assert.equal(a.equivalencias, undefined, "Ya no hay equivalencias");
 });
 
-test("A3. Equivalencia incompleta (solo Módulo I) para entrar a III: falla y hace rollback", async () => {
-  const id = await crearAlumno();
-  const r = await alta(id, M.III, { equivalencias: [M.I] });
-  assert.equal(r.status, 409);
-  assert.match(r.body.error, /Modulo II/);
-  const a = await ficha(id);
-  assert.equal(a.equivalencias.length, 0, "La equivalencia de I no debe quedar guardada");
-  assert.equal(a.trayectoria.length, 0);
+test("A3. Alta directa en Módulo V y en Módulo VI: permitidas", async () => {
+  for (const modulo of [M.V, M.VI]) {
+    const id = await crearAlumno();
+    const r = await alta(id, modulo);
+    assert.equal(r.status, 201, JSON.stringify(r.body));
+    assert.equal((await ficha(id)).moduloIngresoId, modulo);
+  }
 });
 
-test("A4. La observación de la equivalencia es opcional", async () => {
+test("A4. Si llega el campo equivalencias, se ignora", async () => {
   const id = await crearAlumno();
   const r = await api("POST", `/alumnos/${id}/cursadas`, {
-    idCurso: cursoDe(M.III), idModulo: M.III, equivalencias: [M.I, M.II],
+    idCurso: cursoDe(M.III), idModulo: M.III, equivalencias: [M.I], observacionEquivalencia: "x".repeat(400),
   });
   assert.equal(r.status, 201, JSON.stringify(r.body));
-  const a = await ficha(id);
-  assert.deepEqual(a.equivalencias.map((e) => [e.moduloId, e.observacion]), [[M.I, ""], [M.II, ""]]);
-
-  // Si se escribe, se guarda; más de 300 caracteres se rechaza.
-  const otro = await crearAlumno();
-  const largo = await alta(otro, M.III, { equivalencias: [M.I, M.II], observacion: "x".repeat(301) });
-  assert.equal(largo.status, 400);
-  assert.equal((await alta(otro, M.III, { equivalencias: [M.I, M.II], observacion: "  Escuela N.º 12  " })).status, 201);
-  assert.equal((await ficha(otro)).equivalencias[0].observacion, "Escuela N.º 12");
+  assert.equal((await api("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I] })).status, 404);
 });
 
-test("A5. Ingreso por equivalencia a Módulo III (acredita I y II)", async () => {
+test("A5. Ingresó en III: no pasa a V sin III y IV aprobados (no pide I ni II)", async () => {
   const id = await crearAlumno();
-  const r = await alta(id, M.III, { equivalencias: [M.I, M.II] });
-  assert.equal(r.status, 201, JSON.stringify(r.body));
-  const a = await ficha(id);
-  assert.deepEqual(a.modulosAcreditados, [M.I, M.II]);
-  assert.equal(a.moduloId, M.III);
+  await alta(id, M.III);
+  const c = await cursadaActiva(id);
+  await faltar(c.idCursada, 1);
+  const r = await cambiar(id, M.V);
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /Modulo III \(todavía sin aprobar\)/);
+  assert.match(r.body.error, /Modulo IV \(sin cursar\)/);
+  assert.doesNotMatch(r.body.error, /Modulo I \(|Modulo II \(/);
 });
 
-test("A6. Ingreso a Módulo V: exige la cadena completa I-II-III-IV", async () => {
+test("A6. Ingresó en III y aprobó III y IV: pasa a V y puede acreditarlo", async () => {
   const id = await crearAlumno();
-  const incompleta = await alta(id, M.V, { equivalencias: [M.III, M.IV] });
-  assert.equal(incompleta.status, 409);
-  assert.match(incompleta.body.error, /también deben estar acreditados/);
-  assert.equal((await ficha(id)).equivalencias.length, 0);
-
-  const completa = await alta(id, M.V, { equivalencias: [M.IV, M.I, M.III, M.II] });
-  assert.equal(completa.status, 201, JSON.stringify(completa.body));
-  assert.deepEqual((await ficha(id)).modulosAcreditados, [M.I, M.II, M.III, M.IV]);
+  await alta(id, M.III);
+  await aprobarActivo(id);
+  assert.equal((await cambiar(id, M.IV)).status, 200);
+  await aprobarActivo(id);
+  assert.equal((await cambiar(id, M.V)).status, 200);
+  const c = await cursadaActiva(id);
+  assert.deepEqual(c.correlativosPendientes, []);
+  await aprobarActivo(id);
 });
 
-test("A7. Ingreso a Módulo VI con I-IV por equivalencia (V no es correlativo de VI)", async () => {
+test("A7. Ingresó en I y aprobó I: III pide II aunque nunca lo cursó", async () => {
   const id = await crearAlumno();
-  const r = await alta(id, M.VI, { equivalencias: [M.I, M.II, M.III, M.IV] });
-  assert.equal(r.status, 201, JSON.stringify(r.body));
+  await alta(id, M.I);
+  await aprobarActivo(id);
+  const r = await cambiar(id, M.III);
+  assert.equal(r.status, 409);
+  assert.match(r.body.error, /Modulo II \(sin cursar\)/);
+  assert.deepEqual(r.body.pendientes.map((p) => [p.id, p.estado]), [[M.II, null]]);
 });
 
 test("A8. Alta directa en Módulo II sin Módulo I: permitida (mismo año)", async () => {
@@ -294,13 +308,17 @@ test("A8. Alta directa en Módulo II sin Módulo I: permitida (mismo año)", asy
   assert.equal((await alta(id, M.II)).status, 201);
 });
 
-test("A9. Ingresa a IV por equivalencia de I y II; no pasa a 3.º sin III y IV", async () => {
+test("A9. Ingresó en IV: para V solo pide IV (III es anterior a su ingreso)", async () => {
   const id = await crearAlumno();
-  assert.equal((await alta(id, M.IV, { equivalencias: [M.I, M.II] })).status, 201);
+  assert.equal((await alta(id, M.IV)).status, 201);
+  const c = await cursadaActiva(id);
+  await faltar(c.idCursada, 1);
   const r = await cambiar(id, M.V);
   assert.equal(r.status, 409);
-  assert.match(r.body.error, /Modulo III \(sin cursar/);
   assert.match(r.body.error, /Modulo IV \(todavía sin aprobar\)/);
+  assert.doesNotMatch(r.body.error, /Modulo III/);
+  await aprobarActivo(id);
+  assert.equal((await cambiar(id, M.V)).status, 200);
 });
 
 test("A10. Módulo que no pertenece al curso: 400", async () => {
@@ -343,12 +361,21 @@ test("B1. Trayectoria completa I -> VI respetando correlatividades", async () =>
   await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.I), 409, /egresado/);
 });
 
-test("B2. No se saltea de año: de I (en curso) a III está bloqueado", async () => {
+test("B2. No se saltea de año: de I (en curso, con faltas) a III está bloqueado", async () => {
   const id = await crearAlumno();
   await alta(id, M.I);
+  await faltar((await cursadaActiva(id)).idCursada, 1);
   const r = await cambiar(id, M.III);
   assert.equal(r.status, 409);
   assert.equal((await cursadaActiva(id)).moduloId, M.I, "La matrícula no debe cambiar");
+
+  // Sin datos cargados es una corrección de la matrícula: se permite.
+  const otro = await crearAlumno();
+  await alta(otro, M.I);
+  const corregida = await cambiar(otro, M.III);
+  assert.equal(corregida.status, 200, JSON.stringify(corregida.body));
+  assert.equal(corregida.body.matricula, "CORREGIDA");
+  assert.equal((await ficha(otro)).moduloIngresoId, M.III);
 });
 
 test("B3. Con I aprobado y II en curso no pasa a 2.º año", async () => {
@@ -554,14 +581,8 @@ test("D1. Libre en I + aprueba II: no pasa a 2.º, recursa I y recién ahí pasa
     const r = await cambiar(id, destino);
     assert.equal(r.status, 409);
     assert.match(r.body.error, /Modulo I \(quedó libre: debe recursarlo\)/);
-    assert.equal(r.body.pendientes[0].admiteEquivalencia, false);
+    assert.equal(r.body.pendientes[0].estado, "A_RECURSAR");
   }
-
-  // La equivalencia no sirve para saltear un módulo que cursó y no aprobó.
-  await falla("POST", `/alumnos/${id}/equivalencias`,
-    { modulosIds: [M.I], observacion: "intento de saltear el módulo" }, 409, /ya lo cursó/);
-  const conEquivalencia = await cambiar(id, M.III, { equivalencias: [M.I] });
-  assert.equal(conEquivalencia.status, 409);
 
   // Recursa el Módulo I: nueva cursada limpia; la anterior queda en el historial.
   const r = await cambiar(id, M.I);
@@ -591,7 +612,7 @@ test("D1. Libre en I + aprueba II: no pasa a 2.º, recursa I y recién ahí pasa
 
 test("D2. Libre en III + aprueba IV: no pasa a 3.º hasta recursar y aprobar III", async () => {
   const id = await crearAlumno();
-  await alta(id, M.III, { equivalencias: [M.I, M.II] });
+  await alta(id, M.III);
   await dejarLibreActivo(id);
   assert.equal((await cambiar(id, M.IV)).status, 200);
   await aprobarActivo(id);
@@ -731,35 +752,31 @@ test("D9. Libre y rematriculado en OTRA división: sale del listado viejo y arra
   assert.ok(grillaB.alumnos.some((x) => x.cursadaId === nueva.idCursada));
 });
 
-// ========================================================= E. EQUIVALENCIAS
-test("E1. Alta de equivalencias y repetición sin duplicados", async () => {
+// ============================================ E. SIN EQUIVALENCIAS (008)
+test("E1. Ya no hay equivalencias: la ruta no existe y la ficha no las trae", async () => {
   const id = await crearAlumno();
-  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [], observacion: "Tabla 3 Res. 195" }, 400);
-  await falla("POST", `/alumnos/${id}/equivalencias`, {}, 400);
-  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.III], observacion: "Tabla 3 Res. 195" }, 409, /también deben estar acreditados/);
-  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [9999], observacion: "Tabla 3 Res. 195" }, 400);
-
-  // Sin observación también se registra.
-  let a = await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I] }, 201);
-  assert.deepEqual(a.equivalencias.map((e) => [e.moduloId, e.observacion]), [[M.I, ""]]);
-  a = await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I, M.II], observacion: "Tabla 3 Res. 195" }, 201);
-  assert.deepEqual(a.equivalencias.map((e) => e.moduloId), [M.I, M.II]);
-  // Repetirla no duplica ni falla.
-  a = await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I], observacion: "Tabla 3 Res. 195" }, 201);
-  assert.equal(a.equivalencias.length, 2);
+  assert.equal((await api("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I] })).status, 404);
+  const a = await ficha(id);
+  assert.equal(a.equivalencias, undefined);
+  assert.equal(a.moduloIngresoId, null);
+  assert.deepEqual(a.modulosAcreditados, []);
+  const tabla = await db.query("SELECT to_regclass('public.equivalencia_modulo') AS tabla");
+  assert.equal(tabla.rows[0].tabla, null, "La tabla equivalencia_modulo se eliminó (migración 008)");
 });
 
-test("E2. No hay equivalencia para un módulo que el alumno está cursando o tiene acreditado", async () => {
+test("E2. Volver a un módulo anterior al ingreso se permite; uno aprobado, no", async () => {
   const id = await crearAlumno();
-  await alta(id, M.I);
-  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I], observacion: "Tabla 3 Res. 195" }, 409, /ya lo cursó/);
-  // Matricular en un módulo ya acreditado por equivalencia tampoco se permite.
-  await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.II], observacion: "Tabla 3 Res. 195" }, 201);
-  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.II), 409, /acreditado Modulo II por equivalencia/);
+  await alta(id, M.III);
+  await faltar((await cursadaActiva(id)).idCursada, 1);
+  // Anterior al ingreso: se puede cursar (pasa a ser el nuevo ingreso).
+  assert.equal((await cambiar(id, M.I)).status, 200);
+  assert.equal((await ficha(id)).moduloIngresoId, M.I);
+  await aprobarActivo(id);
+  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.I), 409, /ya aprobó Modulo I/);
 });
 
 // ======================================================= F. BAJA / PERMISOS
-test("F1. Alumno dado de baja: no se matricula, no se evalúa, no recibe equivalencias", async () => {
+test("F1. Alumno dado de baja: no se matricula ni se evalúa", async () => {
   const id = await crearAlumno();
   await alta(id, M.I);
   const c = await cursadaActiva(id);
@@ -767,7 +784,6 @@ test("F1. Alumno dado de baja: no se matricula, no se evalúa, no recibe equival
   await ok("DELETE", `/alumnos/${id}`, undefined, 204);
   assert.equal((await cambiar(id, M.II)).status, 409);
   assert.equal((await evaluar(c.idCursada, 1, 8)).status, 409);
-  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.II], observacion: "Tabla 3 Res. 195" }, 409);
 });
 
 test("F2. Sin token no se puede matricular", async () => {
@@ -802,27 +818,41 @@ test("G2. Matrículas simultáneas: una sola cursada activa", async () => {
 });
 
 // ================================================ H. BARRERAS EN LA BASE
-test("H1. Trigger: un INSERT directo que viola correlatividades es rechazado", async () => {
+test("H1. Trigger: un INSERT o UPDATE directo que viola correlatividades es rechazado", async () => {
   const id = await crearAlumno();
+  await alta(id, M.I);
+  await aprobarActivo(id);
+  await cambiar(id, M.II);
+  const enII = await cursadaActiva(id);
+  // Ingresó en I: un III cargado a mano sin el II aprobado se rechaza.
   await assert.rejects(
     db.query(
       `INSERT INTO cursada_modulo (alumno_id, curso_id, modulo_id, condicion, cantidad_faltas_acumuladas, estado_academico, activa)
-       VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', true)`,
-      [id, cursoDe(M.V), M.V],
+       VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', false)`,
+      [id, cursoDe(M.III), M.III],
     ),
-    /Correlatividad: para cursar Modulo V/,
+    /Correlatividad: para cursar Modulo III/,
   );
-  await alta(id, M.I);
-  const c = await cursadaActiva(id);
+  // Mover la cursada de II a V también: le faltan III y IV.
   await assert.rejects(
-    db.query("UPDATE cursada_modulo SET modulo_id = $2, curso_id = $3 WHERE id = $1", [c.idCursada, M.III, cursoDe(M.III)]),
+    db.query("UPDATE cursada_modulo SET modulo_id = $2, curso_id = $3 WHERE id = $1", [enII.idCursada, M.V, cursoDe(M.V)]),
     /Correlatividad/,
+  );
+  // Un alumno sin cursadas sí puede ingresar directo en V, también por SQL.
+  const nuevo = await crearAlumno();
+  await db.query(
+    `INSERT INTO cursada_modulo (alumno_id, curso_id, modulo_id, condicion, cantidad_faltas_acumuladas, estado_academico, activa)
+     VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', true)`,
+    [nuevo, cursoDe(M.V), M.V],
   );
 });
 
-test("H2. Dato heredado sin correlativas: no se puede acreditar el módulo", async () => {
+test("H2. Dato heredado sin correlativas: no se puede acreditar el módulo hasta aprobarlas", async () => {
   const id = await crearAlumno();
-  // Simula una cursada vieja cargada antes del control (saltea el trigger).
+  await alta(id, M.I);
+  await aprobarActivo(id);
+  await cambiar(id, M.II);
+  // Simula una cursada vieja de III cargada antes del control (saltea el trigger).
   const cliente = await db.connect();
   let cursadaId;
   try {
@@ -830,7 +860,7 @@ test("H2. Dato heredado sin correlativas: no se puede acreditar el módulo", asy
     await cliente.query("ALTER TABLE cursada_modulo DISABLE TRIGGER cursada_modulo_validar_correlativas");
     cursadaId = (await cliente.query(
       `INSERT INTO cursada_modulo (alumno_id, curso_id, modulo_id, condicion, cantidad_faltas_acumuladas, estado_academico, activa)
-       VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', true) RETURNING id`,
+       VALUES ($1, $2, $3, 'REGULAR', 0, 'EN_CURSO', false) RETURNING id`,
       [id, cursoDe(M.III), M.III],
     )).rows[0].id;
     await cliente.query("ALTER TABLE cursada_modulo ENABLE TRIGGER cursada_modulo_validar_correlativas");
@@ -851,8 +881,8 @@ test("H2. Dato heredado sin correlativas: no se puede acreditar el módulo", asy
        VALUES ($1, CURRENT_DATE, 9, 1, 'COLEGIADA')`, [cursadaId]),
     /Correlatividad: para acreditar/,
   );
-  // Regularizado con las equivalencias, ya puede acreditar.
-  await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I, M.II], observacion: "Regularización manual" }, 201);
+  // Aprueba el II (lo que le faltaba) y ya puede acreditar el III.
+  await aprobarActivo(id);
   assert.equal((await evaluar(cursadaId, 1, 9)).status, 201);
 });
 
@@ -933,7 +963,6 @@ test("I2. Egresado: 6 módulos aprobados; legajo de solo lectura y listado propi
   await falla("PUT", `/alumnos/${id}`, datosAlumno(), 409, /egresado/);
   await falla("DELETE", `/alumnos/${id}`, undefined, 409, /egresado/);
   await falla("POST", `/alumnos/${id}/cursadas`, matricula(M.I), 409, /egresado/);
-  await falla("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I] }, 409, /egresado/);
   assert.equal((await evaluar(ultima.idCursada, 2, 10)).status, 409);
   const nota = await api("PUT", "/calificaciones", {
     cursadaModuloId: ultima.idCursada, materiaId: ultima.materias[0].id, estado: "Desaprobado", anio: ultima.cicloLectivo,
@@ -943,27 +972,26 @@ test("I2. Egresado: 6 módulos aprobados; legajo de solo lectura y listado propi
   assert.equal((await ficha(id)).egresado, true);
 });
 
-test("I3. Con equivalencias: egresa recién cuando acredita TODOS los módulos", async () => {
+test("I3. Ingresó en V: egresa recién al aprobar V y VI", async () => {
   const id = await crearAlumno();
-  // Entra al VI acreditando I-IV por equivalencia (el V no es correlativo del VI).
-  assert.equal((await alta(id, M.VI, { equivalencias: [M.I, M.II, M.III, M.IV] })).status, 201);
+  assert.equal((await alta(id, M.V)).status, 201);
   await aprobarActivo(id);
   let a = await ficha(id);
-  assert.equal(a.egresado, false, "Le falta el Módulo V");
+  assert.equal(a.egresado, false, "Le falta el Módulo VI");
   assert.ok((await ok("GET", "/alumnos")).some((x) => x.id === id), "Sigue en el padrón");
 
-  assert.equal((await cambiar(id, M.V)).status, 200);
+  assert.equal((await cambiar(id, M.VI)).status, 200);
   await aprobarActivo(id);
   a = await ficha(id);
   assert.equal(a.egresado, true);
-  assert.equal(a.equivalencias.length, 4);
+  assert.deepEqual(a.modulosAcreditados, [M.I, M.II, M.III, M.IV, M.V, M.VI]);
+  assert.ok((await ok("GET", "/alumnos?egresados=true")).some((x) => x.id === id));
 });
 
-test("I4. Tener todo por equivalencia, sin cursar nada acá, no es egresar", async () => {
+test("I4. Sin cursadas no es egresado (no hay módulo de ingreso)", async () => {
   const id = await crearAlumno();
-  await ok("POST", `/alumnos/${id}/equivalencias`, { modulosIds: [M.I, M.II, M.III, M.IV, M.V, M.VI] }, 201);
   const a = await ficha(id);
-  assert.equal(a.modulosAcreditados.length, 6);
+  assert.deepEqual(a.modulosAcreditados, []);
   assert.equal(a.egresado, false);
   assert.ok(!(await ok("GET", "/alumnos?egresados=true")).some((x) => x.id === id));
 });
