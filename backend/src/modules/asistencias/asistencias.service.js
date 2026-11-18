@@ -1,15 +1,8 @@
 import { HttpError } from "../../utils/httpError.js";
 import * as repo from "./asistencias.repository.js";
-import { esFechaISOValida } from "../../utils/fechas.js";
+import { esFechaISOValida, hoyISO as fechaHoyISO } from "../../utils/fechas.js";
 
 const VALORES_FALTA_VALIDOS = [0, 0.5, 1];
-
-function fechaHoyISO() {
-  const hoy = new Date();
-  const mes = String(hoy.getMonth() + 1).padStart(2, "0");
-  const dia = String(hoy.getDate()).padStart(2, "0");
-  return `${hoy.getFullYear()}-${mes}-${dia}`;
-}
 
 // Una cursada reemplazada por una recursada es historial: no se modifica.
 const exigirCursadaVigente = (registro) => {
