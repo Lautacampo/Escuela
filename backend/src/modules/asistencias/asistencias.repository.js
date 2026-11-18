@@ -171,11 +171,15 @@ export const listarAsistencias = async ({
 export const buscarCursada = async (cursadaId) => {
   const { rows } = await pool.query(
     `SELECT cm.id, cm.alumno_id, cm.modulo_id, cm.curso_id,
+            cm.estado_academico, al.activo AS alumno_activo, cl.anio AS ciclo_anio,
             EXISTS (SELECT 1 FROM cursada_modulo nueva
                      WHERE nueva.alumno_id = cm.alumno_id
                        AND nueva.modulo_id = cm.modulo_id
                        AND nueva.id > cm.id) AS reemplazada
        FROM cursada_modulo cm
+       JOIN alumno al ON al.id = cm.alumno_id
+       JOIN curso c ON c.id = cm.curso_id
+       JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
       WHERE cm.id = $1`,
     [cursadaId],
   );
@@ -189,12 +193,16 @@ export const buscarAsistenciaPorId = async (id) => {
             TO_CHAR(a.fecha, 'YYYY-MM-DD') AS fecha_iso,
             a.valor_falta::float AS valor_falta,
             cm.curso_id,
+            cm.estado_academico, al.activo AS alumno_activo, cl.anio AS ciclo_anio,
             EXISTS (SELECT 1 FROM cursada_modulo nueva
                      WHERE nueva.alumno_id = cm.alumno_id
                        AND nueva.modulo_id = cm.modulo_id
                        AND nueva.id > cm.id) AS reemplazada
        FROM asistencia a
        JOIN cursada_modulo cm ON cm.id = a.cursada_modulo_id
+       JOIN alumno al ON al.id = cm.alumno_id
+       JOIN curso c ON c.id = cm.curso_id
+       JOIN ciclo_lectivo cl ON cl.id = c.ciclo_lectivo_id
       WHERE a.id = $1`,
     [id],
   );
