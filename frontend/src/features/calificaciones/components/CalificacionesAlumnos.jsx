@@ -14,8 +14,6 @@ export function CalificacionesAlumnos({
   alumnos,
   materias,
   notas,
-  moduloId,
-  division,
   onCambiar,
 }) {
   return (
