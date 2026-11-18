@@ -1,7 +1,7 @@
 import { pool } from "../../config/db.js";
 import { HttpError } from "../../utils/httpError.js";
 import {
-  desvincularUsuario,
+  eliminarUsuarioDePersona,
   sincronizarEmailUsuario,
   vincularOCrearUsuario,
 } from "../auth/auth.repository.js";
@@ -191,8 +191,8 @@ export const eliminarPreceptor = async (id) => {
       "UPDATE curso SET preceptor_id = NULL WHERE preceptor_id = $1",
       [id],
     );
-    // Su usuario queda sin vínculo y sin acceso al sistema.
-    await desvincularUsuario(cliente, id);
+    // Su usuario se borra: ese correo y esa contraseña ya no inician sesión.
+    await eliminarUsuarioDePersona(cliente, id);
 
     // Igual que con los docentes: su asistencia como personal se borra con él.
     await cliente.query(
