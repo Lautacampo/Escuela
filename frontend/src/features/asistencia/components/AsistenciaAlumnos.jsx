@@ -68,13 +68,30 @@ export function AsistenciaAlumnos({
                           role="group"
                           aria-label={`Asistencia de ${a.apellido}, ${a.nombre}`}
                         >
-                          <span className="asistencia-estado-dia">
-                            {valorFalta === 0
-                              ? "Presente"
-                              : valorFalta === 0.5
-                                ? "Media falta"
-                                : "Falta completa"}
+                          {/* Sin registro en esa fecha la asistencia todavía
+                              no se tomó: no se muestra como "Presente". */}
+                          <span
+                            className={`asistencia-estado-dia${registro ? "" : " sin-cargar"}`}
+                          >
+                            {!registro
+                              ? "Sin cargar"
+                              : valorFalta === 0
+                                ? "Presente"
+                                : valorFalta === 0.5
+                                  ? "Media falta"
+                                  : "Falta completa"}
                           </span>
+                          <label className="asistencia-opcion">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(registro) && valorFalta === 0}
+                              disabled={guardando}
+                              onChange={(e) => {
+                                if (e.target.checked) onCambiar(a.id, 0);
+                              }}
+                            />
+                            Presente
+                          </label>
                           <label className="asistencia-opcion">
                             <input
                               type="checkbox"
