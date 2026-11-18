@@ -26,16 +26,16 @@ export const listarCursosModulos = async (docenteId = null, anio) => {
     filtro += `
       AND EXISTS (
         SELECT 1 FROM docente_curso_materia dcm
-        JOIN materia_modulo mm
-          ON mm.materia_id = dcm.materia_id AND mm.modulo_id = m.id
         WHERE dcm.docente_id = $2 AND dcm.curso_id = c.id
+          AND dcm.modulo_id = m.id
       )`;
+    // Solo las materias que tiene asignadas en ese curso y ese módulo.
     filtroMaterias = `
       AND ma.id IN (
         SELECT dcm.materia_id
           FROM docente_curso_materia dcm
-          JOIN curso_modulo cm2 ON cm2.curso_id = dcm.curso_id
-         WHERE dcm.docente_id = $2 AND cm2.modulo_id = m.id
+         WHERE dcm.docente_id = $2 AND dcm.curso_id = c.id
+           AND dcm.modulo_id = m.id
       )`;
   }
 
@@ -78,9 +78,8 @@ export const listarDivisionesDeModulo = async (
     params.push(docenteId);
     filtro = `
         AND EXISTS (SELECT 1 FROM docente_curso_materia dcm
-        JOIN materia_modulo mm
-          ON mm.materia_id = dcm.materia_id AND mm.modulo_id = cm.modulo_id
-        WHERE dcm.docente_id = $3 AND dcm.curso_id = c.id)`;
+        WHERE dcm.docente_id = $3 AND dcm.curso_id = c.id
+          AND dcm.modulo_id = cm.modulo_id)`;
   }
   const { rows } = await pool.query(
     `SELECT DISTINCT TRIM(c.division) AS division
@@ -109,10 +108,12 @@ export const buscarCurso = async (moduloId, division, anio) => {
   return rows[0] ?? null;
 };
 
-export const docenteTieneCurso = async (docenteId, cursoId) => {
+// El docente tiene asignada alguna materia en ese curso y ese módulo.
+export const docenteTieneCurso = async (docenteId, cursoId, moduloId) => {
   const { rowCount } = await pool.query(
-    "SELECT 1 FROM docente_curso_materia WHERE docente_id = $1 AND curso_id = $2",
-    [docenteId, cursoId],
+    `SELECT 1 FROM docente_curso_materia
+      WHERE docente_id = $1 AND curso_id = $2 AND modulo_id = $3`,
+    [docenteId, cursoId, moduloId],
   );
   return rowCount > 0;
 };
@@ -133,7 +134,7 @@ export const listarMaterias = async (
     }
     filtro = `AND ma.id IN (
       SELECT dcm.materia_id FROM docente_curso_materia dcm
-      WHERE dcm.docente_id = $2${filtroCurso}
+      WHERE dcm.docente_id = $2 AND dcm.modulo_id = $1${filtroCurso}
     )`;
   }
   const { rows } = await pool.query(
@@ -180,7 +181,7 @@ export const listarEstados = async (cursadaIds, materiaIds) => {
 
 export const buscarCursadaConMateria = async (cursadaId, materiaId) => {
   const { rows } = await pool.query(
-    `SELECT cm.curso_id, cl.anio, cm.estado_academico,
+    `SELECT cm.curso_id, cm.modulo_id, cl.anio, cm.estado_academico,
             -- El alumno ya se reinscribió para recursar este módulo.
             EXISTS (SELECT 1 FROM cursada_modulo nueva
                      WHERE nueva.alumno_id = cm.alumno_id
@@ -201,11 +202,13 @@ export const docenteDaMateriaEnCurso = async (
   docenteId,
   materiaId,
   cursoId,
+  moduloId,
 ) => {
   const { rowCount } = await pool.query(
     `SELECT 1 FROM docente_curso_materia
-      WHERE docente_id = $1 AND materia_id = $2 AND curso_id = $3`,
-    [docenteId, materiaId, cursoId],
+      WHERE docente_id = $1 AND materia_id = $2 AND curso_id = $3
+        AND modulo_id = $4`,
+    [docenteId, materiaId, cursoId, moduloId],
   );
   return rowCount > 0;
 };
@@ -246,6 +249,7 @@ export const resumenCargaCalificaciones = async ({ anio, docenteId = null }) => 
         SELECT 1 FROM docente_curso_materia dcm
          WHERE dcm.docente_id = $2
            AND dcm.curso_id = c.id
+           AND dcm.modulo_id = m.id
            AND dcm.materia_id = ma.id
       )`;
   }
