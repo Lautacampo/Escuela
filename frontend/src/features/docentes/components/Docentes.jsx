@@ -11,6 +11,7 @@ import {
   soloDigitos,
   esNombreValido,
   MENSAJE_NOMBRE_INVALIDO,
+  ANTIGUEDAD_MAXIMA,
 } from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
 import { exportarExcel } from "../../../shared/utils/exportarExcel.js";
@@ -108,17 +109,10 @@ function cursoDeModulo(moduloId) {
   return String(Math.ceil(numero / 2));
 }
 
-// La asignación se guarda por curso: los dos módulos del año vienen como dos
-// filas iguales (misma materia, curso y división). En la tabla se muestra una.
-function asignacionesPorCurso(asignaciones) {
-  const vistas = new Set();
-
-  return asignaciones.filter((asignacion) => {
-    const clave = `${asignacion.materia}|${cursoDeModulo(asignacion.moduloId)}|${asignacion.division}`;
-    if (vistas.has(clave)) return false;
-    vistas.add(clave);
-    return true;
-  });
+// Número romano del módulo (1 => I ... 6 => VI) para mostrarlo como en el plan.
+const ROMANOS = ["", "I", "II", "III", "IV", "V", "VI"];
+function romanoDeModulo(moduloId) {
+  return ROMANOS[Number(moduloId)] ?? String(moduloId);
 }
 
 export function Docentes() {
@@ -526,10 +520,10 @@ export function Docentes() {
       valores.antiguedad === "" ||
       !Number.isInteger(antiguedad) ||
       antiguedad < 0 ||
-      antiguedad > 99
+      (antiguedad > ANTIGUEDAD_MAXIMA &&
+        !igual("antiguedad", valores.antiguedad))
     ) {
-      nuevosErrores.antiguedad =
-        "Ingrese un número entero de años entre 0 y 99.";
+      nuevosErrores.antiguedad = `Ingrese un número entero de años entre 0 y ${ANTIGUEDAD_MAXIMA}.`;
     }
 
     if (!valores.email.trim()) {
@@ -861,17 +855,21 @@ export function Docentes() {
                     <div className="personal-asignaciones">
                       {(docente.asignaciones ?? []).length === 0
                         ? "Sin asignaciones"
-                        : asignacionesPorCurso(docente.asignaciones).map((asignacion) => {
+                        : docente.asignaciones.map((asignacion) => {
                             const curso = cursoDeModulo(asignacion.moduloId);
 
+                            // Cada asignación es de un módulo puntual: asignar
+                            // el Módulo I no asigna el II del mismo año.
                             return (
                               <div
                                 className="personal-asignacion"
-                                key={`${asignacion.materia}-${curso}-${asignacion.division}`}
+                                key={`${asignacion.materia}-${asignacion.moduloId}-${asignacion.division}`}
                               >
                                 <strong>{asignacion.materia} · </strong>
                                 <span>
                                   {curso ? `${curso}° Año` : "Módulo sin curso"}
+                                  {" · "}
+                                  Módulo {romanoDeModulo(asignacion.moduloId)}
                                   {" · "}
                                   División {asignacion.division}
                                 </span>
@@ -1117,7 +1115,7 @@ export function Docentes() {
 
                             const etiquetaOpcion =
                               campo === "moduloId"
-                                ? `${cursoDeModulo(opcion.id)}° Año - Módulo ${opcion.id}`
+                                ? `${cursoDeModulo(opcion.id)}° Año - Módulo ${romanoDeModulo(opcion.id)}`
                                 : opcion;
 
                             return (
