@@ -75,6 +75,10 @@ export function ultimaCursada(alumno, moduloId) {
  *     No admiten equivalencia: debe aprobarlos o recursarlos.
  * - porEquivalencia: módulos anteriores que nunca cursó en la escuela. Solo
  *     puede matricularse si los acredita por equivalencia.
+ *
+ * Bloquea solo un correlativo real (de un año anterior). Un módulo del MISMO
+ * año que está cursando, debe o le quedó libre no bloquea: con el I en curso,
+ * pendiente o libre puede cursar el II (y con el III, el IV).
  */
 export function analizarMatricula(alumno, moduloId, catalogo) {
   const acreditados = modulosAcreditados(alumno);
@@ -83,6 +87,18 @@ export function analizarMatricula(alumno, moduloId, catalogo) {
 
   const bloqueantes = [];
   const porEquivalencia = [];
+
+  // Correlativos del módulo elegido, con su cadena (para V: III, IV, I y II).
+  const correlativos = new Set();
+  const juntarCorrelativos = (id) => {
+    for (const correlativo of catalogo[id]?.correlativos ?? []) {
+      if (correlativos.has(correlativo.id)) continue;
+      correlativos.add(correlativo.id);
+      juntarCorrelativos(correlativo.id);
+    }
+  };
+  juntarCorrelativos(moduloId);
+
   if (modulo) {
     const modulosPrevios = Object.values(catalogo)
       .filter((anterior) => compararOrdenModulos(anterior, modulo) < 0)
@@ -93,6 +109,8 @@ export function analizarMatricula(alumno, moduloId, catalogo) {
 
       const cursada = ultimaCursada(alumno, anterior.id);
       if (cursada) {
+        // Lo cursó (o lo está cursando): solo bloquea si es correlativo.
+        if (!correlativos.has(anterior.id)) continue;
         bloqueantes.push({
           id: anterior.id,
           nombre: anterior.numeroLeyenda,
