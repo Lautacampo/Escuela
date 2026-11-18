@@ -52,7 +52,7 @@ export function ListadoBajas({ bajas, onReactivar, reactivando }) {
       </div>
 
       <div className="tabla-responsive">
-        <table className="tabla-gestion">
+        <table className="tabla-gestion tabla-tarjetas">
           <thead>
             <tr>
               <th>Apellido y Nombre</th>
@@ -69,20 +69,20 @@ export function ListadoBajas({ bajas, onReactivar, reactivando }) {
               const ultima = alumno.trayectoria?.at(-1);
               return (
                 <tr key={alumno.id} className="fila-inactiva">
-                  <td>
+                  <td data-label="Apellido y nombre">
                     <strong>
                       {alumno.apellido}, {alumno.nombre}
                     </strong>
                   </td>
-                  <td>{formatearDNI(alumno.dni)}</td>
-                  <td>{alumno.planEstudio?.titulo ?? "Sin asignar"}</td>
-                  <td>{ultima?.modulo ?? "Sin matrícula"}</td>
-                  <td>
+                  <td data-label="DNI">{formatearDNI(alumno.dni)}</td>
+                  <td data-label="Plan de estudios">{alumno.planEstudio?.titulo ?? "Sin asignar"}</td>
+                  <td data-label="Último módulo">{ultima?.modulo ?? "Sin matrícula"}</td>
+                  <td data-label="Estado">
                     <span className="etiqueta-situacion inactivo">
                       Dado de baja
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Acciones">
                     <div className="acciones-tabla">
                       <button
                         type="button"
