@@ -23,18 +23,21 @@ export function PlanEstudios() {
   // Aviso de "Crear plan nuevo": deriva al soporte técnico.
   const [mostrarAvisoSoporte, setMostrarAvisoSoporte] = useState(false);
 
+  const aplicarDatos = ([datosPlanes, datosCiclo]) => {
+    setPlanActual(datosPlanes.planActual);
+    setPlanesInactivos(datosPlanes.planesInactivos ?? []);
+    setCicloActivo(datosCiclo?.cicloActivo ?? null);
+  };
+
+  const pedirDatos = () =>
+    Promise.all([getPlanEstudioActual(), getCicloLectivo()]);
+
+  // Recarga después de una baja o una reactivación.
   const cargarDatos = async () => {
     try {
       setCargando(true);
       setError("");
-      const [datosPlanes, datosCiclo] = await Promise.all([
-        getPlanEstudioActual(),
-        getCicloLectivo(),
-      ]);
-
-      setPlanActual(datosPlanes.planActual);
-      setPlanesInactivos(datosPlanes.planesInactivos ?? []);
-      setCicloActivo(datosCiclo?.cicloActivo ?? null);
+      aplicarDatos(await pedirDatos());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -42,8 +45,21 @@ export function PlanEstudios() {
     }
   };
 
+  // Carga inicial: el estado se actualiza recién cuando llegan los datos.
   useEffect(() => {
-    cargarDatos();
+    let activo = true;
+    Promise.all([getPlanEstudioActual(), getCicloLectivo()])
+      .then(([datosPlanes, datosCiclo]) => {
+        if (!activo) return;
+        setPlanActual(datosPlanes.planActual);
+        setPlanesInactivos(datosPlanes.planesInactivos ?? []);
+        setCicloActivo(datosCiclo?.cicloActivo ?? null);
+      })
+      .catch((err) => activo && setError(err.message))
+      .finally(() => activo && setCargando(false));
+    return () => {
+      activo = false;
+    };
   }, []);
 
   // Determina qué plan se está visualizando en pantalla (el vigente o uno inactivo histórico)
