@@ -7,6 +7,8 @@ import {
   esTelefonoValido,
   limitarDigitos,
   normalizarCuil,
+  sinCambios,
+  soloDigitos,
 } from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
 import { exportarExcel } from "../../../shared/utils/exportarExcel.js";
@@ -14,6 +16,8 @@ import {
   getPreceptores,
   setPreceptor,
   borrarPreceptor,
+  inactivarPreceptor,
+  reactivarPreceptor as reactivarPreceptorApi,
   getCursos,
   asignarCursos,
 } from "../services/PreceptoresServices.jsx";
@@ -120,6 +124,8 @@ export function Preceptores() {
   const [error, setError] = useState(null);
   const [errorGuardar, setErrorGuardar] = useState("");
   const [guardando, setGuardando] = useState(false);
+  // Id del preceptor con una baja, reactivación o eliminación en curso.
+  const [procesando, setProcesando] = useState(null);
 
   // Asignación de cursos
   const [cursos, setCursos] = useState([]);
@@ -147,9 +153,12 @@ export function Preceptores() {
     valores: filtros,
     manejarCambio: cambiarFiltro,
     resetearFormulario: limpiarFiltros,
-  } = useForm({ busqueda: "" });
+  } = useForm({ estado: "activos", busqueda: "" });
 
   const preceptoresFiltrados = preceptores.filter((preceptor) => {
+    if (filtros.estado === "activos" && !preceptor.activo) return false;
+    if (filtros.estado === "inactivos" && preceptor.activo) return false;
+
     const texto = normalizar(
       `${preceptor.apellido} ${preceptor.nombre} ${preceptor.dni}`,
     );
@@ -178,6 +187,7 @@ export function Preceptores() {
         domicilio: preceptor.domicilio ?? "",
         titulo: preceptor.titulo ?? "",
         antiguedad: preceptor.antiguedad ?? "",
+        estado: preceptor.activo ? "Activo" : "Inactivo",
         curso:
           (curso?.anio ?? curso?.anio_curso) != null
             ? `${curso.anio ?? curso.anio_curso}º año`
@@ -203,6 +213,7 @@ export function Preceptores() {
         { titulo: "Domicilio", clave: "domicilio", ancho: 35 },
         { titulo: "Título", clave: "titulo", ancho: 27 },
         { titulo: "Antigüedad (años)", clave: "antiguedad", ancho: 20 },
+        { titulo: "Estado", clave: "estado", ancho: 12 },
         { titulo: "Curso", clave: "curso", ancho: 16 },
         { titulo: "División", clave: "division", ancho: 13 },
         { titulo: "Módulos a cargo", clave: "modulos", ancho: 35 },
@@ -242,14 +253,27 @@ export function Preceptores() {
     cerrarSinConfirmar();
   }
 
+  // Cierra el modal con Escape. Se vuelve a registrar solo cuando cambia lo
+  // que usa (antes se registraba en cada render).
   useEffect(() => {
     if (!mostrarFormulario) return undefined;
     function alPresionarTecla(evento) {
-      if (evento.key === "Escape") cerrarFormulario();
+      if (evento.key !== "Escape") return;
+      if (
+        hayCambios &&
+        !window.confirm("Hay cambios sin guardar. ¿Desea descartarlos?")
+      ) {
+        return;
+      }
+      setMostrarFormulario(false);
+      setEditando(null);
+      setValores(PRECEPTOR_INICIAL);
+      setErrores({});
+      setHayCambios(false);
     }
     document.addEventListener("keydown", alPresionarTecla);
     return () => document.removeEventListener("keydown", alPresionarTecla);
-  });
+  }, [mostrarFormulario, hayCambios]);
 
   function manejarCambio(evento) {
     const { name } = evento.target;
@@ -270,6 +294,12 @@ export function Preceptores() {
     const nuevosErrores = {};
     const dni = limitarDigitos(valores.dni, 8);
     const cuil = valores.cuil.trim();
+    // Al editar, las reglas de formato se aplican solo a lo que cambia.
+    const original =
+      editando === null ? null : preceptores.find((p) => p.id === editando);
+    const igual = (campo, valor, normalizar) =>
+      sinCambios(original, campo, valor, normalizar);
+    const mismoDni = igual("dni", dni, soloDigitos);
 
     if (!valores.nombre.trim()) {
       nuevosErrores.nombre = "Debe ingresar el nombre.";
@@ -285,13 +315,16 @@ export function Preceptores() {
 
     if (!dni) {
       nuevosErrores.dni = "Debe ingresar el DNI.";
-    } else if (!esDniValido(dni)) {
+    } else if (!mismoDni && !esDniValido(dni)) {
       nuevosErrores.dni = "Debe ingresar un DNI de 7 u 8 números, sin puntos.";
     }
 
     if (!cuil) {
       nuevosErrores.cuil = "Debe ingresar el CUIL.";
-    } else if (!esCuilValido(cuil, dni)) {
+    } else if (
+      !(mismoDni && igual("cuil", cuil, soloDigitos)) &&
+      !esCuilValido(cuil, dni)
+    ) {
       nuevosErrores.cuil =
         "El CUIL debe tener 11 dígitos y corresponder al DNI.";
     }
@@ -299,7 +332,7 @@ export function Preceptores() {
     if (!valores.email.trim()) {
       nuevosErrores.email = "Debe ingresar el correo electrónico.";
     } else if (
-      !esEmailValido(valores.email) ||
+      (!igual("email", valores.email) && !esEmailValido(valores.email)) ||
       valores.email.trim().length > 150
     ) {
       nuevosErrores.email =
@@ -330,7 +363,8 @@ export function Preceptores() {
     }
 
     if (
-      !esTelefonoValido(valores.telefono) ||
+      (!igual("telefono", valores.telefono) &&
+        !esTelefonoValido(valores.telefono)) ||
       (valores.telefono && valores.telefono.length > 20)
     ) {
       nuevosErrores.telefono = "El teléfono debe tener entre 8 y 15 dígitos.";
@@ -401,21 +435,59 @@ export function Preceptores() {
     }
   }
 
-  async function eliminarPreceptor(preceptor) {
-    const confirmar = window.confirm(
-      `¿Está seguro de eliminar al preceptor ${preceptor.apellido}, ${preceptor.nombre}?`,
-    );
-    if (!confirmar) return;
-
+  // Ejecuta una acción sobre un preceptor evitando el doble clic y vuelve a
+  // leer preceptores y cursos (la baja o la eliminación cambian los cursos).
+  async function operar(preceptor, accion, mensajeExito) {
     try {
-      await borrarPreceptor(preceptor.id);
-      setPreceptores((anteriores) =>
-        anteriores.filter((registro) => registro.id !== preceptor.id),
-      );
-      setMensaje("Preceptor eliminado del listado.");
+      setProcesando(preceptor.id);
+      setMensaje("");
+      await accion();
+      const [p, c] = await Promise.all([getPreceptores(), getCursos()]);
+      setPreceptores(p);
+      setCursos(c);
+      setMensaje(mensajeExito);
     } catch (e) {
       setMensaje(e.message);
+    } finally {
+      setProcesando(null);
     }
+  }
+
+  // Baja lógica: licencia o pedido particular. No se borra nada.
+  function darDeBajaPreceptor(preceptor) {
+    const confirmar = window.confirm(
+      `¿Dar de baja a ${preceptor.apellido}, ${preceptor.nombre}?\n\n` +
+        "Queda INACTIVO: no podrá iniciar sesión, pero se conservan sus datos y sus cursos. " +
+        "Podés reactivarlo cuando vuelva o reasignar sus cursos a otro preceptor.",
+    );
+    if (!confirmar) return;
+    return operar(
+      preceptor,
+      () => inactivarPreceptor(preceptor.id),
+      `${preceptor.apellido}, ${preceptor.nombre} quedó inactivo. Lo encontrás en el filtro "Inactivos".`,
+    );
+  }
+
+  function reactivarPreceptor(preceptor) {
+    return operar(
+      preceptor,
+      () => reactivarPreceptorApi(preceptor.id),
+      `${preceptor.apellido}, ${preceptor.nombre} volvió a estar activo.`,
+    );
+  }
+
+  // Eliminación definitiva: solo para un preceptor inactivo.
+  function eliminarPreceptor(preceptor) {
+    const confirmar = window.confirm(
+      `¿Eliminar DEFINITIVAMENTE a ${preceptor.apellido}, ${preceptor.nombre}?\n\n` +
+        "Se borran sus datos y su usuario, y sus cursos quedan sin preceptor. Esta acción no se puede deshacer.",
+    );
+    if (!confirmar) return;
+    return operar(
+      preceptor,
+      () => borrarPreceptor(preceptor.id),
+      "Preceptor eliminado definitivamente.",
+    );
   }
 
   // ---------- Asignar cursos ----------
@@ -510,6 +582,21 @@ export function Preceptores() {
         </div>
 
         <div className="barra-filtros">
+          <div className="form-group">
+            <label htmlFor="preceptor-filtro-estado">Estado</label>
+            <select
+              id="preceptor-filtro-estado"
+              name="estado"
+              value={filtros.estado}
+              onChange={cambiarFiltro}
+              className="input-gestion"
+            >
+              <option value="activos">Activos</option>
+              <option value="inactivos">Inactivos (dados de baja)</option>
+              <option value="todos">Todos</option>
+            </select>
+          </div>
+
           <div className="form-group form-group-buscador">
             <label htmlFor="preceptor-busqueda">Buscar</label>
             <input
@@ -547,11 +634,19 @@ export function Preceptores() {
 
             <tbody>
               {preceptoresFiltrados.map((preceptor) => (
-                <tr key={preceptor.id}>
+                <tr
+                  key={preceptor.id}
+                  className={preceptor.activo ? undefined : "fila-inactiva"}
+                >
                   <td>
                     <strong>
                       {preceptor.apellido}, {preceptor.nombre}
                     </strong>
+                    {!preceptor.activo && (
+                      <span className="etiqueta-situacion inactivo">
+                        Inactivo
+                      </span>
+                    )}
                   </td>
 
                   <td>
@@ -624,35 +719,66 @@ export function Preceptores() {
 
                   <td>
                     <div className="acciones-tabla">
-                      <button
-                        type="button"
-                        className="btn-accion btn-editar"
-                        onClick={() => abrirFormulario(preceptor)}
-                        aria-label={`Editar a ${preceptor.nombre} ${preceptor.apellido}`}
-                      >
-                        <i className="fa-solid fa-pen" aria-hidden="true" />
-                        Editar
-                      </button>
+                      {preceptor.activo ? (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-accion btn-editar"
+                            onClick={() => abrirFormulario(preceptor)}
+                            disabled={procesando === preceptor.id}
+                            aria-label={`Editar a ${preceptor.nombre} ${preceptor.apellido}`}
+                          >
+                            <i className="fa-solid fa-pen" aria-hidden="true" />
+                            Editar
+                          </button>
 
-                      <button
-                        type="button"
-                        className="btn-accion btn-editar"
-                        onClick={() => abrirAsignacion(preceptor)}
-                        aria-label={`Asignar cursos a ${preceptor.nombre} ${preceptor.apellido}`}
-                      >
-                        <i className="fa-solid fa-school" aria-hidden="true" />
-                        Asignar módulos
-                      </button>
+                          <button
+                            type="button"
+                            className="btn-accion btn-editar"
+                            onClick={() => abrirAsignacion(preceptor)}
+                            disabled={procesando === preceptor.id}
+                            aria-label={`Asignar cursos a ${preceptor.nombre} ${preceptor.apellido}`}
+                          >
+                            <i className="fa-solid fa-school" aria-hidden="true" />
+                            Asignar módulos
+                          </button>
 
-                      <button
-                        type="button"
-                        className="btn-accion btn-eliminar"
-                        onClick={() => eliminarPreceptor(preceptor)}
-                        aria-label={`Eliminar a ${preceptor.nombre} ${preceptor.apellido}`}
-                      >
-                        <i className="fa-solid fa-trash" aria-hidden="true" />
-                        Eliminar
-                      </button>
+                          <button
+                            type="button"
+                            className="btn-accion btn-baja"
+                            onClick={() => darDeBajaPreceptor(preceptor)}
+                            disabled={procesando === preceptor.id}
+                            aria-label={`Dar de baja a ${preceptor.nombre} ${preceptor.apellido}`}
+                          >
+                            <i className="fa-solid fa-user-slash" aria-hidden="true" />
+                            Dar de baja
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-accion btn-reactivar"
+                            onClick={() => reactivarPreceptor(preceptor)}
+                            disabled={procesando === preceptor.id}
+                            aria-label={`Reactivar a ${preceptor.nombre} ${preceptor.apellido}`}
+                          >
+                            <i className="fa-solid fa-user-check" aria-hidden="true" />
+                            Reactivar
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn-accion btn-eliminar"
+                            onClick={() => eliminarPreceptor(preceptor)}
+                            disabled={procesando === preceptor.id}
+                            aria-label={`Eliminar definitivamente a ${preceptor.nombre} ${preceptor.apellido}`}
+                          >
+                            <i className="fa-solid fa-trash" aria-hidden="true" />
+                            Eliminar
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -945,6 +1071,7 @@ export function Preceptores() {
                                 >
                                   A cargo de: {c.preceptor_apellido},{" "}
                                   {c.preceptor_nombre}
+                                  {c.preceptor_activo === false ? " (inactivo)" : ""}
                                   {tildado ? " → reasignar" : ""}
                                 </small>
                               )}
