@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
+import { useAutoActualizar } from "../../../shared/hooks/useAutoActualizar";
 import {
   getAlumno,
   getCursos,
@@ -161,6 +162,22 @@ export function FichaAlumno() {
     };
   }, [id]);
 
+  // La ficha se actualiza sola: si el docente desaprueba una materia o el
+  // preceptor carga faltas, la condición cambia sin recargar la página.
+  // Una actualización que empezó antes de un guardado propio se descarta.
+  const guardadosFicha = useRef(0);
+  useAutoActualizar(
+    async () => {
+      const antes = guardadosFicha.current;
+      const datos = await getAlumno(id);
+      if (guardadosFicha.current === antes) setAlumno(datos);
+    },
+    {
+      activo:
+        !cargando && !error && !guardandoEvaluacion && !guardandoEquivalencia,
+    },
+  );
+
   async function guardarEvaluacion(e) {
     e.preventDefault();
     setErrorEvaluacion("");
@@ -194,6 +211,7 @@ export function FichaAlumno() {
 
     try {
       setGuardandoEvaluacion(true);
+      guardadosFicha.current += 1;
       const respuesta = await crearEvaluacionModulo(payload);
       setEvaluacionGuardada({
         ...payload,
@@ -227,6 +245,7 @@ export function FichaAlumno() {
 
     try {
       setGuardandoEquivalencia(true);
+      guardadosFicha.current += 1;
       setAlumno(
         await registrarEquivalencias(
           id,
@@ -970,7 +989,10 @@ export function FichaAlumno() {
                         </h4>
 
                         {modulo.instancias.map((instancia, index) => (
-                          <div className="instancia" key={index}>
+                          <div
+                            className="instancia"
+                            key={instancia.nroInstancia ?? instancia.numero ?? index}
+                          >
                             <span>
                               Instancia{" "}
                               {instancia.nroInstancia ??
