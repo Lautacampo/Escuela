@@ -53,3 +53,18 @@ export function esEdadValidaParaNocturna(edad) {
   const num = parseInt(edad, 10);
   return num >= 18 && num <= 99;
 }
+
+// Al editar, las reglas de formato se aplican solo a los datos que cambian,
+// igual que en el backend: un registro cargado antes de esas reglas (un CUIL
+// que no coincide con el DNI, un teléfono corto) se puede seguir editando.
+// En un alta (`original` nulo) se valida todo.
+export function sinCambios(
+  original,
+  campo,
+  valor,
+  normalizar = (v) => String(v ?? "").trim(),
+) {
+  return original != null && normalizar(original[campo]) === normalizar(valor);
+}
+
+export const soloDigitos = (valor) => String(valor ?? "").replace(/\D/g, "");
