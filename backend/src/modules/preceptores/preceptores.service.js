@@ -7,12 +7,24 @@ import {
   esTelefonoValido,
   normalizarCuil,
   normalizarDni,
+  sinCambios,
+  soloDigitos,
 } from "../../utils/validacionesPersona.js";
 import * as repo from "./preceptores.repository.js";
 
-export const listar = async () =>{
-    return await repo.listarTodos();
-}
+const ESTADOS = ["activos", "inactivos", "todos"];
+
+// GET /preceptores?estado=activos|inactivos|todos (por defecto, todos)
+export const listar = async (query = {}) => {
+  const estado = String(query.estado ?? "todos").toLowerCase();
+  if (!ESTADOS.includes(estado)) {
+    throw new HttpError(400, "estado debe ser activos, inactivos o todos");
+  }
+  const preceptores = await repo.listarTodos();
+  if (estado === "activos") return preceptores.filter((p) => p.activo);
+  if (estado === "inactivos") return preceptores.filter((p) => !p.activo);
+  return preceptores;
+};
 
 export const obtenerPorId = async (id) =>{
     if(!Number.isInteger(id)) throw new HttpError(400,"ID invalido");
@@ -27,7 +39,8 @@ const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_SALT_ROUNDS = 10;
 
 // Valida y normaliza los datos personales de un preceptor.
-const validarDatos = (datos = {}) => {
+// `anterior`: el preceptor tal como está guardado (solo al modificar).
+const validarDatos = (datos = {}, anterior = null) => {
   const texto = (valor) => String(valor ?? "").trim();
   const dniIngresado = texto(datos.dni);
   const d = {
@@ -57,7 +70,9 @@ const validarDatos = (datos = {}) => {
   for (const [campo, valor, mensaje] of obligatorios) {
     if (!valor) throw new HttpError(400, mensaje, { campo });
   }
-  if (!esDniValido(dniIngresado)) {
+  const mismoDni = sinCambios(anterior, "dni", dniIngresado, soloDigitos);
+  const mismoCuil = sinCambios(anterior, "cuil", datos.cuil, soloDigitos);
+  if (!mismoDni && !esDniValido(dniIngresado)) {
     throw new HttpError(
       400,
       "El DNI debe tener entre 7 y 8 dígitos numéricos",
@@ -69,7 +84,7 @@ const validarDatos = (datos = {}) => {
       campo: "cuil",
     });
   }
-  if (!esCuilValido(datos.cuil, d.dni)) {
+  if (!(mismoDni && mismoCuil) && !esCuilValido(datos.cuil, d.dni)) {
     throw new HttpError(
       400,
       "El CUIL debe tener 11 dígitos y corresponder al DNI",
@@ -95,14 +110,20 @@ const validarDatos = (datos = {}) => {
       campo: "titulo",
     });
   }
-  if (!REGEX_EMAIL.test(d.email) || d.email.length > 150) {
+  if (
+    (!sinCambios(anterior, "email", d.email) && !REGEX_EMAIL.test(d.email)) ||
+    d.email.length > 150
+  ) {
     throw new HttpError(
       400,
       "Ingrese un correo válido de hasta 150 caracteres",
       { campo: "email" },
     );
   }
-  if (!esTelefonoValido(d.telefono) || (d.telefono && d.telefono.length > 20)) {
+  if (
+    (!sinCambios(anterior, "telefono", d.telefono) && !esTelefonoValido(d.telefono)) ||
+    (d.telefono && d.telefono.length > 20)
+  ) {
     throw new HttpError(
       400,
       "El teléfono debe tener entre 8 y 15 dígitos",
@@ -165,8 +186,14 @@ export const actualizar = async (id, datos) => {
 
   const existe = await repo.buscarPorId(id);
   if (!existe) throw new HttpError(404, "Preceptor no encontrado");
+  if (!existe.activo) {
+    throw new HttpError(
+      409,
+      "El preceptor está inactivo: reactivalo para modificar sus datos",
+    );
+  }
 
-  const d = validarDatos(datos);
+  const d = validarDatos(datos, existe);
 
   try {
     await repo.modificarPreceptor(id, d);
@@ -177,14 +204,31 @@ export const actualizar = async (id, datos) => {
 };
 
 
-export const eliminar = async (id) =>{
-    if(!Number.isInteger(id)) throw new HttpError(400, "ID invalido");
+// PATCH /preceptores/:id/inactivar  -> baja lógica (licencia, pedido particular)
+export const inactivar = async (id) => {
+  const preceptor = await obtenerPorId(id);
+  if (preceptor.activo) await repo.cambiarEstadoPreceptor(id, false);
+  return repo.buscarPorId(id);
+};
 
-    const preceptorExiste = await repo.buscarPorId(id);
-    if(!preceptorExiste) throw new HttpError(404,"Preceptor no encontrado");
+// PATCH /preceptores/:id/reactivar  -> vuelve a estar activo y a poder entrar
+export const reactivar = async (id) => {
+  const preceptor = await obtenerPorId(id);
+  if (!preceptor.activo) await repo.cambiarEstadoPreceptor(id, true);
+  return repo.buscarPorId(id);
+};
 
-    return await repo.eliminarPreceptor(id);
-}
+// DELETE /preceptores/:id  -> eliminación definitiva, solo si está inactivo
+export const eliminar = async (id) => {
+  const preceptor = await obtenerPorId(id);
+  if (preceptor.activo) {
+    throw new HttpError(
+      409,
+      "Para eliminar definitivamente a un preceptor primero hay que darlo de baja (inactivo)",
+    );
+  }
+  await repo.eliminarPreceptor(id);
+};
 
 //cursos del preceptor
 export const listaCursos = async () => repo.listarCursos();
@@ -196,7 +240,11 @@ export const asignarCurso = async (id, cursoIdS) => {
   }
 
   const ids = [...new Set(cursoIdS)];
-  if(!(await repo.buscarPorId(id))) throw new HttpError (404, "Preceptor no encontrado");
+  const preceptor = await repo.buscarPorId(id);
+  if (!preceptor) throw new HttpError (404, "Preceptor no encontrado");
+  if (!preceptor.activo) {
+    throw new HttpError(409, "El preceptor está inactivo: reactivalo para asignarle cursos");
+  }
   if((await repo.contadorCursos(ids)) !== ids.length){
     throw new HttpError(404,"Alguno de los cursos no existe");
   }
