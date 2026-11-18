@@ -530,6 +530,11 @@ const traducirRegla = (err, modulo = null) => {
       );
     case "MODULO_APROBADO":
       return new HttpError(409, `El alumno ya aprobó ${nombreModulo}`);
+    case "RETROCESO_MODULO_INGRESO":
+      return new HttpError(
+        409,
+        `El alumno ya tiene datos en el ${d.moduloIngreso} (su módulo de ingreso): no se puede volver a un módulo anterior del plan`,
+      );
     case "CORRELATIVAS_PENDIENTES": {
       const error = new HttpError(
         409,

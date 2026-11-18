@@ -34,10 +34,10 @@ Frontend (desde `frontend/`):
 
 ## Base de datos
 - Crear primero la base (por ejemplo `escuela_db`) y cargar el dump con **psql**, no con pgAdmin Query Tool: `psql -U postgres -d escuela_db -f database/schema.sql`. El archivo usa metacomandos `\restrict`/`\unrestrict` y `COPY ... FROM stdin` de `pg_dump`; carga en PostgreSQL 16 o posterior.
-- `schema.sql` ya incluye las migraciones `database/migrations/005` a `009`. En una base existente (Neon) se ejecutan en orden; de la 005 en adelante se pueden ejecutar más de una vez (la 001 no).
-- No hay equivalencias (migración 008): el primer módulo del alumno es su módulo de ingreso y las correlatividades se exigen desde ahí. La regla está en la base y en `frontend/src/features/alumnos/utils/correlatividades.js`; si se cambia una, cambiar la otra.
+- `schema.sql` ya incluye las migraciones `database/migrations/005` a `010`. En una base existente (Neon) se ejecutan en orden; de la 005 en adelante se pueden ejecutar más de una vez (la 001 no).
+- No hay equivalencias (migración 008): el primer módulo del alumno es su módulo de ingreso y las correlatividades se exigen desde ahí. Con datos en la cursada, el ingreso no puede retroceder (migración 010). La regla está en la base y en `frontend/src/features/alumnos/utils/correlatividades.js`; si se cambia una, cambiar la otra.
 - Los endpoints están listados en `docs/ENDPOINTS.md`.
-- `backend/src/config/migracionesAlIniciar.js` tiene copias de la 008 (funciones) y de la 009: el backend las aplica al iniciar si la base no las tiene. Si se cambia una migración, cambiar también su copia.
+- `backend/src/config/migracionesAlIniciar.js` tiene copias de la 008 (funciones), de la 010 (prohibición de retroceder el ingreso) y de la 009: el backend las aplica al iniciar si la base no las tiene. Si se cambia una migración, cambiar también su copia.
 - Asistencia: solo de lunes a viernes y en los meses del módulo (I, III, V de marzo a julio; II, IV, VI de agosto a diciembre). Backend en `asistencias.service.js`, frontend en `features/asistencia/utils/diasDeClase.js`.
 - Docentes: cada asignación es curso + módulo + materia (migración 009); asignar el Módulo I no asigna el II.
 - Las reglas académicas (condición LIBRE, correlatividades) viven en triggers de la base: ver `docs/REGLAS_ACADEMICAS.md`.

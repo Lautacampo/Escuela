@@ -402,11 +402,27 @@ export const guardarMatricula = async (
             actual.estado_academico === "EN_CURSO" &&
             !actual.tiene_datos;
 
+        const excluirCursadaId = actualVacia ? actual.id : null;
+        const { rows: retroceso } = await db.query(
+            `SELECT public.modulo_anterior_al_ingreso_con_datos($1, $2, $3::int)
+                        AS retroceso,
+                    (SELECT m.numero_leyenda
+                       FROM modulo m
+                      WHERE modulo_orden(m.id) = orden_ingreso($1, $3::int))
+                        AS modulo_ingreso`,
+            [alumnoId, moduloId, excluirCursadaId]
+        );
+        if (retroceso[0].retroceso) {
+            throw new ReglaNegocio("RETROCESO_MODULO_INGRESO", {
+                moduloIngreso: retroceso[0].modulo_ingreso,
+            });
+        }
+
         const pendientes = await correlativosPendientes(
             alumnoId,
             moduloId,
             db,
-            actualVacia ? actual.id : null
+            excluirCursadaId
         );
         if (pendientes.length > 0) {
             throw new ReglaNegocio("CORRELATIVAS_PENDIENTES", { pendientes });

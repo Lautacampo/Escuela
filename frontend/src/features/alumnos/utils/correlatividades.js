@@ -3,11 +3,13 @@
 // El backend (y la base) son quienes las hacen cumplir: esto solo sirve para
 // mostrarle al directivo ANTES de guardar qué módulos puede elegir.
 //
-// Regla (migración 008, sin equivalencias):
+// Regla (migraciones 008 y 010, sin equivalencias):
 // - En la primera matrícula el alumno puede empezar en cualquier módulo: ese
 //   es su módulo de ingreso. Los módulos anteriores no se le exigen.
 // - Desde el ingreso en adelante: III o IV piden I y II aprobados; V o VI
 //   piden III y IV aprobados. Dentro del mismo año no hay correlatividad.
+// - Con datos en la cursada, el ingreso queda consolidado y no se puede volver
+//   a un módulo anterior (perdería las equivalencias de los previos).
 
 export const DESCRIPCION_MOTIVO_LIBRE = {
   INASISTENCIAS: "superó el límite de 25 inasistencias",
@@ -83,6 +85,10 @@ export function ultimaCursada(alumno, moduloId) {
  * Devuelve:
  * - yaAprobado: ya aprobó ese módulo (no se vuelve a cursar).
  * - recursa: quedó LIBRE en ese módulo; la matrícula crea la recursada.
+ * - retroceso: el módulo elegido es anterior al de ingreso y la cursada ya
+ *     tiene datos. El ingreso queda consolidado y retroceder borraría las
+ *     equivalencias de los módulos previos (lo rechaza la base).
+ * - ingreso: orden del módulo de ingreso (null si todavía no hay ninguno).
  * - bloqueantes: correlativos que le faltan aprobar. Un correlativo anterior
  *     al módulo de ingreso no se exige; un alumno sin cursadas ingresa en el
  *     módulo elegido, así que no tiene bloqueantes.
@@ -93,10 +99,13 @@ export function analizarMatricula(alumno, moduloId, catalogo) {
   const actual = ultimaCursada(alumno, moduloId);
 
   const bloqueantes = [];
+  let ingreso = null;
+  let retroceso = false;
   if (modulo) {
-    const ingreso = ordenIngreso(alumno, catalogo);
+    ingreso = ordenIngreso(alumno, catalogo);
     const destino = ordenModulo(modulo);
     const desde = ingreso === null ? destino : Math.min(ingreso, destino ?? ingreso);
+    retroceso = ingreso !== null && destino !== null && destino < ingreso;
 
     for (const correlativo of modulo.correlativos ?? []) {
       const id = Number(correlativo.id);
@@ -118,6 +127,8 @@ export function analizarMatricula(alumno, moduloId, catalogo) {
     yaAprobado: aprobados.has(Number(moduloId)),
     recursa: actual?.estadoAcademico === "A_RECURSAR",
     enCurso: ESTADOS_ABIERTOS.includes(actual?.estadoAcademico),
+    ingreso,
+    retroceso,
     bloqueantes: bloqueantes.sort((a, b) => a.id - b.id),
   };
 }
@@ -137,6 +148,9 @@ export function correlativosFaltantes(analisis) {
 // Texto corto para la opción del módulo en un <select>.
 export function etiquetaModulo(modulo, analisis) {
   if (analisis.yaAprobado) return `${modulo.numeroLeyenda} — ya aprobado`;
+  if (analisis.retroceso) {
+    return `${modulo.numeroLeyenda} — ya aprobado`;
+  }
   if (analisis.bloqueantes.length > 0) {
     return `${modulo.numeroLeyenda} — requiere aprobar ${listar(
       correlativosFaltantes(analisis).map((m) => m.nombre),

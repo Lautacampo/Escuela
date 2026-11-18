@@ -79,8 +79,8 @@ Las equivalencias se quitaron del sistema. Al registrar al alumno se lo puede ma
 
 - Los módulos anteriores al de ingreso no se le exigen y cuentan como acreditados.
 - Desde el ingreso en adelante, las correlatividades de la sección 2 se aplican igual.
-- Una matrícula recién cargada, sin asistencias, notas ni evaluaciones, se puede corregir a cualquier módulo: no cuenta como ingreso.
-- Un alumno puede volver a un módulo anterior a su ingreso (por ejemplo, para corregir un error); ese pasa a ser el nuevo ingreso.
+- Una vez que la cursada tiene datos (asistencias, notas o evaluaciones), el módulo de ingreso queda consolidado y el alumno **no puede volver a un módulo anterior**: retroceder borraría las equivalencias de los módulos previos. La API responde `409`.
+- Sin datos, la matrícula se puede corregir a cualquier módulo: no cuenta como ingreso.
 - En la ficha, los módulos anteriores al ingreso figuran en la trayectoria académica como **"Aprobado por equivalencia"**, y el resumen dice, por ejemplo, "Módulos acreditados 4 de 6 (4 por equivalencia)". Es solo informativo: no hay que registrar nada. La API los devuelve en `modulosPorEquivalencia`.
 
 | Caso | Resultado |
@@ -89,9 +89,11 @@ Las equivalencias se quitaron del sistema. Al registrar al alumno se lo puede ma
 | Ingresó en III y quiere pasar a V | Necesita III y IV aprobados (I y II no) |
 | Ingresó en IV y quiere pasar a V | Necesita IV aprobado (III es anterior a su ingreso) |
 | Ingresó en I, aprobó I y nunca cursó II | No pasa a III: le falta II (sin cursar) |
+| Ingresó en IV con datos y quiere volver a III o anteriores | `409`: el módulo de ingreso no retrocede |
+| Ingresó en IV sin datos y se corrige a II | Se matricula (la matrícula vacía no cuenta como ingreso) |
 | Ingresó en V y aprobó V y VI | Egresa |
 
-La regla vive en la base (funciones `modulo_orden`, `orden_ingreso`, `modulo_aprobado`, `modulo_acreditado`, `correlativo_cumplido` y `correlativos_pendientes`, y el trigger de matrícula). El backend crea esas funciones al iniciar si la base todavía no tiene la migración 008.
+La regla vive en la base (funciones `modulo_orden`, `orden_ingreso`, `modulo_aprobado`, `modulo_acreditado`, `correlativo_cumplido`, `correlativos_pendientes`, `modulo_anterior_al_ingreso` y `modulo_anterior_al_ingreso_con_datos`, y el trigger de matrícula). El backend crea esas funciones al iniciar si la base todavía no tiene las migraciones 008 y 010.
 
 ## 6. Módulos aprobados y egresados
 

@@ -12,8 +12,8 @@ import {
  * preceptores y las tablas del plan de estudios. Si la base todavía no la
  * tiene (por ejemplo, en Neon antes de ejecutarla), se crea lo que falta para
  * que la aplicación no falle. Lo mismo con las funciones de la migración 008
- * (módulo de ingreso) y la asignación de docentes por módulo (009). Se
- * ejecuta una sola vez por proceso.
+ * (módulo de ingreso), la prohibición de retroceder el ingreso (010) y la
+ * asignación de docentes por módulo (009). Se ejecuta una sola vez por proceso.
  */
 const TABLAS_CON_ESTADO = ["docente", "preceptor"];
 
@@ -50,10 +50,11 @@ const inicializar = async () => {
     }
   }
 
-  // Migración 008: correlatividades desde el módulo de ingreso.
+  // Migraciones 008 y 010: correlatividades desde el módulo de ingreso y
+  // prohibición de retroceder a un módulo anterior una vez que hay datos.
   const { rows: funciones } = await pool.query(
     `SELECT to_regprocedure(
-              'public.correlativo_cumplido(integer, integer, integer, integer)'
+              'public.modulo_anterior_al_ingreso_con_datos(integer, integer, integer)'
             ) IS NOT NULL AS existe`,
   );
   if (!funciones[0].existe) {

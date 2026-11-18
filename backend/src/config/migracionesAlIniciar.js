@@ -3,8 +3,9 @@
  * para que se pueda desplegar antes de correrlas en Neon. Son copias de:
  *
  * - SQL_FUNCIONES_INGRESO: sección 1 de
- *   database/migrations/008_sin_equivalencias_modulo_de_ingreso.sql
- *   (no borra nada: la tabla de equivalencias la elimina solo la migración).
+ *   database/migrations/008_sin_equivalencias_modulo_de_ingreso.sql y
+ *   database/migrations/010_no_retroceder_ingreso.sql (no borra nada: la tabla
+ *   de equivalencias la elimina solo la migración).
  * - SQL_ASIGNACION_POR_MODULO:
  *   database/migrations/009_asignacion_docente_por_modulo.sql
  *
@@ -37,6 +38,50 @@ AS $$
       FROM cursada_modulo cm
      WHERE cm.alumno_id = p_alumno_id
        AND (p_excluir_cursada IS NULL OR cm.id <> p_excluir_cursada);
+$$;
+
+-- ¿El destino es anterior al módulo de ingreso ya consolidado?
+-- p_excluir_cursada deja afuera la cursada que se está corrigiendo (la vacía).
+CREATE OR REPLACE FUNCTION public.modulo_anterior_al_ingreso(
+    p_alumno_id integer,
+    p_modulo_destino integer,
+    p_excluir_cursada integer DEFAULT NULL
+)
+RETURNS boolean
+LANGUAGE sql STABLE
+SET search_path = public
+AS $$
+    SELECT COALESCE(
+        modulo_orden(p_modulo_destino) < orden_ingreso(p_alumno_id, p_excluir_cursada),
+        false);
+$$;
+
+-- Solo consolida el ingreso si existe actividad académica en la trayectoria.
+CREATE OR REPLACE FUNCTION public.modulo_anterior_al_ingreso_con_datos(
+    p_alumno_id integer,
+    p_modulo_destino integer,
+    p_excluir_cursada integer DEFAULT NULL
+)
+RETURNS boolean
+LANGUAGE sql STABLE
+SET search_path = public
+AS $$
+    SELECT EXISTS (
+               SELECT 1
+                 FROM cursada_modulo cm
+                WHERE cm.alumno_id = p_alumno_id
+                  AND (p_excluir_cursada IS NULL OR cm.id <> p_excluir_cursada)
+                  AND (
+                      EXISTS (SELECT 1 FROM asistencia a
+                               WHERE a.cursada_modulo_id = cm.id)
+                      OR EXISTS (SELECT 1 FROM calificacion c
+                                  WHERE c.cursada_modulo_id = cm.id)
+                      OR EXISTS (SELECT 1 FROM evaluacion_modulo e
+                                  WHERE e.cursada_modulo_id = cm.id)
+                  )
+           )
+       AND modulo_anterior_al_ingreso(
+               p_alumno_id, p_modulo_destino, p_excluir_cursada);
 $$;
 
 -- Aprobado en la escuela.
@@ -110,13 +155,30 @@ LANGUAGE plpgsql
 SET search_path = public
 AS $$
 DECLARE
-    v_pendientes text;
-    v_modulo     text;
+    v_pendientes      text;
+    v_modulo          text;
+    v_modulo_ingreso  text;
+    v_excluir_cursada integer;
 BEGIN
     IF TG_OP = 'UPDATE'
        AND NEW.modulo_id = OLD.modulo_id
-       AND NEW.alumno_id = OLD.alumno_id THEN
+       AND NEW.alumno_id = OLD.alumno_id
+       AND NOT (NEW.activa AND NOT OLD.activa) THEN
         RETURN NEW;
+    END IF;
+
+    v_excluir_cursada := NEW.id;
+    IF TG_OP = 'UPDATE'
+       AND NEW.alumno_id = OLD.alumno_id
+       AND (
+           EXISTS (SELECT 1 FROM asistencia a
+                    WHERE a.cursada_modulo_id = OLD.id)
+           OR EXISTS (SELECT 1 FROM calificacion c
+                       WHERE c.cursada_modulo_id = OLD.id)
+           OR EXISTS (SELECT 1 FROM evaluacion_modulo e
+                       WHERE e.cursada_modulo_id = OLD.id)
+       ) THEN
+        v_excluir_cursada := NULL;
     END IF;
 
     SELECT numero_leyenda INTO v_modulo FROM modulo WHERE id = NEW.modulo_id;
@@ -131,7 +193,20 @@ BEGIN
               USING ERRCODE = 'P0001';
     END IF;
 
-    v_pendientes := correlativos_pendientes(NEW.alumno_id, NEW.modulo_id, NEW.id);
+    -- Con datos cargados el módulo de ingreso ya está consolidado: retroceder
+    -- perdería las equivalencias de los módulos anteriores.
+    IF modulo_anterior_al_ingreso_con_datos(
+           NEW.alumno_id, NEW.modulo_id, v_excluir_cursada) THEN
+        SELECT numero_leyenda INTO v_modulo_ingreso
+          FROM modulo
+         WHERE modulo_orden(id) = orden_ingreso(NEW.alumno_id, v_excluir_cursada);
+        RAISE EXCEPTION 'El alumno ya tiene datos en el % (su módulo de ingreso): no se puede volver a un módulo anterior del plan',
+              v_modulo_ingreso
+              USING ERRCODE = 'P0001';
+    END IF;
+
+    v_pendientes := correlativos_pendientes(
+        NEW.alumno_id, NEW.modulo_id, v_excluir_cursada);
     IF v_pendientes IS NOT NULL THEN
         RAISE EXCEPTION 'Correlatividad: para cursar % el alumno debe tener aprobados: %',
               v_modulo, v_pendientes

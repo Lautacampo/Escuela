@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { analizarMatricula, ordenIngreso } from "./correlatividades.js";
+import {
+  analizarMatricula,
+  etiquetaModulo,
+  ordenIngreso,
+} from "./correlatividades.js";
 
 // Catálogo como lo manda GET /cursos: III y IV piden I y II; V y VI piden III y IV.
 const modulos = [
@@ -105,6 +109,41 @@ test("con datos cargados en I, ya no se puede saltar a V", () => {
   const conFaltas = conCursadas([1, "EN_CURSO", { activa: true, tieneDatos: true }]);
   assert.equal(ordenIngreso(conFaltas, catalogo), 1);
   assert.deepEqual(bloqueantes(conFaltas, 5), [3, 4]);
+});
+
+// --- Con datos no se vuelve a un módulo anterior al ingreso ----------------
+test("ingresó en IV con datos: no puede volver a I, II ni III", () => {
+  const alumno = conCursadas([4, "EN_CURSO", { activa: true, tieneDatos: true }]);
+  for (const moduloId of [1, 2, 3]) {
+    const resultado = analizarMatricula(alumno, moduloId, catalogo);
+    assert.equal(resultado.retroceso, true, `IV -> ${moduloId}`);
+    assert.deepEqual(resultado.bloqueantes, []);
+  }
+  assert.equal(analizarMatricula(alumno, 5, catalogo).retroceso, false);
+});
+
+test("un módulo anterior al ingreso se muestra como ya aprobado", () => {
+  const analisis = analizarMatricula(
+    conCursadas([4, "EN_CURSO", { activa: true, tieneDatos: true }]),
+    3,
+    catalogo,
+  );
+  assert.equal(etiquetaModulo(catalogo[3], analisis), "Modulo III — ya aprobado");
+});
+
+test("el ingreso no retrocede aunque la cursada actual esté vacía", () => {
+  const alumno = conCursadas(
+    [4, "APROBADO"],
+    [5, "EN_CURSO", { activa: true, tieneDatos: false }],
+  );
+  assert.equal(analizarMatricula(alumno, 1, catalogo).retroceso, true);
+  assert.equal(analizarMatricula(alumno, 3, catalogo).retroceso, true);
+});
+
+test("una matrícula vacía sí se puede corregir a un módulo anterior", () => {
+  const alumno = conCursadas([4, "EN_CURSO", { activa: true, tieneDatos: false }]);
+  assert.equal(analizarMatricula(alumno, 1, catalogo).retroceso, false);
+  assert.equal(analizarMatricula(alumno, 3, catalogo).retroceso, false);
 });
 
 test("un módulo aprobado no se vuelve a cursar", () => {

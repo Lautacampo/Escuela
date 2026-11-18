@@ -764,15 +764,60 @@ test("E1. Ya no hay equivalencias: la ruta no existe y la ficha no las trae", as
   assert.equal(tabla.rows[0].tabla, null, "La tabla equivalencia_modulo se eliminó (migración 008)");
 });
 
-test("E2. Volver a un módulo anterior al ingreso se permite; uno aprobado, no", async () => {
+test("E2. Con datos no se vuelve a un módulo anterior al ingreso; sin datos, sí", async () => {
   const id = await crearAlumno();
   await alta(id, M.III);
   await faltar((await cursadaActiva(id)).idCursada, 1);
-  // Anterior al ingreso: se puede cursar (pasa a ser el nuevo ingreso).
-  assert.equal((await cambiar(id, M.I)).status, 200);
-  assert.equal((await ficha(id)).moduloIngresoId, M.I);
+  for (const anterior of [M.I, M.II]) {
+    const r = await cambiar(id, anterior);
+    assert.equal(r.status, 409, `III -> ${anterior}`);
+    assert.match(r.body.error, /Modulo III/);
+    assert.match(r.body.error, /módulo anterior/);
+  }
+  assert.equal((await cursadaActiva(id)).moduloId, M.III, "La matrícula no debe cambiar");
+
+  // Sin datos cargados es una corrección de la matrícula: se permite.
+  const otro = await crearAlumno();
+  await alta(otro, M.III);
+  const corregida = await cambiar(otro, M.I);
+  assert.equal(corregida.status, 200, JSON.stringify(corregida.body));
+  assert.equal(corregida.body.matricula, "CORREGIDA");
+  assert.equal((await ficha(otro)).moduloIngresoId, M.I);
+});
+
+test("E3. Ingresó en IV: con datos no vuelve a I, II ni III, ni con la cursada siguiente vacía", async () => {
+  const id = await crearAlumno();
+  await alta(id, M.IV);
+  await faltar((await cursadaActiva(id)).idCursada, 1);
+  for (const anterior of [M.I, M.II, M.III]) {
+    const r = await cambiar(id, anterior);
+    assert.equal(r.status, 409, `IV -> ${anterior}`);
+    assert.match(r.body.error, /Modulo IV/);
+    assert.match(r.body.error, /módulo anterior/);
+  }
+  const activa = await cursadaActiva(id);
+  await assert.rejects(
+    db.query("UPDATE cursada_modulo SET modulo_id = $2 WHERE id = $1", [
+      activa.idCursada,
+      M.III,
+    ]),
+    (err) =>
+      err.code === "P0001" &&
+      /Modulo IV/.test(err.message) &&
+      /módulo anterior/.test(err.message),
+  );
+  assert.equal((await cursadaActiva(id)).moduloId, M.IV);
+
+  // V todavía pide IV aprobado. Al aprobarlo y pasar a V, el ingreso no baja.
+  assert.equal((await cambiar(id, M.V)).status, 409);
   await aprobarActivo(id);
-  await falla("PUT", `/alumnos/${id}/cursadas`, matricula(M.I), 409, /ya aprobó Modulo I/);
+  assert.equal((await cambiar(id, M.V)).status, 200);
+  for (const anterior of [M.I, M.II, M.III]) {
+    const r = await cambiar(id, anterior);
+    assert.equal(r.status, 409, `V (vacío) -> ${anterior}`);
+    assert.match(r.body.error, /Modulo IV/);
+    assert.match(r.body.error, /módulo anterior/);
+  }
 });
 
 // ======================================================= F. BAJA / PERMISOS

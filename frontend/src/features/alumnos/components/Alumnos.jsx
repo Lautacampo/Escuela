@@ -426,6 +426,7 @@ export function Alumnos() {
   const matriculaBloqueada =
     analisisMatricula != null &&
     (analisisMatricula.yaAprobado ||
+      analisisMatricula.retroceso ||
       analisisMatricula.bloqueantes.length > 0);
 
   const abrirFormulario = () => {
@@ -495,6 +496,9 @@ export function Alumnos() {
       mensaje = "Seleccioná un módulo.";
     } else if (!moduloMatricula) {
       mensaje = "El módulo seleccionado no corresponde al curso.";
+    } else if (analisisMatricula?.retroceso) {
+      mensaje =
+        "El alumno ya tiene datos en su módulo de ingreso: no puede volver a un módulo anterior.";
     } else if (matriculaBloqueada) {
       mensaje = "El alumno no cumple las correlatividades de ese módulo.";
     }
@@ -1350,7 +1354,9 @@ export function Alumnos() {
                                 <option
                                   key={modulo.id}
                                   value={modulo.id}
-                                  disabled={analisis.yaAprobado}
+                                  disabled={
+                                    analisis.yaAprobado || analisis.retroceso
+                                  }
                                 >
                                   {etiquetaModulo(modulo, analisis)}
                                 </option>
@@ -1359,6 +1365,14 @@ export function Alumnos() {
                           </select>
                         </div>
                       </div>
+
+                      {analisisMatricula?.retroceso && (
+                        <p className="mensaje-error" role="alert">
+                          <strong>Módulo ya aprobado:</strong> este módulo se
+                          considera aprobado por equivalencia y no se puede
+                          volver a cursar.
+                        </p>
+                      )}
 
                       {analisisMatricula?.bloqueantes.length > 0 && (
                         <p className="mensaje-error" role="alert">
