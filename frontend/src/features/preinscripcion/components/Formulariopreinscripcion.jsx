@@ -2,6 +2,40 @@ import { useNavigate } from "react-router";
 import "./formularioPreinscripcion.css";
 import { useState } from "react";
 
+// La preinscripción en línea todavía no está conectada al sistema: por ahora
+// se completa por correo. (El envío automático se implementará más adelante.)
+const CORREO_PREINSCRIPCION = "soporte3tomasbaras@gmail.com";
+
+const ETIQUETAS = {
+  nombre: "Apellido y nombre",
+  dni: "DNI",
+  cuil: "CUIL",
+  fecha_nac: "Fecha de nacimiento",
+  edad: "Edad",
+  nacionalidad: "Nacionalidad",
+  lugar_nac: "Lugar de nacimiento",
+  domicilio: "Domicilio",
+  telefono: "Teléfono",
+  mail: "Correo electrónico",
+  trabaja: "Trabaja",
+  lugar_trabajo: "Lugar de trabajo",
+  hijos: "Hijos",
+  salud: "Salud",
+  medicacion: "Medicación",
+  emergencia_nombre: "Contacto de emergencia",
+  emergencia_tel: "Teléfono de emergencia",
+};
+
+// Enlace que abre el correo del usuario con los datos ya escritos.
+function enlaceDeCorreo(datos) {
+  const cuerpo = Object.entries(ETIQUETAS)
+    .map(([campo, etiqueta]) => `${etiqueta}: ${datos[campo] || "-"}`)
+    .join("\n");
+  return `mailto:${CORREO_PREINSCRIPCION}?subject=${encodeURIComponent(
+    `Preinscripción - ${datos.nombre}`,
+  )}&body=${encodeURIComponent(cuerpo)}`;
+}
+
 export function FormularioPreinscripcion() {
   const navegador = useNavigate();
   const [datos, setDatos] = useState({
@@ -31,10 +65,12 @@ export function FormularioPreinscripcion() {
     });
   };
 
+  // Al enviar no se guarda nada todavía: se avisa y se ofrece mandarlo por correo.
+  const [mostrarAviso, setMostrarAviso] = useState(false);
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert("¡Formulario enviado con éxito!");
-    navegador("/");
+    setMostrarAviso(true);
   };
 
   return (
@@ -282,6 +318,11 @@ export function FormularioPreinscripcion() {
         </div>
       </fieldset>
 
+      <p className="nota-preinscripcion">
+        Por ahora la preinscripción se completa por correo electrónico a{" "}
+        <a href={`mailto:${CORREO_PREINSCRIPCION}`}>{CORREO_PREINSCRIPCION}</a>.
+      </p>
+
       <button
         type="submit"
         className="btn-principal"
@@ -289,6 +330,35 @@ export function FormularioPreinscripcion() {
       >
         Enviar Preinscripción
       </button>
+
+      {mostrarAviso && (
+        <div className="aviso-preinscripcion" role="status">
+          <p>
+            <strong>
+              La preinscripción en línea todavía no está habilitada: tus datos
+              no se enviaron.
+            </strong>
+          </p>
+          <p>
+            Para completarla, mandalos por correo a{" "}
+            <a href={`mailto:${CORREO_PREINSCRIPCION}`}>{CORREO_PREINSCRIPCION}</a>{" "}
+            o acercate a la escuela. El botón de abajo abre tu correo con los
+            datos ya escritos.
+          </p>
+          <div className="aviso-preinscripcion-acciones">
+            <a className="btn-principal" href={enlaceDeCorreo(datos)}>
+              Enviar por correo
+            </a>
+            <button
+              type="button"
+              className="btn-secundario-preinscripcion"
+              onClick={() => navegador("/")}
+            >
+              Volver al inicio
+            </button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
