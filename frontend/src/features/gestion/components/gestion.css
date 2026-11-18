@@ -9,6 +9,7 @@
   --gestion-titulos: "Franklin Gothic Medium", Arial, sans-serif;
   --gestion-fuente: "Segoe UI", Tahoma, sans-serif;
   --gestion-radio: 8px;
+  --gestion-alto-barra: 64px;
 }
 
 body:has(.contenedor-dashboard) {
@@ -148,6 +149,30 @@ body:has(.contenedor-dashboard) {
   font-size: 1.1rem;
 }
 
+/* En escritorio se lee "Usuario: Nombre Apellido (Rol)". */
+.navhorizontal-rol::before {
+  content: " (";
+}
+
+.navhorizontal-rol::after {
+  content: ")";
+}
+
+/* Mensajes sueltos de las páginas ("Cargando...", errores): sin esto toman el
+   color casi blanco de "main p" (index.css, pensado para el sitio público). */
+.dashboard-main > p {
+  color: var(--gestion-texto);
+}
+
+.dashboard-main > p[role="alert"] {
+  color: #b42318;
+}
+
+/* El bloque de sesión del menú lateral solo se usa en celular. */
+.sesion-sidebar {
+  display: none;
+}
+
 .btn-cerrar-sesion {
   display: grid;
   width: 40px;
@@ -255,22 +280,31 @@ body:has(.contenedor-dashboard) {
   min-width: 100%;
 }
 
-.personal-tabla th {
+.personal-tabla th,
+.personal-tabla td:first-child,
+.personal-tabla td:last-child,
+.personal-tabla .personal-contacto > span {
   white-space: nowrap;
 }
 
 .personal-tabla th:first-child,
 .personal-tabla td:first-child {
-  min-width: 170px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fff;
 }
 
-.personal-tabla th:last-child,
-.personal-tabla td:last-child {
-  min-width: 190px;
+.personal-tabla th:first-child {
+  z-index: 3;
 }
 
-.personal-tabla .personal-contacto > span {
-  overflow-wrap: anywhere;
+.personal-tabla td:first-child {
+  box-shadow: 1px 0 0 #edf2f7;
+}
+
+.personal-tabla tbody tr:hover td:first-child {
+  background: #f0f2f4;
 }
 
 .gestion-personal .personal-aviso {
@@ -354,6 +388,15 @@ body:has(.contenedor-dashboard) {
 
 .barra-filtros .form-group {
   flex: 0 1 180px;
+  min-width: 0;
+}
+
+/* Un select toma el ancho de su opción más larga: sin esto, en celular
+   el de materias se sale de la pantalla. */
+.barra-filtros .input-gestion {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .form-group-buscador {
@@ -595,7 +638,7 @@ body:has(.contenedor-dashboard) {
 .modal-alumno-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2000;
+  z-index: 2200;
 
   display: flex;
   align-items: center;
@@ -1947,7 +1990,9 @@ body:has(.contenedor-dashboard) {
   .gestion-plan .pe-pie-formulario .pe-boton {
     flex: 1;
   }
-  /* ==================== RESPONSIVE: REPORTES ==================== */
+}
+
+/* ==================== RESPONSIVE: REPORTES ==================== */
 
   @media (max-width: 768px) {
     .reportes-panel .rep-encabezado {
@@ -1990,7 +2035,6 @@ body:has(.contenedor-dashboard) {
       align-items: flex-start;
     }
   }
-}
 
 /* =========================================================
    RESPONSIVE - DASHBOARD
@@ -2027,37 +2071,165 @@ body:has(.contenedor-dashboard) {
 }
 
 @media (max-width: 768px) {
-  /* Sidebar */
+  /* Barra superior: queda fija arriba con el botón del menú y el usuario */
+
+  .navhorizontal {
+    position: sticky;
+    top: 0;
+    z-index: 2100;
+
+    height: var(--gestion-alto-barra);
+    min-height: var(--gestion-alto-barra);
+    padding: 0 12px;
+
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  /* Botón hamburguesa (dentro de la barra superior) */
+
+  .btn-menu-hamburguesa {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+
+    width: 44px;
+    height: 44px;
+    padding: 0;
+
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--gestion-radio);
+
+    background-color: transparent;
+    color: white;
+
+    cursor: pointer;
+
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .btn-menu-hamburguesa:hover,
+  .btn-menu-hamburguesa.abierto {
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  .btn-menu-hamburguesa:focus-visible {
+    outline: 2px solid var(--gestion-acento);
+    outline-offset: 2px;
+  }
+
+  /* Usuario: nombre arriba y rol abajo, recortado si no entra */
+
+  .navhorizontal-usuario {
+    min-width: 0;
+    margin-left: auto;
+    gap: 10px;
+  }
+
+  .navhorizontal-usuario p {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .navhorizontal-usuario p i {
+    flex-shrink: 0;
+    font-size: 1.45rem;
+  }
+
+  .navhorizontal-datos {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .navhorizontal-etiqueta {
+    display: none;
+  }
+
+  .navhorizontal-nombre {
+    overflow: hidden;
+    font-size: 0.95rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .navhorizontal-rol {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.78rem;
+  }
+
+  .navhorizontal-rol::before,
+  .navhorizontal-rol::after {
+    content: none;
+  }
+
+  .btn-cerrar-sesion {
+    flex-shrink: 0;
+  }
+
+  /* Menú lateral: se despliega debajo de la barra, que sigue visible */
 
   .navlateral {
-    width: 270px;
+    width: 280px;
     max-width: 85vw;
-    height: 100vh;
 
     position: fixed;
-    top: 0;
+    top: var(--gestion-alto-barra);
     left: 0;
+    height: calc(100vh - var(--gestion-alto-barra));
+    height: calc(100dvh - var(--gestion-alto-barra));
 
     transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    visibility: hidden;
+    transition:
+      transform 0.3s ease,
+      visibility 0.3s ease;
 
-    z-index: 2000;
+    z-index: 2050;
 
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .navlateral.menu-abierto {
     transform: translateX(0);
+    visibility: visible;
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.25);
   }
 
   /* Logo */
 
   .logo-sidebar {
-    padding: 20px;
+    padding: 16px;
   }
 
   .logo-sidebar img {
-    width: 90px;
+    width: 72px;
+  }
+
+  /* Quién tiene la sesión abierta */
+
+  .sesion-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .sesion-sidebar strong {
+    color: white;
+    overflow-wrap: anywhere;
+  }
+
+  .sesion-sidebar span {
+    color: var(--gestion-acento);
+    font-size: 0.85rem;
   }
 
   /* Menú */
@@ -2090,49 +2262,15 @@ body:has(.contenedor-dashboard) {
     border-bottom-color: transparent;
   }
 
-  /* Botón hamburguesa */
-
-  .btn-menu-hamburguesa {
-    display: grid;
-    place-items: center;
-
-    position: fixed;
-    top: 12px;
-    left: 12px;
-
-    width: 44px;
-    height: 44px;
-
-    z-index: 3000;
-
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: var(--gestion-radio);
-
-    background-color: var(--gestion-primario);
-    color: white;
-
-    font-size: 1.2rem;
-
-    cursor: pointer;
-
-    transition:
-      background-color 0.2s ease,
-      transform 0.2s ease;
-  }
-
-  .btn-menu-hamburguesa:hover {
-    background-color: var(--gestion-sidebar);
-  }
-
-  /* Fondo detrás del menú */
+  /* Fondo detrás del menú (no tapa la barra superior) */
 
   .overlay-menu {
     display: block;
 
     position: fixed;
-    inset: 0;
+    inset: var(--gestion-alto-barra) 0 0 0;
 
-    z-index: 1500;
+    z-index: 2040;
 
     background-color: rgba(15, 25, 41, 0.65);
   }
@@ -2143,19 +2281,6 @@ body:has(.contenedor-dashboard) {
     margin-left: 0;
     min-width: 0;
     width: 100%;
-  }
-
-  /* Navbar superior */
-
-  .navhorizontal {
-    min-height: 68px;
-    padding: 12px 16px 12px 70px;
-
-    align-items: center;
-  }
-
-  .navhorizontal-usuario {
-    margin-left: auto;
   }
 
   /* Main */
@@ -2198,15 +2323,11 @@ body:has(.contenedor-dashboard) {
 
 @media (max-width: 480px) {
   .navhorizontal {
-    padding-left: 68px;
+    padding: 0 10px;
   }
 
   .navhorizontal-usuario p {
     font-size: 0.85rem;
-  }
-
-  .navhorizontal-usuario p strong {
-    display: none;
   }
 
   .btn-cerrar-sesion {
@@ -2215,7 +2336,7 @@ body:has(.contenedor-dashboard) {
   }
 
   .dashboard-main {
-    padding: 20px 12px;
+    padding: 16px 12px 28px;
   }
 
   .contenedor-tabla {
@@ -2698,90 +2819,212 @@ tr.fila-inactiva td {
   color: #64748b;
 }
 
-/* Listados de personas: misma tabla y desplazamiento horizontal en móvil. */
-.tabla-listado-personas {
-  width: max-content;
-  min-width: 100%;
+/* La columna de acciones queda siempre visible al desplazar la tabla. */
+.personal-tabla th:last-child,
+.personal-tabla td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: #fff;
+  box-shadow: -1px 0 0 #edf2f7;
 }
 
-.tabla-listado-personas th {
-  background-color: #f8fafc;
-  color: #526176;
+.personal-tabla tbody tr:hover td:last-child {
+  background: #f0f2f4;
 }
 
-.tabla-listado-personas tbody tr:nth-child(even) {
-  background-color: #fafbfd;
-}
+/* =========================================================
+   CELULAR: CONTENIDO Y TABLAS COMO TARJETAS
+   ========================================================= */
 
 @media (max-width: 768px) {
-  .navhorizontal {
-    position: sticky;
-    top: 0;
-    z-index: 1200;
-    height: 68px;
-    min-height: 68px;
-    box-sizing: border-box;
-    padding-left: 70px;
-    flex-shrink: 0;
+  /* Las páginas usan "container mt-5" + <hr> de Bootstrap: en celular ese
+     margen deja un hueco grande debajo de la barra superior. */
+  .dashboard-main > .container {
+    max-width: none;
+    padding-right: 0;
+    padding-left: 0;
   }
 
-  .navhorizontal-usuario,
-  .navhorizontal-usuario p {
-    min-width: 0;
+  .dashboard-main > .container.mt-5 {
+    margin-top: 0 !important;
   }
 
-  .navhorizontal-usuario {
-    max-width: 100%;
-  }
-
-  .navhorizontal-usuario p {
-    overflow: hidden;
-    white-space: nowrap;
-  }
-
-  .navhorizontal-nombre {
-    display: inline-block;
-    max-width: min(42vw, 360px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: bottom;
-    white-space: nowrap;
-  }
-
-  .navlateral {
-    top: 68px;
-    height: calc(100vh - 68px);
-    height: calc(100dvh - 68px);
-  }
-
-  .overlay-menu {
-    inset: 68px 0 0;
-  }
-
-  .tabla-responsive {
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
-  }
-
-  .tabla-listado-personas {
-    min-width: 760px;
-  }
-}
-
-@media (max-width: 480px) {
-  .navhorizontal {
-    padding-right: 12px;
-  }
-
-  .navhorizontal-etiqueta,
-  .navhorizontal-rol {
+  .dashboard-main > .container > hr:first-child {
     display: none;
   }
 
-  .navhorizontal-usuario p .navhorizontal-nombre {
+  .encabezado-gestion {
+    gap: 12px;
+  }
+
+  .encabezado-gestion p {
+    margin-bottom: 0;
+  }
+
+  .cabecera-tabla > button {
+    white-space: normal;
+  }
+}
+
+/* Tablas con la clase "tabla-tarjetas": cada fila pasa a ser una tarjeta y
+   cada celda muestra su título (atributo data-label). */
+@media (max-width: 700px) {
+  .contenedor-tabla:has(.tabla-tarjetas) {
+    padding: 12px;
+  }
+
+  .tabla-responsive:has(> .tabla-tarjetas) {
+    overflow: visible;
+  }
+
+  .tabla-gestion.tabla-tarjetas {
     display: block;
+    width: 100%;
     min-width: 0;
-    max-width: calc(100vw - 130px);
+  }
+
+  .tabla-gestion.tabla-tarjetas thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .tabla-gestion.tabla-tarjetas tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .tabla-gestion.tabla-tarjetas tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid #e0e7ed;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(32, 52, 73, 0.06);
+  }
+
+  .tabla-gestion.tabla-tarjetas tbody tr:hover {
+    background: #fff;
+  }
+
+  .tabla-gestion.tabla-tarjetas td {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #eef2f6;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .tabla-gestion.tabla-tarjetas td[data-label]::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+
+  /* Nombre arriba, a todo el ancho */
+  .tabla-gestion.tabla-tarjetas td:first-child {
+    position: static;
+    grid-column: 1 / -1;
+    min-width: 0;
+    background: #f1f5f8;
+    box-shadow: none;
+  }
+
+  .tabla-gestion.tabla-tarjetas tbody tr:hover td:first-child,
+  .tabla-gestion.tabla-tarjetas tbody tr:hover td:last-child {
+    background: #f1f5f8;
+  }
+
+  .tabla-gestion.tabla-tarjetas td:first-child::before {
+    display: none;
+  }
+
+  /* Columnas largas y acciones, a todo el ancho */
+  .tabla-gestion.tabla-tarjetas td[data-label="Acciones"],
+  .tabla-gestion.tabla-tarjetas td[data-label="Materias, cursos y divisiones"],
+  .tabla-gestion.tabla-tarjetas td[data-label="Módulos y divisiones a cargo"],
+  .tabla-gestion.tabla-tarjetas td[data-label="Contacto"],
+  .tabla-gestion.tabla-tarjetas td[data-label="DNI / CUIL"],
+  .tabla-gestion.tabla-tarjetas td[data-label="Título y antigüedad"],
+  .tabla-gestion.tabla-tarjetas td[data-label="Plan de estudios"],
+  .tabla-gestion.tabla-tarjetas td[data-label="Desaprobación"],
+  .tabla-gestion.tabla-tarjetas td[data-label="Observación"],
+  .tabla-gestion.tabla-tarjetas td:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .tabla-gestion.tabla-tarjetas td[data-label="Acciones"] {
+    position: static;
+    align-items: stretch;
+    border-bottom: 0;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .tabla-gestion.tabla-tarjetas td[data-label="Acciones"]::before {
+    display: none;
+  }
+
+  .tabla-gestion.tabla-tarjetas .acciones-tabla {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .tabla-gestion.tabla-tarjetas .acciones-tabla .btn-accion {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 40px;
+  }
+
+  .tabla-gestion.tabla-tarjetas td:only-child {
+    align-items: center;
+    text-align: center;
+  }
+
+  /* Ajustes de las tablas que en escritorio tienen columnas fijas o anchos mínimos */
+  .personal-tabla.tabla-tarjetas {
+    width: 100%;
+  }
+
+  .personal-tabla.tabla-tarjetas th,
+  .personal-tabla.tabla-tarjetas td,
+  .personal-tabla.tabla-tarjetas .personal-contacto > span {
+    white-space: normal;
+  }
+
+  .reportes-panel .rep-tabla.tabla-tarjetas {
+    min-width: 0;
+  }
+
+  .reportes-panel .rep-tabla.tabla-tarjetas td:first-child {
+    min-width: 0;
+  }
+
+  .reportes-panel .rep-tabla.tabla-tarjetas .rep-porcentaje {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .tabla-gestion.tabla-tarjetas tbody tr {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
