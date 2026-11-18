@@ -316,7 +316,7 @@ export function Reportes() {
           aria-label="Listado de alertas de inasistencias"
           tabIndex={0}
         >
-          <table className="tabla-gestion rep-tabla">
+          <table className="tabla-gestion tabla-tarjetas rep-tabla">
             <thead>
               <tr>
                 <th scope="col">Alumno</th>
@@ -332,17 +332,17 @@ export function Reportes() {
             <tbody>
               {alertasVisibles.map((alumno) => (
                 <tr key={alumno.id}>
-                  <td>
+                  <td data-label="Alumno">
                     <strong>{alumno.nombre}</strong>
                   </td>
-                  <td>{alumno.planEstudio ?? "-"}</td>
-                  <td>{alumno.curso}º año</td>
-                  <td>{alumno.division}</td>
-                  <td>{alumno.modulo}</td>
-                  <td>
+                  <td data-label="Plan de estudios">{alumno.planEstudio ?? "-"}</td>
+                  <td data-label="Curso">{alumno.curso}º año</td>
+                  <td data-label="División">{alumno.division}</td>
+                  <td data-label="Módulo">{alumno.modulo}</td>
+                  <td data-label="Faltas acumuladas">
                     <span className="rep-faltas">{alumno.faltas}</span>
                   </td>
-                  <td>
+                  <td data-label="Situación">
                     <span className="rep-etiqueta rep-etiqueta-alerta">
                       <i
                         className="fa-solid fa-circle-exclamation"
@@ -396,7 +396,7 @@ export function Reportes() {
           aria-label="Resultados de desaprobación por materia"
           tabIndex={0}
         >
-          <table className="tabla-gestion rep-tabla">
+          <table className="tabla-gestion tabla-tarjetas rep-tabla">
             <thead>
               <tr>
                 <th scope="col">Materia</th>
@@ -411,16 +411,16 @@ export function Reportes() {
             <tbody>
               {materiasVisibles.map((registro) => (
                 <tr key={registro.id}>
-                  <td>
+                  <td data-label="Materia">
                     <strong>{registro.materia}</strong>
                   </td>
-                  <td>{registro.curso}º año</td>
-                  <td>{registro.division}</td>
-                  <td>{registro.evaluados}</td>
-                  <td>
+                  <td data-label="Curso">{registro.curso}º año</td>
+                  <td data-label="División">{registro.division}</td>
+                  <td data-label="Evaluados">{registro.evaluados}</td>
+                  <td data-label="Desaprobados">
                     <strong>{registro.desaprobados}</strong>
                   </td>
-                  <td>
+                  <td data-label="Desaprobación">
                     <div className="rep-porcentaje">
                       <div className="rep-barra" aria-hidden="true">
                         <span style={{ width: `${registro.porcentaje}%` }} />
