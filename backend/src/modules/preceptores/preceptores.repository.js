@@ -7,7 +7,7 @@ import {
 } from "../auth/auth.repository.js";
 
 const SELECTgeneral = `
-  SELECT  prece.id,  perso.nombre, perso.apellido,  perso.dni,  perso.cuil,  perso.domicilio,  perso.telefono,  perso.email,  pl.titulo,  pl.antiguedad,
+  SELECT  prece.id,  perso.nombre, perso.apellido,  perso.dni,  perso.cuil,  perso.domicilio,  perso.telefono,  perso.email,  pl.titulo,  pl.antiguedad,  prece.activo,
     COALESCE((
       SELECT json_agg(json_build_object(
         'id', c.id, 
@@ -154,6 +154,34 @@ export const modificarPreceptor = async (id, datos) => {
   }
 };
 
+/**
+ * Baja lógica (inactivo) o reactivación. No se borra ningún dato: conserva
+ * sus cursos y su usuario. Mientras está inactivo su usuario no puede iniciar
+ * sesión y una sesión abierta deja de funcionar.
+ */
+export const cambiarEstadoPreceptor = async (id, activo) => {
+  const cliente = await pool.connect();
+  try {
+    await cliente.query("BEGIN");
+    await cliente.query("UPDATE preceptor SET activo = $2 WHERE id = $1", [
+      id,
+      activo,
+    ]);
+    await cliente.query(
+      "UPDATE usuarios SET activo = $2 WHERE persona_id = $1",
+      [id, activo],
+    );
+    await cliente.query("COMMIT");
+  } catch (error) {
+    await cliente.query("ROLLBACK");
+    throw error;
+  } finally {
+    cliente.release();
+  }
+};
+
+// Eliminación definitiva: solo para un preceptor que ya está inactivo (lo
+// controla el servicio).
 export const eliminarPreceptor = async (id) => {
   const cliente = await pool.connect();
   try {
@@ -165,6 +193,12 @@ export const eliminarPreceptor = async (id) => {
     );
     // Su usuario queda sin vínculo y sin acceso al sistema.
     await desvincularUsuario(cliente, id);
+
+    // Igual que con los docentes: su asistencia como personal se borra con él.
+    await cliente.query(
+      "DELETE FROM asistencia_personal WHERE personal_id = $1",
+      [id],
+    );
 
     //borrar va desde prece a persona por las claves foraneas
 
@@ -186,6 +220,7 @@ export const eliminarPreceptor = async (id) => {
 export const listarCursos = async () => {
   const { rows } = await pool.query(
     `SELECT c.id, c.anio_curso, c.division, c.preceptor_id, p.apellido AS preceptor_apellido, p.nombre AS preceptor_nombre,
+        pr.activo AS preceptor_activo,
         COALESCE(
           (
             SELECT json_agg(json_build_object('id', m.id, 'nombre', m.numero_leyenda) ORDER BY m.id)
@@ -197,6 +232,7 @@ export const listarCursos = async () => {
         ) AS modulos
      FROM curso c 
      LEFT JOIN persona p ON p.id = c.preceptor_id
+     LEFT JOIN preceptor pr ON pr.id = c.preceptor_id
      ORDER BY c.anio_curso, c.division`,
   );
   return rows;
