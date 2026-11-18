@@ -187,6 +187,12 @@
 	font-weight: 700;
 }
 
+.pagina-asistencia-division .asistencia-estado-dia.sin-cargar {
+	color: #8a99a8;
+	font-style: italic;
+	font-weight: 600;
+}
+
 .pagina-asistencia-division .asistencia-opcion {
 	display: inline-flex;
 	align-items: center;
