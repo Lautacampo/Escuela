@@ -237,7 +237,7 @@ export function ListadoAlumnos({
       </div>
 
       <div className="tabla-responsive">
-        <table className="tabla-gestion tabla-listado-personas">
+        <table className="tabla-gestion tabla-tarjetas">
           <thead>
             <tr>
               <th>Apellido y Nombre</th>
@@ -253,7 +253,7 @@ export function ListadoAlumnos({
           <tbody>
             {alumnosFiltrados.map((alumno) => (
               <tr key={alumno.id}>
-                <td>
+                <td data-label="Apellido y nombre">
                   <strong>
                     {alumno.apellido}, {alumno.nombre}
                   </strong>
@@ -264,18 +264,18 @@ export function ListadoAlumnos({
                   )}
                 </td>
 
-                <td>{formatearDNI(alumno.dni)}</td>
+                <td data-label="DNI">{formatearDNI(alumno.dni)}</td>
 
-                <td>
+                <td data-label="Curso y división">
                   {alumno.curso ? `${alumno.curso}° Año` : "-"}
                   {alumno.division && ` - ${alumno.division}`}
                 </td>
 
-                <td>{alumno.moduloActual || "-"}</td>
+                <td data-label="Módulo actual">{alumno.moduloActual || "-"}</td>
 
-                <td>{alumno.faltas}</td>
+                <td data-label="Faltas acumuladas">{alumno.faltas}</td>
 
-                <td>
+                <td data-label="Condición">
                   <span
                     className={`condicion-${alumno.condicion.toLowerCase()}`}
                   >
@@ -283,7 +283,7 @@ export function ListadoAlumnos({
                   </span>
                 </td>
 
-                <td>
+                <td data-label="Acciones">
                   <div className="acciones-tabla">
                     <button
                       type="button"
