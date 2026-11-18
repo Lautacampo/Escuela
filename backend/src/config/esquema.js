@@ -1,5 +1,9 @@
 import { pool } from "./db.js";
 import { asegurarEsquemaPlanEstudio } from "../modules/planestudios/planEstudios.repository.js";
+import {
+  SQL_ASIGNACION_POR_MODULO,
+  SQL_FUNCIONES_INGRESO,
+} from "./migracionesAlIniciar.js";
 
 /**
  * Verificación del esquema al iniciar.
@@ -7,7 +11,9 @@ import { asegurarEsquemaPlanEstudio } from "../modules/planestudios/planEstudios
  * La migración 007 agrega el estado (activo/inactivo) de docentes y
  * preceptores y las tablas del plan de estudios. Si la base todavía no la
  * tiene (por ejemplo, en Neon antes de ejecutarla), se crea lo que falta para
- * que la aplicación no falle. Se ejecuta una sola vez por proceso.
+ * que la aplicación no falle. Lo mismo con las funciones de la migración 008
+ * (módulo de ingreso) y la asignación de docentes por módulo (009). Se
+ * ejecuta una sola vez por proceso.
  */
 const TABLAS_CON_ESTADO = ["docente", "preceptor"];
 
@@ -42,6 +48,27 @@ const inicializar = async () => {
            ADD COLUMN IF NOT EXISTS activo boolean NOT NULL DEFAULT true`,
       );
     }
+  }
+
+  // Migración 008: correlatividades desde el módulo de ingreso.
+  const { rows: funciones } = await pool.query(
+    `SELECT to_regprocedure(
+              'public.correlativo_cumplido(integer, integer, integer, integer)'
+            ) IS NOT NULL AS existe`,
+  );
+  if (!funciones[0].existe) {
+    await pool.query(SQL_FUNCIONES_INGRESO);
+  }
+
+  // Migración 009: asignación de docentes por módulo.
+  const { rowCount: conModulo } = await pool.query(
+    `SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'docente_curso_materia'
+        AND column_name = 'modulo_id'`,
+  );
+  if (conModulo === 0) {
+    await pool.query(SQL_ASIGNACION_POR_MODULO);
   }
 };
 
