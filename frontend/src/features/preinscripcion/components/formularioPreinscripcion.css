@@ -112,3 +112,50 @@ main form label {
 .form-row .form-group {
   flex: 1;
 }
+
+/* Aviso: la preinscripción en línea todavía no está habilitada. */
+.nota-preinscripcion {
+  margin: 18px 0 0;
+  color: var(--color-texto);
+  font-size: 0.95rem;
+}
+
+.nota-preinscripcion a,
+.aviso-preinscripcion a:not(.btn-principal) {
+  color: var(--color-tercero);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.aviso-preinscripcion {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--color-tercero);
+  border-radius: 8px;
+  background-color: var(--color-tarjetas);
+  color: var(--color-texto);
+}
+
+.aviso-preinscripcion p {
+  margin: 0 0 10px;
+}
+
+.aviso-preinscripcion-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.aviso-preinscripcion-acciones .btn-principal {
+  text-decoration: none;
+}
+
+.btn-secundario-preinscripcion {
+  padding: 10px 18px;
+  border: 1px solid var(--color-texto);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-texto);
+  cursor: pointer;
+}
