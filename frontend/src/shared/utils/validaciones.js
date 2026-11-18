@@ -79,3 +79,6 @@ export function esNombreValido(valor) {
 
 export const MENSAJE_NOMBRE_INVALIDO =
   "Solo letras, espacios, apóstrofos o guiones (mínimo 2).";
+
+// Antigüedad máxima de docentes y preceptores (en años), igual que el backend.
+export const ANTIGUEDAD_MAXIMA = 35;
