@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router";
 import { getPlanilla, setAsistencia } from "../services/asistenciaServices.js";
+import { useAutoActualizar } from "../../../shared/hooks/useAutoActualizar";
 import { AsistenciaAlumnos } from "../components/AsistenciaAlumnos.jsx";
 import "../components/asistenciaAlumnos.css";
 
@@ -16,37 +17,62 @@ function hoy() {
 export function DivisionAsistenciaPage() {
   const { moduloId, division } = useParams();
   const [fecha, setFecha] = useState(hoy);
-  const [planilla, setPlanilla] = useState(null);
-  const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState(null);
   const [errorGuardar, setErrorGuardar] = useState(null);
+
+  // La planilla cargada queda asociada a su módulo, división y fecha: si
+  // alguno cambia, la pantalla muestra "Cargando..." hasta tener la nueva.
+  const clave = `${moduloId}|${division}|${fecha}`;
+  const [resultado, setResultado] = useState({
+    clave: null,
+    planilla: null,
+    error: null,
+  });
+  const cargando = resultado.clave !== clave;
+  const planilla = cargando ? null : resultado.planilla;
+  const error = cargando ? null : resultado.error;
+
+  // Cuenta los guardados: una actualización de fondo que empezó antes de un
+  // guardado trae datos viejos y se descarta.
+  const guardados = useRef(0);
 
   useEffect(() => {
     let activo = true;
-    setCargando(true);
-    setError(null);
-    setPlanilla(null);
-    setErrorGuardar(null);
+    const claveActual = `${moduloId}|${division}|${fecha}`;
 
     getPlanilla(moduloId, division, fecha)
       .then((datos) => {
         if (!Array.isArray(datos?.alumnos)) {
           throw new Error("El servidor devolvió una planilla inesperada.");
         }
-        if (activo) setPlanilla(datos);
+        if (activo) setResultado({ clave: claveActual, planilla: datos, error: null });
       })
       .catch((e) => {
-        if (activo) setError(e.message);
-      })
-      .finally(() => {
-        if (activo) setCargando(false);
+        if (activo) setResultado({ clave: claveActual, planilla: null, error: e.message });
       });
 
     return () => {
       activo = false;
     };
   }, [moduloId, division, fecha]);
+
+  // Lo que carga otro usuario (por ejemplo, el preceptor) aparece solo.
+  useAutoActualizar(
+    async () => {
+      const antes = guardados.current;
+      const datos = await getPlanilla(moduloId, division, fecha);
+      if (guardados.current !== antes || !Array.isArray(datos?.alumnos)) return;
+      setResultado((previo) =>
+        previo.clave === clave ? { ...previo, planilla: datos } : previo,
+      );
+    },
+    { activo: !cargando && !guardando },
+  );
+
+  function cambiarFecha(nuevaFecha) {
+    setErrorGuardar(null);
+    setFecha(nuevaFecha);
+  }
 
   const alumnos = (planilla?.alumnos ?? []).map((a) => ({
     ...a,
@@ -66,6 +92,7 @@ export function DivisionAsistenciaPage() {
 
     setGuardando(true);
     setErrorGuardar(null);
+    guardados.current += 1;
     try {
       await setAsistencia({
         id: alumno.asistenciaHoy?.id,
@@ -75,7 +102,7 @@ export function DivisionAsistenciaPage() {
       });
       // Recargar el resumen para mantener sincronizados los totales y el estado.
       const actualizada = await getPlanilla(moduloId, division, fecha);
-      setPlanilla(actualizada);
+      setResultado({ clave, planilla: actualizada, error: null });
     } catch (e) {
       setErrorGuardar(e.message);
     } finally {
@@ -106,7 +133,7 @@ export function DivisionAsistenciaPage() {
         <AsistenciaAlumnos
           alumnos={alumnos}
           fecha={fecha}
-          onCambiarFecha={setFecha}
+          onCambiarFecha={cambiarFecha}
           registrosDia={registrosDia}
           totales={totales}
           limite={LIMITE_FALTAS}
