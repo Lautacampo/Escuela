@@ -93,7 +93,12 @@ export const listarCursadas = async (alumnoIds) => {
     const { rows } = await pool.query(
         `
         SELECT cm.id, cm.alumno_id, cm.curso_id, cm.modulo_id, cm.condicion,
-               cm.cantidad_faltas_acumuladas, cm.estado_academico, cm.activa,
+               -- Total real de faltas (con medias faltas). La columna guarda
+               -- el total redondeado hacia arriba; se usa si no hay detalle.
+               COALESCE((SELECT SUM(a.valor_falta) FROM asistencia a
+                          WHERE a.cursada_modulo_id = cm.id),
+                        cm.cantidad_faltas_acumuladas)::float AS cantidad_faltas_acumuladas,
+               cm.estado_academico, cm.activa,
                cm.motivo_libre, m.periodo,
                m.numero_leyenda, c.anio_curso, c.division, cl.anio AS ciclo_anio
         FROM cursada_modulo cm
