@@ -146,7 +146,7 @@ export const obtenerGrilla = async (
   const docenteId = await resolverDocenteId(usuario);
   if (
     docenteId !== null &&
-    !(await repo.docenteTieneCurso(docenteId, curso.id))
+    !(await repo.docenteTieneCurso(docenteId, curso.id, moduloId))
   ) {
     throw new HttpError(403, "No tienes asignada esta división");
   }
@@ -225,6 +225,7 @@ export const actualizar = async (
       docenteId,
       materiaId,
       cursada.curso_id,
+      cursada.modulo_id,
     ))
   ) {
     throw new HttpError(403, "No puedes calificar esta materia");
