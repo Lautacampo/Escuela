@@ -41,6 +41,33 @@ const exigirFechaDeLaCursada = (fecha, cursada) => {
   }
 };
 
+// Meses en que se dicta cada período: I, III y V de marzo a julio; II, IV y VI
+// de agosto a diciembre.
+const MESES_DEL_PERIODO = {
+  1: { desde: 3, hasta: 7, texto: "de marzo a julio" },
+  2: { desde: 8, hasta: 12, texto: "de agosto a diciembre" },
+};
+
+// La asistencia se carga solo en días de clase del período del módulo: de
+// lunes a viernes y dentro de sus meses.
+const exigirDiaDeClase = (fecha, cursada) => {
+  const [anio, mes, dia] = fecha.split("-").map(Number);
+  const diaSemana = new Date(Date.UTC(anio, mes - 1, dia)).getUTCDay();
+  if (diaSemana === 0 || diaSemana === 6) {
+    throw new HttpError(400, "No se carga asistencia los sábados ni los domingos", {
+      campo: "fecha",
+    });
+  }
+  const periodo = MESES_DEL_PERIODO[cursada.periodo];
+  if (periodo && (mes < periodo.desde || mes > periodo.hasta)) {
+    throw new HttpError(
+      400,
+      `${cursada.modulo_nombre ?? "Este módulo"} se dicta ${periodo.texto}: la fecha tiene que estar en ese período`,
+      { campo: "fecha" },
+    );
+  }
+};
+
 // 0, 0.5 o 1 (como número o como texto numérico). null, true o "" no valen.
 const leerValorFalta = (valor) => {
   if (typeof valor === "number") return valor;
@@ -135,6 +162,10 @@ export const obtenerPlanilla = async (
     moduloId,
     division,
     fecha,
+    // Para que la planilla limite el calendario a los días de clase.
+    modulo: curso.modulo_nombre,
+    periodo: curso.periodo,
+    cicloLectivo: curso.ciclo_anio,
     alumnos: alumnos.map((a) => ({
       cursadaId: a.cursada_id,
       alumnoId: a.alumno_id,
@@ -205,6 +236,7 @@ export const registrar = async (
 
   exigirCursadaVigente(cursada);
   exigirFechaDeLaCursada(fecha, cursada);
+  exigirDiaDeClase(fecha, cursada);
 
   return repo.guardarAsistencia(cursadaModuloId, fecha, numValor);
 };
@@ -240,6 +272,10 @@ export const actualizar = async (usuario, id, { valorFalta, fecha }) => {
 
   exigirCursadaVigente(existente);
   exigirFechaDeLaCursada(fecha ?? existente.fecha_iso, existente);
+  // Al corregir solo el valor de una asistencia ya cargada no se revisa el día.
+  if (fecha !== undefined && fecha !== existente.fecha_iso) {
+    exigirDiaDeClase(fecha, existente);
+  }
 
   try {
     return await repo.actualizarAsistenciaPorId(
