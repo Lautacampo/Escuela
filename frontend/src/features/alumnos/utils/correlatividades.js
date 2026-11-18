@@ -32,6 +32,23 @@ function trayectoriaDe(alumno) {
   return Array.isArray(alumno?.trayectoria) ? alumno.trayectoria : [];
 }
 
+function compararOrdenModulos(a, b) {
+  const anioA = Number(a.anioCurso);
+  const anioB = Number(b.anioCurso);
+  const periodoA = Number(a.periodo);
+  const periodoB = Number(b.periodo);
+
+  if (
+    Number.isFinite(anioA) &&
+    Number.isFinite(anioB) &&
+    Number.isFinite(periodoA) &&
+    Number.isFinite(periodoB)
+  ) {
+    return anioA - anioB || periodoA - periodoB || Number(a.id) - Number(b.id);
+  }
+  return Number(a.id) - Number(b.id);
+}
+
 // Módulos aprobados en la escuela o reconocidos por equivalencia.
 export function modulosAcreditados(alumno) {
   const ids = new Set((alumno?.equivalencias ?? []).map((e) => e.moduloId));
@@ -56,9 +73,8 @@ export function ultimaCursada(alumno, moduloId) {
  * - recursa: quedó LIBRE en ese módulo; la matrícula crea la recursada.
  * - bloqueantes: correlativos que cursó en la escuela y todavía no aprobó.
  *     No admiten equivalencia: debe aprobarlos o recursarlos.
- * - porEquivalencia: correlativos que nunca cursó en la escuela. Solo puede
- *     matricularse si los acredita por equivalencia. Incluye la cadena
- *     completa (para Módulo V: I, II, III y IV).
+ * - porEquivalencia: módulos anteriores que nunca cursó en la escuela. Solo
+ *     puede matricularse si los acredita por equivalencia.
  */
 export function analizarMatricula(alumno, moduloId, catalogo) {
   const acreditados = modulosAcreditados(alumno);
@@ -67,32 +83,29 @@ export function analizarMatricula(alumno, moduloId, catalogo) {
 
   const bloqueantes = [];
   const porEquivalencia = [];
-  const visitados = new Set();
+  if (modulo) {
+    const modulosPrevios = Object.values(catalogo)
+      .filter((anterior) => compararOrdenModulos(anterior, modulo) < 0)
+      .sort(compararOrdenModulos);
 
-  const recorrer = (id) => {
-    for (const correlativo of catalogo[id]?.correlativos ?? []) {
-      if (visitados.has(correlativo.id) || acreditados.has(correlativo.id)) {
-        continue;
-      }
-      visitados.add(correlativo.id);
+    for (const anterior of modulosPrevios) {
+      if (acreditados.has(anterior.id)) continue;
 
-      const cursada = ultimaCursada(alumno, correlativo.id);
+      const cursada = ultimaCursada(alumno, anterior.id);
       if (cursada) {
         bloqueantes.push({
-          id: correlativo.id,
-          nombre: correlativo.numeroLeyenda,
+          id: anterior.id,
+          nombre: anterior.numeroLeyenda,
           libre: cursada.estadoAcademico === "A_RECURSAR",
         });
       } else {
         porEquivalencia.push({
-          id: correlativo.id,
-          nombre: correlativo.numeroLeyenda,
+          id: anterior.id,
+          nombre: anterior.numeroLeyenda,
         });
-        recorrer(correlativo.id);
       }
     }
-  };
-  if (modulo) recorrer(moduloId);
+  }
 
   const ordenar = (lista) => lista.sort((a, b) => a.id - b.id);
 
