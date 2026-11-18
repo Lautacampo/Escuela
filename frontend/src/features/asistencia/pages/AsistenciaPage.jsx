@@ -42,29 +42,41 @@ export function AsistenciaPage() {
   if (error)
     return <p role="alert">No se pudo cargar la asistencia: {error}</p>;
 
+  const gruposConAsignaciones = new Map(
+    grupos
+      .filter(
+        (grupo) =>
+          Array.isArray(grupo.modulos) &&
+          grupo.modulos.some(
+            (modulo) =>
+              Array.isArray(modulo.divisiones) && modulo.divisiones.length > 0,
+          ),
+      )
+      .map((grupo) => [Number(grupo.anio), grupo]),
+  );
+
   return (
     <section className="pagina-asistencia-modulos">
       <h2>Asistencia</h2>
-      {ANIOS.map(({ anio, titulo }) => {
-        // El backend devuelve [{ anio, modulos: [{ moduloId, nombre, divisiones }] }]
-        const grupo = grupos.find((item) => Number(item.anio) === anio);
-        const modulos = Array.isArray(grupo?.modulos) ? grupo.modulos : [];
-
-        return (
-          <div key={anio} className="anio-grupo">
-            <h3 className="anio-titulo">{titulo}</h3>
-            <div className="modulosdivision">
-              {modulos.length === 0 ? (
-                <p>No hay módulos o divisiones asignados para este año.</p>
-              ) : (
-                modulos.map((modulo) => (
+      {ANIOS.filter(({ anio }) => gruposConAsignaciones.has(anio)).map(
+        ({ anio, titulo }) => {
+          const grupo = gruposConAsignaciones.get(anio);
+          const modulos = grupo.modulos.filter(
+            (modulo) =>
+              Array.isArray(modulo.divisiones) && modulo.divisiones.length > 0,
+          );
+          return (
+            <div key={anio} className="anio-grupo">
+              <h3 className="anio-titulo">{titulo}</h3>
+              <div className="modulosdivision">
+                {modulos.map((modulo) => (
                   <AsistenciaTarjetas key={modulo.moduloId} modulo={modulo} />
-                ))
-              )}
+                ))}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        },
+      )}
     </section>
   );
 }
