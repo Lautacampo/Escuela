@@ -198,8 +198,6 @@ const traducirError = (err) => {
   if (err instanceof HttpError) return err;
   const duplicado = traducirUnicidadPersona(err);
   if (duplicado) return duplicado;
-  if (err.constraint === "equivalencia_modulo_alumno_modulo_uk")
-    return new HttpError(409, "Esa equivalencia ya está registrada");
   if (err.constraint === "cursada_modulo_abierta_uk")
     return new HttpError(409, "El alumno ya tiene una cursada abierta de ese módulo");
   if (err.constraint === "cursada_en_curso_unica")
@@ -217,7 +215,7 @@ const describirPendiente = (p) => {
   if (p.estado === "A_RECURSAR") return `${p.nombre} (quedó libre: debe recursarlo)`;
   if (p.estado === "EN_CURSO" || p.estado === "PENDIENTE")
     return `${p.nombre} (todavía sin aprobar)`;
-  return `${p.nombre} (sin cursar ni acreditar por equivalencia)`;
+  return `${p.nombre} (sin cursar)`;
 };
 
 /**
@@ -258,7 +256,7 @@ const analizarEvaluacion = (cursada, materias, correlativos) => {
 };
 
 /**
- * Arma la respuesta de alumnos con su trayectoria y equivalencias.
+ * Arma la respuesta de alumnos con su trayectoria y módulos acreditados.
  * Con `detalle` se agrega, por cursada, lo necesario para la ficha:
  * materias, correlativos pendientes y si admite una evaluación de módulo.
  */
@@ -268,7 +266,6 @@ const armar = async (filas, { detalle = false } = {}) => {
   const ids = filas.map((f) => f.id);
   const cursadas = await repo.listarCursadas(ids);
   const cursadaIds = cursadas.map((c) => c.id);
-  const equivalencias = await repo.listarEquivalencias(ids);
   const evaluaciones = cursadaIds.length
     ? await repo.listarEvaluaciones(cursadaIds)
     : [];
@@ -280,7 +277,9 @@ const armar = async (filas, { detalle = false } = {}) => {
     detalle && cursadaIds.length
       ? await repo.correlativosPendientesDeCursadas(cursadaIds)
       : [];
-  const idsModulos = await repo.listarIdsModulos();
+  const modulos = await repo.listarModulos();
+  const idsModulos = modulos.map((m) => m.id);
+  const ordenDe = new Map(modulos.map((m) => [m.id, m.orden]));
   const planes = await repo.listarPlanesDeAlumnos(ids);
 
   return filas.map((f) => {
@@ -302,6 +301,7 @@ const armar = async (filas, { detalle = false } = {}) => {
           motivoLibre: c.motivo_libre,
           descripcionMotivoLibre: DESCRIPCION_MOTIVO_LIBRE[c.motivo_libre] ?? null,
           activa: c.activa,
+          tieneDatos: c.tiene_datos,
           faltas: c.cantidad_faltas_acumuladas,
           evaluaciones: evaluaciones
             .filter((e) => e.cursada_modulo_id === c.id)
@@ -325,22 +325,36 @@ const armar = async (filas, { detalle = false } = {}) => {
         };
       });
 
-    const equivalenciasAlumno = equivalencias
-      .filter((e) => e.alumno_id === f.id)
-      .map((e) => ({
-        moduloId: e.modulo_id,
-        modulo: e.numero_leyenda,
-        fecha: e.fecha,
-        observacion: e.observacion,
+    // Módulo de ingreso: el primero (en orden) que cursó en la escuela. Los
+    // módulos anteriores no se le exigen (misma regla que la base, migración 008).
+    const ordenes = trayectoria
+      .map((c) => ordenDe.get(c.moduloId))
+      .filter((o) => o != null);
+    const ordenIngreso = ordenes.length > 0 ? Math.min(...ordenes) : null;
+    const moduloIngresoId =
+      ordenIngreso === null
+        ? null
+        : modulos.find((m) => m.orden === ordenIngreso)?.id ?? null;
+
+    // Módulos anteriores al de ingreso: se consideran aprobados por
+    // equivalencia (solo se informan; no hay que registrar nada).
+    const modulosPorEquivalencia = modulos
+      .filter((m) => ordenIngreso !== null && m.orden != null && m.orden < ordenIngreso)
+      .map((m) => ({
+        moduloId: m.id,
+        modulo: m.numero_leyenda,
+        anioCurso: m.anio_curso,
+        periodo: m.periodo,
+        periodoDictado: NOMBRE_PERIODO[m.periodo] ?? null,
       }));
 
-    // Módulos acreditados: aprobados en la escuela o reconocidos por equivalencia.
+    // Módulos acreditados: aprobados en la escuela o por equivalencia.
     const modulosAcreditados = [
       ...new Set([
         ...trayectoria
           .filter((c) => c.estadoAcademico === "APROBADO")
           .map((c) => c.moduloId),
-        ...equivalenciasAlumno.map((e) => e.moduloId),
+        ...modulosPorEquivalencia.map((m) => m.moduloId),
       ]),
     ].sort((a, b) => a - b);
 
@@ -407,8 +421,9 @@ const armar = async (filas, { detalle = false } = {}) => {
             }
           : null;
       })(),
+      moduloIngresoId,
       modulosAcreditados,
-      equivalencias: equivalenciasAlumno,
+      modulosPorEquivalencia,
       trayectoria,
     };
   });
@@ -422,7 +437,7 @@ const buscarOFallar = async (id) => {
 };
 
 // El legajo de un egresado es de solo lectura: no se modifica, no se da de
-// baja, no se matricula ni se le cambian equivalencias.
+// baja ni se matricula.
 const exigirNoEgresado = async (id) => {
   if (await repo.esEgresado(id)) {
     throw new HttpError(
@@ -465,6 +480,9 @@ export const crear = async (body) => {
 export const actualizar = async (id, body) => {
   const anterior = await buscarActivoOFallar(id);
   const datos = validar(body, anterior);
+  datos.emailCambia = !sinCambios(anterior, "email", datos.email, (valor) =>
+    String(valor ?? "").trim().toLowerCase(),
+  );
   try {
     await repo.actualizarAlumno(id, datos);
   } catch (err) {
@@ -498,7 +516,7 @@ export const reactivar = async (id) => {
   return obtener(id);
 };
 
-// Traduce las reglas de negocio de matrícula/equivalencias a errores HTTP.
+// Traduce las reglas de negocio de la matrícula a errores HTTP.
 const traducirRegla = (err, modulo = null) => {
   if (!(err instanceof ReglaNegocio)) return traducirError(err);
   const d = err.datos;
@@ -510,13 +528,8 @@ const traducirRegla = (err, modulo = null) => {
         409,
         "El alumno ya tiene una cursada activa. Editá su matrícula para cambiarla",
       );
-    case "MODULO_ACREDITADO":
-      return new HttpError(
-        409,
-        d.porEquivalencia
-          ? `El alumno ya tiene acreditado ${nombreModulo} por equivalencia`
-          : `El alumno ya aprobó ${nombreModulo}`,
-      );
+    case "MODULO_APROBADO":
+      return new HttpError(409, `El alumno ya aprobó ${nombreModulo}`);
     case "CORRELATIVAS_PENDIENTES": {
       const error = new HttpError(
         409,
@@ -524,62 +537,26 @@ const traducirRegla = (err, modulo = null) => {
           .map(describirPendiente)
           .join(" y ")}`,
       );
-      // El frontend usa este detalle para ofrecer el ingreso por equivalencia.
       error.detalle = {
         codigo: "CORRELATIVAS_PENDIENTES",
         pendientes: d.pendientes.map((p) => ({
           id: p.id,
           nombre: p.nombre,
           estado: p.estado,
-          admiteEquivalencia: p.estado === null,
         })),
       };
       return error;
     }
-    case "EQUIVALENCIA_MODULO_INEXISTENTE":
-      return new HttpError(400, "Alguno de los módulos de equivalencia no existe");
-    case "EQUIVALENCIA_CON_CURSADA":
-      return new HttpError(
-        409,
-        `No corresponde equivalencia para ${d.modulo}: el alumno ya lo cursó en la institución y debe aprobarlo o recursarlo`,
-      );
-    case "EQUIVALENCIA_SIN_CORRELATIVAS":
-      return new HttpError(
-        409,
-        `Para acreditar ${d.modulo} por equivalencia también deben estar acreditados ${d.pendientes
-          .map((p) => p.nombre)
-          .join(" y ")}`,
-      );
     default:
       return err;
   }
 };
 
-// Valida el pedido de equivalencias: lista de módulos + observación obligatoria.
-const validarEquivalencias = (equivalencias, observacion, { obligatorias }) => {
-  const lista = equivalencias ?? [];
-  if (!Array.isArray(lista) || !lista.every(Number.isInteger)) {
-    throw new HttpError(400, "Las equivalencias deben ser una lista de módulos");
-  }
-  const ids = [...new Set(lista)];
-  if (obligatorias && ids.length === 0) {
-    throw new HttpError(400, "Indicá al menos un módulo a acreditar por equivalencia");
-  }
-
-  // La observación (institución de origen, norma) es opcional. La columna es
-  // NOT NULL, así que sin dato se guarda vacía.
-  const texto = String(observacion ?? "").trim();
-  if (texto.length > 300) {
-    throw new HttpError(400, "La observación de la equivalencia admite hasta 300 caracteres");
-  }
-  return { ids, observacion: texto };
-};
-
 /**
  * Lógica común de POST y PUT /alumnos/:id/cursadas.
- * Las correlatividades se validan SIEMPRE, también en el alta: un alumno solo
- * puede empezar en un módulo avanzado si acredita los anteriores por
- * equivalencia (campo `equivalencias` + `observacionEquivalencia`).
+ * En la primera matrícula el alumno puede empezar en cualquier módulo (su
+ * módulo de ingreso). Después, las correlatividades se validan siempre, desde
+ * el módulo de ingreso en adelante.
  */
 const guardarMatricula = async (id, body, { soloAlta }) => {
   await buscarActivoOFallar(id);
@@ -596,18 +573,10 @@ const guardarMatricula = async (id, body, { soloAlta }) => {
     throw new HttpError(400, "El módulo no pertenece a ese curso");
   }
 
-  const equivalencias = validarEquivalencias(
-    body.equivalencias,
-    body.observacionEquivalencia,
-    { obligatorias: false },
-  );
-
   try {
     return await repo.guardarMatricula(id, {
       cursoId: idCurso,
       moduloId: idModulo,
-      equivalencias: equivalencias.ids,
-      observacion: equivalencias.observacion,
       soloAlta,
     });
   } catch (err) {
@@ -629,22 +598,6 @@ export const matricular = async (id, body = {}) => {
 export const actualizarCursada = async (id, body = {}) => {
   const resultado = await guardarMatricula(id, body, { soloAlta: false });
   return { ...(await obtener(id)), matricula: resultado.tipo };
-};
-
-/** POST /alumnos/:id/equivalencias */
-export const registrarEquivalencias = async (id, body = {}) => {
-  await buscarActivoOFallar(id);
-  const { ids, observacion } = validarEquivalencias(
-    body.modulosIds,
-    body.observacion,
-    { obligatorias: true },
-  );
-  try {
-    await repo.registrarEquivalencias(id, ids, observacion);
-  } catch (err) {
-    throw traducirRegla(err);
-  }
-  return obtener(id);
 };
 
 // Tipos de instancia definidos por la cátedra: la 1 es colegiada, la 4 es
