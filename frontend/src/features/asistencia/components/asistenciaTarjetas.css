@@ -37,6 +37,14 @@
 	line-height: 1.3;
 }
 
+/* Aviso "No hay módulos..." de un año sin asignaciones: sin esta regla toma
+   el color claro de "main p" (index.css, pensado para el sitio público). */
+.pagina-asistencia-modulos .modulosdivision > p {
+	grid-column: 1 / -1;
+	margin: 0;
+	color: #526176;
+}
+
 .pagina-asistencia-modulos .modulosdivision {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
