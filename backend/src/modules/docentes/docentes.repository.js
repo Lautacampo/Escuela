@@ -1,7 +1,7 @@
 import { pool } from "../../config/db.js";
 import { HttpError } from "../../utils/httpError.js";
 import {
-  desvincularUsuario,
+  eliminarUsuarioDePersona,
   sincronizarEmailUsuario,
   vincularOCrearUsuario,
 } from "../auth/auth.repository.js";
@@ -345,14 +345,15 @@ export const cambiarEstadoDocente = async (id, activo) => {
 };
 
 // Eliminación definitiva: solo para un docente que ya está inactivo (lo
-// controla el servicio). Borra sus asignaciones y sus datos personales.
+// controla el servicio). Borra sus asignaciones, sus datos personales y su
+// usuario de acceso.
 export const eliminarDocente = async (id) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    // 1. Su usuario queda sin vínculo y sin acceso al sistema
-    await desvincularUsuario(client, id);
+    // 1. Su usuario se borra: ese correo y esa contraseña ya no inician sesión
+    await eliminarUsuarioDePersona(client, id);
 
     // 2. Eliminar relaciones del docente y de su registro de personal
     await client.query("DELETE FROM docente_curso_materia WHERE docente_id = $1", [
