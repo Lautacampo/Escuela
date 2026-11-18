@@ -7,6 +7,8 @@ import {
   esTelefonoValido,
   limitarDigitos,
   normalizarCuil,
+  sinCambios,
+  soloDigitos,
 } from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
 import { exportarExcel } from "../../../shared/utils/exportarExcel.js";
@@ -14,6 +16,8 @@ import {
   borrarDocente as borrarDocenteApi,
   getDocentes,
   getModulos,
+  inactivarDocente as inactivarDocenteApi,
+  reactivarDocente as reactivarDocenteApi,
   setDocente,
 } from "../services/DocentesServices.js";
 
@@ -114,6 +118,8 @@ export function Docentes() {
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState("");
   const [errorOperacion, setErrorOperacion] = useState("");
+  // Id del docente con una baja, reactivación o eliminación en curso.
+  const [procesando, setProcesando] = useState(null);
 
   useEffect(() => {
     async function cargarDocentes() {
@@ -139,6 +145,7 @@ export function Docentes() {
     manejarCambio: cambiarFiltro,
     resetearFormulario: limpiarFiltros,
   } = useForm({
+    estado: "activos",
     curso: "",
     division: "",
     materia: "",
@@ -203,6 +210,9 @@ export function Docentes() {
   ];
 
   const docentesFiltrados = docentes.filter((docente) => {
+    if (filtros.estado === "activos" && !docente.activo) return false;
+    if (filtros.estado === "inactivos" && docente.activo) return false;
+
     const texto = normalizar(
       `${docente.apellido} ${docente.nombre} ${docente.dni} ${docente.especialidad}`,
     );
@@ -252,6 +262,7 @@ export function Docentes() {
           domicilio: docente.domicilio ?? "",
           telefono: String(docente.telefono ?? ""),
           email: docente.email ?? "",
+          estado: docente.activo ? "Activo" : "Inactivo",
 
           curso: asignacion?.curso ? `${asignacion.curso}º año` : "",
 
@@ -291,6 +302,7 @@ export function Docentes() {
         { titulo: "Domicilio", clave: "domicilio", ancho: 28 },
         { titulo: "Teléfono", clave: "telefono", ancho: 20 },
         { titulo: "Correo electrónico", clave: "email", ancho: 32 },
+        { titulo: "Estado", clave: "estado", ancho: 12 },
         { titulo: "Curso", clave: "curso", ancho: 15 },
         { titulo: "División", clave: "division", ancho: 12 },
         { titulo: "Materia", clave: "materia", ancho: 40 },
@@ -348,16 +360,28 @@ export function Docentes() {
   }
 
   // Cierra el modal con la tecla Escape (lo que antes hacía <dialog>).
+  // Se vuelve a registrar solo cuando cambia lo que usa cerrarFormulario.
   useEffect(() => {
     if (!mostrarFormulario) return undefined;
 
     function alPresionarTecla(evento) {
-      if (evento.key === "Escape") cerrarFormulario();
+      if (evento.key !== "Escape") return;
+      if (
+        hayCambios &&
+        !window.confirm("Hay cambios sin guardar. ¿Desea descartarlos?")
+      ) {
+        return;
+      }
+      setMostrarFormulario(false);
+      setEditando(null);
+      setValores(DOCENTE_INICIAL);
+      setErrores({});
+      setHayCambios(false);
     }
 
     document.addEventListener("keydown", alPresionarTecla);
     return () => document.removeEventListener("keydown", alPresionarTecla);
-  });
+  }, [mostrarFormulario, hayCambios]);
 
   function manejarCambio(evento) {
     const { name } = evento.target;
@@ -432,6 +456,12 @@ export function Docentes() {
     const nuevosErrores = {};
     const dni = limitarDigitos(valores.dni, 8);
     const antiguedad = Number(valores.antiguedad);
+    // Al editar, las reglas de formato se aplican solo a lo que cambia.
+    const original =
+      editando === null ? null : docentes.find((d) => d.id === editando);
+    const igual = (campo, valor, normalizar) =>
+      sinCambios(original, campo, valor, normalizar);
+    const mismoDni = igual("dni", dni, soloDigitos);
 
     if (!valores.nombre.trim()) {
       nuevosErrores.nombre = "Debe ingresar el nombre.";
@@ -447,13 +477,16 @@ export function Docentes() {
 
     if (!dni) {
       nuevosErrores.dni = "Debe ingresar el DNI.";
-    } else if (!esDniValido(dni)) {
+    } else if (!mismoDni && !esDniValido(dni)) {
       nuevosErrores.dni = "Debe ingresar un DNI de 7 u 8 números, sin puntos.";
     }
 
     if (!valores.cuil.trim()) {
       nuevosErrores.cuil = "Debe ingresar el CUIL.";
-    } else if (!esCuilValido(valores.cuil, dni)) {
+    } else if (
+      !(mismoDni && igual("cuil", valores.cuil, soloDigitos)) &&
+      !esCuilValido(valores.cuil, dni)
+    ) {
       nuevosErrores.cuil =
         "El CUIL debe tener 11 dígitos y corresponder al DNI.";
     }
@@ -483,7 +516,7 @@ export function Docentes() {
     if (!valores.email.trim()) {
       nuevosErrores.email = "Debe ingresar el correo electrónico.";
     } else if (
-      !esEmailValido(valores.email) ||
+      (!igual("email", valores.email) && !esEmailValido(valores.email)) ||
       valores.email.trim().length > 150
     ) {
       nuevosErrores.email =
@@ -491,7 +524,8 @@ export function Docentes() {
     }
 
     if (
-      !esTelefonoValido(valores.telefono) ||
+      (!igual("telefono", valores.telefono) &&
+        !esTelefonoValido(valores.telefono)) ||
       (valores.telefono && valores.telefono.length > 20)
     ) {
       nuevosErrores.telefono = "El teléfono debe tener entre 8 y 15 dígitos.";
@@ -590,24 +624,67 @@ export function Docentes() {
     }
   }
 
-  async function eliminarDocente(docente) {
-    const confirmar = window.confirm(
-      `¿Está seguro de eliminar al docente ${docente.apellido}, ${docente.nombre}?`,
+  // Reemplaza un docente del listado por su versión actualizada.
+  const actualizarEnListado = (actualizado) =>
+    setDocentes((anteriores) =>
+      anteriores.map((registro) =>
+        registro.id === actualizado.id ? actualizado : registro,
+      ),
     );
 
+  // Ejecuta una acción sobre un docente evitando el doble clic.
+  async function operar(docente, accion) {
+    try {
+      setProcesando(docente.id);
+      setErrorOperacion("");
+      setMensaje("");
+      await accion();
+    } catch (error) {
+      setErrorOperacion(error.message);
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  // Baja lógica: licencia o pedido particular. No se borra nada.
+  function darDeBajaDocente(docente) {
+    const confirmar = window.confirm(
+      `¿Dar de baja a ${docente.apellido}, ${docente.nombre}?\n\n` +
+        "Queda INACTIVO: no podrá iniciar sesión, pero se conservan sus datos y sus asignaciones. " +
+        "Podés reactivarlo cuando vuelva.",
+    );
     if (!confirmar) return;
 
-    try {
-      setErrorOperacion("");
+    return operar(docente, async () => {
+      actualizarEnListado(await inactivarDocenteApi(docente.id));
+      setMensaje(
+        `${docente.apellido}, ${docente.nombre} quedó inactivo. Lo encontrás en el filtro "Inactivos".`,
+      );
+    });
+  }
+
+  function reactivarDocente(docente) {
+    return operar(docente, async () => {
+      actualizarEnListado(await reactivarDocenteApi(docente.id));
+      setMensaje(`${docente.apellido}, ${docente.nombre} volvió a estar activo.`);
+    });
+  }
+
+  // Eliminación definitiva: solo para un docente inactivo.
+  function eliminarDocente(docente) {
+    const confirmar = window.confirm(
+      `¿Eliminar DEFINITIVAMENTE a ${docente.apellido}, ${docente.nombre}?\n\n` +
+        "Se borran sus datos, sus asignaciones y su usuario. Esta acción no se puede deshacer.",
+    );
+    if (!confirmar) return;
+
+    return operar(docente, async () => {
       await borrarDocenteApi(docente.id);
       setDocentes((anteriores) =>
         anteriores.filter((registro) => registro.id !== docente.id),
       );
-
-      setMensaje("Docente eliminado del listado.");
-    } catch (error) {
-      setErrorOperacion(error.message);
-    }
+      setMensaje("Docente eliminado definitivamente.");
+    });
   }
 
   if (cargando) return <p>Cargando docentes...</p>;
@@ -667,6 +744,21 @@ export function Docentes() {
         </div>
 
         <div className="barra-filtros">
+          <div className="form-group">
+            <label htmlFor="docente-filtro-estado">Estado</label>
+            <select
+              id="docente-filtro-estado"
+              name="estado"
+              value={filtros.estado}
+              onChange={cambiarFiltro}
+              className="input-gestion"
+            >
+              <option value="activos">Activos</option>
+              <option value="inactivos">Inactivos (dados de baja)</option>
+              <option value="todos">Todos</option>
+            </select>
+          </div>
+
           {filtrosSelect.map((filtro) => (
             <div className="form-group" key={filtro.nombre}>
               <label htmlFor={`docente-filtro-${filtro.nombre}`}>
@@ -727,11 +819,19 @@ export function Docentes() {
 
             <tbody>
               {docentesFiltrados.map((docente) => (
-                <tr key={docente.id}>
+                <tr
+                  key={docente.id}
+                  className={docente.activo ? undefined : "fila-inactiva"}
+                >
                   <td>
                     <strong>
                       {docente.apellido}, {docente.nombre}
                     </strong>
+                    {!docente.activo && (
+                      <span className="etiqueta-situacion inactivo">
+                        Inactivo
+                      </span>
+                    )}
                   </td>
 
                   <td>{formatearDNI(docente.dni)}</td>
@@ -764,25 +864,55 @@ export function Docentes() {
 
                   <td>
                     <div className="acciones-tabla">
-                      <button
-                        type="button"
-                        className="btn-accion btn-editar"
-                        onClick={() => abrirFormulario(docente)}
-                        aria-label={`Editar a ${docente.nombre} ${docente.apellido}`}
-                      >
-                        <i className="fa-solid fa-pen" aria-hidden="true" />
-                        Editar
-                      </button>
+                      {docente.activo ? (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-accion btn-editar"
+                            onClick={() => abrirFormulario(docente)}
+                            disabled={procesando === docente.id}
+                            aria-label={`Editar a ${docente.nombre} ${docente.apellido}`}
+                          >
+                            <i className="fa-solid fa-pen" aria-hidden="true" />
+                            Editar
+                          </button>
 
-                      <button
-                        type="button"
-                        className="btn-accion btn-eliminar"
-                        onClick={() => eliminarDocente(docente)}
-                        aria-label={`Eliminar a ${docente.nombre} ${docente.apellido}`}
-                      >
-                        <i className="fa-solid fa-trash" aria-hidden="true" />
-                        Eliminar
-                      </button>
+                          <button
+                            type="button"
+                            className="btn-accion btn-baja"
+                            onClick={() => darDeBajaDocente(docente)}
+                            disabled={procesando === docente.id}
+                            aria-label={`Dar de baja a ${docente.nombre} ${docente.apellido}`}
+                          >
+                            <i className="fa-solid fa-user-slash" aria-hidden="true" />
+                            Dar de baja
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-accion btn-reactivar"
+                            onClick={() => reactivarDocente(docente)}
+                            disabled={procesando === docente.id}
+                            aria-label={`Reactivar a ${docente.nombre} ${docente.apellido}`}
+                          >
+                            <i className="fa-solid fa-user-check" aria-hidden="true" />
+                            Reactivar
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn-accion btn-eliminar"
+                            onClick={() => eliminarDocente(docente)}
+                            disabled={procesando === docente.id}
+                            aria-label={`Eliminar definitivamente a ${docente.nombre} ${docente.apellido}`}
+                          >
+                            <i className="fa-solid fa-trash" aria-hidden="true" />
+                            Eliminar
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
