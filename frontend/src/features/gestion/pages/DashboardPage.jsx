@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAutoActualizar } from "../../../shared/hooks/useAutoActualizar";
 import { Link } from "react-router";
 
 import { useSesion } from "../../auth/context/SesionContext";
@@ -368,6 +369,15 @@ export function DashboardPage() {
       activo = false;
     };
   }, [cargador, rol]);
+
+  // Los indicadores se actualizan solos cada 30 segundos.
+  useAutoActualizar(
+    async () => {
+      setResumen(await cargador());
+      setError("");
+    },
+    { cada: 30000, activo: Boolean(cargador) && !cargando },
+  );
 
   const accesos = ACCESOS.filter((acceso) => acceso.roles.includes(rol));
   const saludo = usuario?.nombre ? `Hola, ${usuario.nombre}.` : "Bienvenido.";
