@@ -11,7 +11,7 @@ export async function getAlumnosEgresados() {
   return apiFetch("/alumnos?egresados=true");
 }
 
-// Ficha completa: trayectoria, equivalencias y, por cada cursada, sus
+// Ficha completa: trayectoria, módulo de ingreso y, por cada cursada, sus
 // materias y si admite una evaluación de módulo.
 export async function getAlumno(id) {
   return apiFetch(`/alumnos/${id}`);
@@ -40,40 +40,18 @@ export async function borrarAlumno(id) {
   await apiFetch(`/alumnos/${id}`, { method: "DELETE" });
 }
 
-// `ingreso` es opcional: { equivalencias: [idModulo...], observacion } para
-// un alumno que empieza en un módulo avanzado acreditando los anteriores.
-function cuerpoMatricula(idCurso, idModulo, ingreso) {
-  return JSON.stringify({
-    idCurso,
-    idModulo,
-    ...(ingreso?.equivalencias?.length
-      ? {
-          equivalencias: ingreso.equivalencias,
-          observacionEquivalencia: ingreso.observacion,
-        }
-      : {}),
-  });
-}
-
-// Primera matrícula del alumno.
-export async function matricularAlumno(idAlumno, idCurso, idModulo, ingreso) {
+// Primera matrícula del alumno: puede ser en cualquier módulo (su ingreso).
+export async function matricularAlumno(idAlumno, idCurso, idModulo) {
   return apiFetch(`/alumnos/${idAlumno}/cursadas`, {
     method: "POST",
-    body: cuerpoMatricula(idCurso, idModulo, ingreso),
+    body: JSON.stringify({ idCurso, idModulo }),
   });
 }
 
 // Cambio de curso, división o módulo. También inscribe para recursar.
-export async function actualizarMatricula(idAlumno, idCurso, idModulo, ingreso) {
+export async function actualizarMatricula(idAlumno, idCurso, idModulo) {
   return apiFetch(`/alumnos/${idAlumno}/cursadas`, {
     method: "PUT",
-    body: cuerpoMatricula(idCurso, idModulo, ingreso),
-  });
-}
-
-export async function registrarEquivalencias(idAlumno, modulosIds, observacion) {
-  return apiFetch(`/alumnos/${idAlumno}/equivalencias`, {
-    method: "POST",
-    body: JSON.stringify({ modulosIds, observacion }),
+    body: JSON.stringify({ idCurso, idModulo }),
   });
 }
