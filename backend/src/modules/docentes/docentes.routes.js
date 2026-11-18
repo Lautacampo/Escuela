@@ -13,6 +13,9 @@ router.get("/", controller.listar);
 router.get("/:id", controller.obtenerPorId);
 router.post("/", controller.crear);
 router.put("/:id", controller.actualizar);
+router.patch("/:id/inactivar", controller.inactivar);
+router.patch("/:id/reactivar", controller.reactivar);
+// Eliminación definitiva: solo para un docente inactivo.
 router.delete("/:id", controller.eliminar);
 
 export default router;
