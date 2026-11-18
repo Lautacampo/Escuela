@@ -1047,7 +1047,7 @@ export function FichaAlumno() {
           </p>
         ) : (
           <div className="tabla-responsive">
-            <table className="tabla-gestion">
+            <table className="tabla-gestion tabla-tarjetas">
               <thead>
                 <tr>
                   <th>Módulo</th>
@@ -1058,11 +1058,11 @@ export function FichaAlumno() {
               <tbody>
                 {equivalencias.map((item) => (
                   <tr key={item.moduloId}>
-                    <td>
+                    <td data-label="Módulo">
                       <strong>{item.modulo}</strong>
                     </td>
-                    <td>{formatearFecha(item.fecha)}</td>
-                    <td>{item.observacion || "—"}</td>
+                    <td data-label="Fecha de registro">{formatearFecha(item.fecha)}</td>
+                    <td data-label="Observación">{item.observacion || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1145,7 +1145,7 @@ export function FichaAlumno() {
         </div>
 
         <div className="tabla-responsive">
-          <table className="tabla-gestion tabla-asistencia">
+          <table className="tabla-gestion tabla-asistencia tabla-tarjetas">
             <thead>
               <tr>
                 <th>Módulo</th>
@@ -1163,15 +1163,15 @@ export function FichaAlumno() {
               ) : (
                 datosAcademicos.map((modulo) => (
                   <tr key={modulo.id}>
-                    <td>
+                    <td data-label="Módulo">
                       <strong>{modulo.modulo}</strong>
                     </td>
 
-                    <td>{modulo.faltas ?? "-"}</td>
+                    <td data-label="Faltas">{modulo.faltas ?? "-"}</td>
 
-                    <td>25</td>
+                    <td data-label="Límite">25</td>
 
-                    <td>
+                    <td data-label="Por asistencia">
                       {/* Acá solo se informa la situación por asistencia. */}
                       <span
                         className={
