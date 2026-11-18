@@ -7,8 +7,16 @@ import { HttpError } from "../../utils/httpError.js";
 const SALT_ROUNDS = 10;
 const ROLES_VALIDOS = ["directivo", "docente", "preceptor"];
 
+// Usuario que quedó de un docente o preceptor eliminado con una versión
+// anterior (sin persona y dado de baja): para el login es como si no existiera.
+const esUsuarioEliminado = (usuario) =>
+  !usuario.activo &&
+  usuario.persona_id === null &&
+  (usuario.rol === "docente" || usuario.rol === "preceptor");
+
 export const autenticar = async (email, password) => {
-  const usuario = await authRepository.buscarPorEmail(email);
+  const encontrado = await authRepository.buscarPorEmail(email);
+  const usuario = encontrado && !esUsuarioEliminado(encontrado) ? encontrado : null;
   const coincide = usuario && (await bcrypt.compare(password, usuario.contrahash));
 
   if (!coincide) throw new HttpError(401,"Credenciales inválidas");
@@ -40,6 +48,8 @@ export const registrar = async ({ nombre, apellido, email, password, rol }) => {
     throw new HttpError(400,"La contraseña debe tener al menos 4 caracteres");
   }
 
+  // El correo de un docente o preceptor eliminado queda libre.
+  await authRepository.liberarUsuarioEliminado(String(email ?? "").trim());
   if (await authRepository.buscarPorEmail(String(email ?? "").trim())) {
     throw new HttpError(409, "Ese correo ya pertenece a otro usuario del sistema");
   }
