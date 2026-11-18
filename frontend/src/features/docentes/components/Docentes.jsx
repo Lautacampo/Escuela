@@ -9,6 +9,8 @@ import {
   normalizarCuil,
   sinCambios,
   soloDigitos,
+  esNombreValido,
+  MENSAJE_NOMBRE_INVALIDO,
 } from "../../../shared/utils/validaciones";
 import { capitalizarNombre, formatearDNI } from "../../../shared/utils/formato";
 import { exportarExcel } from "../../../shared/utils/exportarExcel.js";
@@ -104,6 +106,19 @@ function cursoDeModulo(moduloId) {
   if (!Number.isInteger(numero) || numero <= 0) return "";
 
   return String(Math.ceil(numero / 2));
+}
+
+// La asignación se guarda por curso: los dos módulos del año vienen como dos
+// filas iguales (misma materia, curso y división). En la tabla se muestra una.
+function asignacionesPorCurso(asignaciones) {
+  const vistas = new Set();
+
+  return asignaciones.filter((asignacion) => {
+    const clave = `${asignacion.materia}|${cursoDeModulo(asignacion.moduloId)}|${asignacion.division}`;
+    if (vistas.has(clave)) return false;
+    vistas.add(clave);
+    return true;
+  });
 }
 
 export function Docentes() {
@@ -467,12 +482,16 @@ export function Docentes() {
       nuevosErrores.nombre = "Debe ingresar el nombre.";
     } else if (valores.nombre.trim().length > 100) {
       nuevosErrores.nombre = "No puede superar los 100 caracteres.";
+    } else if (!igual("nombre", valores.nombre) && !esNombreValido(valores.nombre)) {
+      nuevosErrores.nombre = MENSAJE_NOMBRE_INVALIDO;
     }
 
     if (!valores.apellido.trim()) {
       nuevosErrores.apellido = "Debe ingresar el apellido.";
     } else if (valores.apellido.trim().length > 100) {
       nuevosErrores.apellido = "No puede superar los 100 caracteres.";
+    } else if (!igual("apellido", valores.apellido) && !esNombreValido(valores.apellido)) {
+      nuevosErrores.apellido = MENSAJE_NOMBRE_INVALIDO;
     }
 
     if (!dni) {
@@ -806,7 +825,7 @@ export function Docentes() {
         </div>
 
         <div className="tabla-responsive">
-          <table className="tabla-gestion tabla-listado-personas personal-tabla">
+          <table className="tabla-gestion tabla-tarjetas personal-tabla">
             <thead>
               <tr>
                 <th>Apellido y nombre</th>
@@ -823,7 +842,7 @@ export function Docentes() {
                   key={docente.id}
                   className={docente.activo ? undefined : "fila-inactiva"}
                 >
-                  <td>
+                  <td data-label="Apellido y nombre">
                     <strong>
                       {docente.apellido}, {docente.nombre}
                     </strong>
@@ -834,21 +853,21 @@ export function Docentes() {
                     )}
                   </td>
 
-                  <td>{formatearDNI(docente.dni)}</td>
+                  <td data-label="DNI">{formatearDNI(docente.dni)}</td>
 
-                  <td>{docente.especialidad}</td>
+                  <td data-label="Especialidad">{docente.especialidad}</td>
 
-                  <td>
+                  <td data-label="Materias, cursos y divisiones">
                     <div className="personal-asignaciones">
                       {(docente.asignaciones ?? []).length === 0
                         ? "Sin asignaciones"
-                        : docente.asignaciones.map((asignacion) => {
+                        : asignacionesPorCurso(docente.asignaciones).map((asignacion) => {
                             const curso = cursoDeModulo(asignacion.moduloId);
 
                             return (
                               <div
                                 className="personal-asignacion"
-                                key={`${asignacion.materia}-${asignacion.moduloId}-${asignacion.division}`}
+                                key={`${asignacion.materia}-${curso}-${asignacion.division}`}
                               >
                                 <strong>{asignacion.materia} · </strong>
                                 <span>
@@ -862,7 +881,7 @@ export function Docentes() {
                     </div>
                   </td>
 
-                  <td>
+                  <td data-label="Acciones">
                     <div className="acciones-tabla">
                       {docente.activo ? (
                         <>
