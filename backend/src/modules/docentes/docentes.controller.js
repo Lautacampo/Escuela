@@ -49,7 +49,25 @@ export const actualizar = async (req, res, next) => {
   }
 };
 
-// DELETE /api/docentes/:id
+// PATCH /api/docentes/:id/inactivar
+export const inactivar = async (req, res, next) => {
+  try {
+    res.json(await service.inactivar(Number(req.params.id)));
+  } catch (err) {
+    next(err);
+  }
+};
+
+// PATCH /api/docentes/:id/reactivar
+export const reactivar = async (req, res, next) => {
+  try {
+    res.json(await service.reactivar(Number(req.params.id)));
+  } catch (err) {
+    next(err);
+  }
+};
+
+// DELETE /api/docentes/:id (definitivo; el docente debe estar inactivo)
 export const eliminar = async (req, res, next) => {
   try {
     const id = Number(req.params.id);
