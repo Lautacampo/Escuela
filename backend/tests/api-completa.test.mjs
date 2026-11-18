@@ -444,7 +444,9 @@ test("CALIFICACIONES 2. Guardar y corregir el estado de una materia", async () =
   const grilla = await espera(200, "GET", `/calificaciones/modulos/${M.I}/divisiones/A?anio=${CICLO}`);
   assert.equal(grilla.alumnos.find((x) => x.cursadaId === a.cursada.idCursada).calificaciones[materia.id], "En Curso");
 
-  await espera(400, "PUT", "/calificaciones", { ...base, estado: "aprobado" });
+  // El estado no distingue mayúsculas: "aprobado" se guarda como "Aprobado".
+  assert.equal((await espera(200, "PUT", "/calificaciones", { ...base, estado: "aprobado" })).estado, "Aprobado");
+  await espera(200, "PUT", "/calificaciones", { ...base, estado: "En Curso" });
   await espera(400, "PUT", "/calificaciones", { ...base, estado: "Promocionado" });
   await espera(400, "PUT", "/calificaciones", { ...base, estado: "Aprobado", anio: undefined });
   await espera(400, "PUT", "/calificaciones", { ...base, estado: "Aprobado", cursadaModuloId: "1" });
@@ -919,8 +921,9 @@ test("REPORTES 1. Inasistencias: solo alumnos LIBRES por faltas, filtros y datos
     await espera(200, "PUT", "/calificaciones", { cursadaModuloId: aprobado.cursada.idCursada, materiaId: m.id, estado: "Aprobado", anio: CICLO });
   }
   await espera(201, "POST", "/alumnos/evaluaciones-modulo", { idCursadaModulo: aprobado.cursada.idCursada, fecha: `${CICLO}-06-20`, nota: 9, nroInstancia: 1 });
-  for (let dia = 1; dia <= 27; dia++) {
-    await espera(201, "POST", "/asistencias", { cursadaModuloId: aprobado.cursada.idCursada, fecha: `${CICLO}-${dia <= 14 ? "08" : "09"}-${String(dia <= 14 ? dia : dia - 14).padStart(2, "0")}`, valorFalta: 1 });
+  // Con el módulo aprobado ya no se le cargan faltas (409).
+  for (let dia = 1; dia <= 2; dia++) {
+    await espera(409, "POST", "/asistencias", { cursadaModuloId: aprobado.cursada.idCursada, fecha: `${CICLO}-${dia <= 14 ? "08" : "09"}-${String(dia <= 14 ? dia : dia - 14).padStart(2, "0")}`, valorFalta: 1 });
   }
   assert.equal(await enReporte(aprobado.id), false, "Módulo aprobado: no figura");
 
