@@ -3,7 +3,7 @@
  * asistencias, calificaciones, docentes, preceptores, plan de estudios y
  * reportes, incluyendo permisos por rol y datos inválidos.
  *
- * Las reglas de correlatividades / LIBRE / equivalencias tienen su propia
+ * Las reglas de correlatividades / LIBRE / módulo de ingreso tienen su propia
  * suite en reglas-academicas.test.mjs.
  *
  * Requisitos: base LOCAL creada con database/schema.sql (usuarios de ejemplo
@@ -110,6 +110,20 @@ function cursoDe(moduloId, division = "A") {
 }
 
 // Alumno matriculado en un módulo de 1.er año; devuelve su ficha.
+// Días de clase (lunes a viernes) hasta hoy: período 1 de marzo a julio,
+// período 2 de agosto a diciembre.
+const HOY_AR = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }).format(new Date());
+function diasDeClase(periodo = 1) {
+  const [desde, hasta] = periodo === 2 ? [8, 12] : [3, 7];
+  const dias = [];
+  for (let d = new Date(Date.UTC(CICLO, desde - 1, 1)); d.getUTCMonth() <= hasta - 1 && d.getUTCFullYear() === CICLO; d.setUTCDate(d.getUTCDate() + 1)) {
+    const fecha = d.toISOString().slice(0, 10);
+    if (fecha > HOY_AR) break;
+    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) dias.push(fecha);
+  }
+  return dias;
+}
+
 async function alumnoMatriculado(moduloId = M.I, division = "A") {
   const alumno = await espera(201, "POST", "/alumnos", datosAlumno());
   await espera(201, "POST", `/alumnos/${alumno.id}/cursadas`, {
@@ -387,7 +401,7 @@ test("ASISTENCIAS 4. El preceptor solo opera en sus cursos; el docente no entra"
   const enAjena = await alumnoMatriculado(Number(ajena[0]) <= M.II ? Number(ajena[0]) : M.I, Number(ajena[0]) <= M.II ? ajena[1] : "A");
   const cursoAjeno = !propias.includes(`${enAjena.cursada.moduloId}-${enAjena.cursada.division.trim()}`);
   if (cursoAjeno) {
-    const cuerpo = { cursadaModuloId: enAjena.cursada.idCursada, fecha: `${CICLO}-05-20`, valorFalta: 1 };
+    const cuerpo = { cursadaModuloId: enAjena.cursada.idCursada, fecha: enAjena.cursada.periodo === 2 ? `${CICLO}-08-19` : `${CICLO}-05-20`, valorFalta: 1 };
     await espera(403, "POST", "/asistencias", cuerpo, T.preceptor);
     const reg = await espera(201, "POST", "/asistencias", cuerpo);
     await espera(403, "PUT", `/asistencias/${reg.id}`, { valorFalta: 0 }, T.preceptor);
@@ -898,10 +912,11 @@ test("REPORTES 1. Inasistencias: solo alumnos LIBRES por faltas, filtros y datos
   const enReporte = async (id = a.id) =>
     (await espera(200, "GET", "/reportes/inasistencias")).alertas.some((x) => x.alumnoId === id);
   let ultima;
+  const dias = diasDeClase(1);
   for (let dia = 1; dia <= 26; dia++) {
     ultima = await espera(201, "POST", "/asistencias", {
       cursadaModuloId: a.cursada.idCursada,
-      fecha: `${CICLO}-${dia <= 13 ? "03" : "04"}-${String(dia <= 13 ? dia : dia - 13).padStart(2, "0")}`,
+      fecha: dias[dia - 1],
       valorFalta: 1,
     });
     // Con 25 faltas justas sigue regular: todavía no figura.
@@ -960,6 +975,22 @@ test("REPORTES 1. Inasistencias: solo alumnos LIBRES por faltas, filtros y datos
   await espera(400, "GET", "/reportes/inasistencias?minFaltas=muchas");
   await espera(400, "GET", "/reportes/inasistencias?minFaltas=-1");
   await espera(400, "GET", "/reportes/inasistencias?curso=abc");
+  await espera(400, "GET", "/reportes/inasistencias?situacion=todos");
+
+  // Riesgo (tarjeta del panel): regulares con 20 faltas o más. El de 26 ya es
+  // libre y no figura; uno con 20 faltas sí.
+  const riesgo = await espera(200, "GET", `/reportes/inasistencias?anio=${CICLO}&situacion=riesgo`);
+  assert.equal(riesgo.umbralRiesgo, 20);
+  assert.ok(!riesgo.alertas.some((x) => x.alumnoId === a.id), "El libre no está en riesgo");
+  assert.ok(riesgo.alertas.every((x) => x.condicion === "REGULAR" && x.faltas >= 20));
+  const cerca = await alumnoMatriculado(M.I, "D");
+  const diasCerca = diasDeClase(1).filter((f) => f >= `${CICLO}-05-01`);
+  for (let dia = 1; dia <= 20; dia++) {
+    await espera(201, "POST", "/asistencias", { cursadaModuloId: cerca.cursada.idCursada, fecha: diasCerca[dia - 1], valorFalta: 1 });
+  }
+  const conCerca = await espera(200, "GET", `/reportes/inasistencias?anio=${CICLO}&situacion=riesgo`);
+  assert.ok(conCerca.alertas.some((x) => x.alumnoId === cerca.id && x.faltas === 20), "Con 20 faltas está en riesgo");
+  assert.equal(await enReporte(cerca.id), false, "Con 20 faltas no es libre");
 
   // Un alumno dado de baja no figura en el reporte.
   await espera(204, "DELETE", `/alumnos/${a.id}`);
