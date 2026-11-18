@@ -9,6 +9,8 @@ import {
   normalizarCuil,
   sinCambios,
   soloDigitos,
+  esNombreValido,
+  MENSAJE_NOMBRE_INVALIDO,
 } from "../../../shared/utils/validaciones";
 import { capitalizarNombre } from "../../../shared/utils/formato";
 import { ListadoAlumnos } from "./ListadoAlumnos";
@@ -709,6 +711,15 @@ export function Alumnos() {
     ]) {
       if (String(valores[campo] ?? "").trim().length > maximo) {
         nuevosErrores[campo] = `No puede superar los ${maximo} caracteres.`;
+      }
+    }
+    for (const campo of ["nombre", "apellido"]) {
+      if (
+        !nuevosErrores[campo] &&
+        !igual(campo, valores[campo]) &&
+        !esNombreValido(valores[campo])
+      ) {
+        nuevosErrores[campo] = MENSAJE_NOMBRE_INVALIDO;
       }
     }
 
