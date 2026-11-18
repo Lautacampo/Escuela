@@ -3,20 +3,25 @@ import { useParams, Link } from "react-router";
 import { getPlanilla, setAsistencia } from "../services/asistenciaServices.js";
 import { useAutoActualizar } from "../../../shared/hooks/useAutoActualizar";
 import { AsistenciaAlumnos } from "../components/AsistenciaAlumnos.jsx";
+import {
+  fechaDeHoy,
+  motivoFechaSinClase,
+  rangoDeClases,
+  ultimoDiaDeClase,
+} from "../utils/diasDeClase.js";
 import "../components/asistenciaAlumnos.css";
 
 const LIMITE_FALTAS = 25;
 
-function hoy() {
-  const fecha = new Date();
-  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
-  const dia = String(fecha.getDate()).padStart(2, "0");
-  return `${fecha.getFullYear()}-${mes}-${dia}`;
-}
-
 export function DivisionAsistenciaPage() {
   const { moduloId, division } = useParams();
-  const [fecha, setFecha] = useState(hoy);
+  const [fecha, setFecha] = useState(() => fechaDeHoy());
+  // Período y ciclo del módulo (llegan con la planilla). Sirven para limitar
+  // el calendario a los días de clase.
+  const [infoModulo, setInfoModulo] = useState({});
+  // La primera vez, si hoy no es día de clase del módulo (por ejemplo, el
+  // Módulo I en noviembre), la planilla se abre en el último día de clase.
+  const fechaAjustada = useRef(false);
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState(null);
 
@@ -45,7 +50,24 @@ export function DivisionAsistenciaPage() {
         if (!Array.isArray(datos?.alumnos)) {
           throw new Error("El servidor devolvió una planilla inesperada.");
         }
-        if (activo) setResultado({ clave: claveActual, planilla: datos, error: null });
+        if (!activo) return;
+        const info = {
+          periodo: datos.periodo,
+          anio: datos.cicloLectivo,
+          modulo: datos.modulo,
+        };
+        setInfoModulo(info);
+        if (!fechaAjustada.current) {
+          fechaAjustada.current = true;
+          const sugerida = motivoFechaSinClase(fecha, info)
+            ? ultimoDiaDeClase(info.periodo, info.anio)
+            : null;
+          if (sugerida && sugerida !== fecha) {
+            setFecha(sugerida);
+            return;
+          }
+        }
+        setResultado({ clave: claveActual, planilla: datos, error: null });
       })
       .catch((e) => {
         if (activo) setResultado({ clave: claveActual, planilla: null, error: e.message });
@@ -74,6 +96,11 @@ export function DivisionAsistenciaPage() {
     setFecha(nuevaFecha);
   }
 
+  // Día sin clase (fin de semana, fuera del período o futuro): se puede ver
+  // la planilla, pero no cargar asistencia.
+  const motivoSinClase = motivoFechaSinClase(fecha, infoModulo);
+  const rango = rangoDeClases(infoModulo.periodo, infoModulo.anio);
+
   const alumnos = (planilla?.alumnos ?? []).map((a) => ({
     ...a,
     id: a.alumnoId,
@@ -88,7 +115,7 @@ export function DivisionAsistenciaPage() {
   async function cambiarFalta(alumnoId, valor) {
     if (guardando) return;
     const alumno = alumnos.find((a) => Number(a.id) === Number(alumnoId));
-    if (!alumno) return;
+    if (!alumno || motivoSinClase) return;
 
     setGuardando(true);
     setErrorGuardar(null);
@@ -116,8 +143,14 @@ export function DivisionAsistenciaPage() {
         <span aria-hidden="true">←</span> Volver
       </Link>
       <h2>
-        Módulo {moduloId} - División {division}
+        {infoModulo.modulo ?? `Módulo ${moduloId}`} - División {division}
       </h2>
+      {motivoSinClase && !cargando && (
+        <p className="aviso-asistencia" role="status">
+          {motivoSinClase} Elegí un día de clase (de lunes a viernes) para cargar
+          la asistencia.
+        </p>
+      )}
       {errorGuardar && (
         <p className="error-asistencia" role="alert">
           {errorGuardar}
@@ -133,6 +166,9 @@ export function DivisionAsistenciaPage() {
         <AsistenciaAlumnos
           alumnos={alumnos}
           fecha={fecha}
+          fechaMinima={rango.min}
+          fechaMaxima={rango.max}
+          bloqueado={Boolean(motivoSinClase)}
           onCambiarFecha={cambiarFecha}
           registrosDia={registrosDia}
           totales={totales}
