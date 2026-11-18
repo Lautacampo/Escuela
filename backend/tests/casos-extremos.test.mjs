@@ -87,7 +87,7 @@ const rutas = [
   ["GET", "/alumnos", ["directivo"]], ["GET", "/alumnos/99999999", ["directivo"]], ["POST", "/alumnos", ["directivo"]],
   ["PUT", "/alumnos/99999999", ["directivo"]], ["DELETE", "/alumnos/99999999", ["directivo"]], ["PATCH", "/alumnos/99999999/reactivar", ["directivo"]],
   ["POST", "/alumnos/99999999/cursadas", ["directivo"]], ["PUT", "/alumnos/99999999/cursadas", ["directivo"]],
-  ["POST", "/alumnos/99999999/equivalencias", ["directivo"]], ["POST", "/alumnos/evaluaciones-modulo", ["directivo"]],
+  ["POST", "/alumnos/evaluaciones-modulo", ["directivo"]],
   ["GET", "/asistencias/modulos", ["directivo", "preceptor"]], ["GET", "/asistencias/modulos/1/divisiones", ["directivo", "preceptor"]],
   ["GET", "/asistencias/modulos/5/divisiones/B?fecha=2026-05-05", ["directivo", "preceptor"]], ["GET", "/asistencias", ["directivo", "preceptor"]],
   ["POST", "/asistencias", ["directivo", "preceptor"]], ["PUT", "/asistencias/99999999", ["directivo", "preceptor"]], ["DELETE", "/asistencias/99999999", ["directivo", "preceptor"]],
@@ -101,7 +101,7 @@ const rutas = [
   ["PUT", "/preceptores/99999999", ["directivo"]], ["PUT", "/preceptores/99999999/cursos", ["directivo"]], ["PATCH", "/preceptores/99999999/inactivar", ["directivo"]], ["DELETE", "/preceptores/99999999", ["directivo"]],
   ["GET", "/plan-estudio/actual", ["directivo"]], ["POST", "/plan-estudio", ["directivo"]], ["DELETE", "/plan-estudio/99999999", ["directivo"]], ["PATCH", "/plan-estudio/99999999/reactivar", ["directivo"]],
   ["GET", "/materias", ["directivo"]], ["POST", "/materias", ["directivo"]], ["GET", "/ciclo-lectivo", ["directivo"]], ["POST", "/ciclo-lectivo", ["directivo"]],
-  ["GET", "/reportes/inasistencias", ["directivo"]], ["GET", "/reportes/desaprobaciones", ["directivo"]],
+  ["GET", "/reportes/inasistencias", ["directivo"]], ["GET", "/reportes/inasistencias?situacion=riesgo", ["directivo"]], ["GET", "/reportes/desaprobaciones", ["directivo"]],
   ["POST", "/auth/registro", ["directivo"]], ["GET", "/auth/perfil", ["directivo", "docente", "preceptor"]],
 ];
 for (const [m, r, permitidos] of rutas) {
@@ -116,7 +116,7 @@ for (const [m, r, permitidos] of rutas) {
 
 // ==================================================== 2. IDS RAROS
 const idsRaros = ["0", "-1", "1.5", "abc", "99999999999", "1e3", "%20", "2147483648", "null", "1;DROP TABLE alumno"];
-const conId = [["GET", "/alumnos/:id"], ["PUT", "/alumnos/:id"], ["DELETE", "/alumnos/:id"], ["PATCH", "/alumnos/:id/reactivar"], ["POST", "/alumnos/:id/cursadas"], ["POST", "/alumnos/:id/equivalencias"],
+const conId = [["GET", "/alumnos/:id"], ["PUT", "/alumnos/:id"], ["DELETE", "/alumnos/:id"], ["PATCH", "/alumnos/:id/reactivar"], ["POST", "/alumnos/:id/cursadas"],
   ["GET", "/docentes/:id"], ["PUT", "/docentes/:id"], ["PATCH", "/docentes/:id/inactivar"], ["DELETE", "/docentes/:id"],
   ["GET", "/preceptores/:id"], ["PUT", "/preceptores/:id/cursos"], ["PATCH", "/preceptores/:id/reactivar"], ["DELETE", "/preceptores/:id"],
   ["PUT", "/asistencias/:id"], ["DELETE", "/asistencias/:id"], ["DELETE", "/plan-estudio/:id"], ["PATCH", "/plan-estudio/:id/reactivar"],
@@ -127,7 +127,7 @@ for (const [m, plantilla] of conId) {
     check("IDs raros", `${m} ${plantilla} con "${id}"`, [400, 404].includes(r.s), `-> ${r.s} ${JSON.stringify(r.b).slice(0, 100)}`);
   }
 }
-for (const q of ["/asistencias?cursadaModuloId=abc", "/asistencias?cursadaModuloId=99999999999", "/asistencias?fecha=2026-02-30", "/reportes/inasistencias?anio=abc", "/reportes/inasistencias?moduloId=99999999999", "/reportes/inasistencias?minFaltas=-5", "/reportes/desaprobaciones?anio=1800", "/calificaciones/modulos/1/divisiones/A?anio=99999999999", "/calificaciones/resumen?anio=abc", "/alumnos?incluirInactivos=quizas", "/docentes?estado=%27%20OR%201%3D1", "/asistencias/modulos/1/divisiones/ZZZ?fecha=2026-05-05", "/asistencias/modulos/1/divisiones/A?fecha=hoy"]) {
+for (const q of ["/asistencias?cursadaModuloId=abc", "/asistencias?cursadaModuloId=99999999999", "/asistencias?fecha=2026-02-30", "/reportes/inasistencias?anio=abc", "/reportes/inasistencias?moduloId=99999999999", "/reportes/inasistencias?minFaltas=-5", "/reportes/inasistencias?situacion=todos", "/reportes/inasistencias?situacion=%27%20OR%201%3D1", "/reportes/desaprobaciones?anio=1800", "/calificaciones/modulos/1/divisiones/A?anio=99999999999", "/calificaciones/resumen?anio=abc", "/alumnos?incluirInactivos=quizas", "/docentes?estado=%27%20OR%201%3D1", "/asistencias/modulos/1/divisiones/ZZZ?fecha=2026-05-05", "/asistencias/modulos/1/divisiones/A?fecha=hoy"]) {
   const r = await D("GET", q);
   check("Parámetros", `GET ${q}`, [200, 400, 404].includes(r.s), `-> ${r.s} ${JSON.stringify(r.b).slice(0, 100)}`);
 }
@@ -209,25 +209,66 @@ for (const [nombre, body] of Object.entries({
   const body = (i) => ({ nombre: "Carrera", apellido: "ZZ-EXT", dni: d, cuil: cuil(d), fechaNacimiento: "1990-01-01", lugarNacimiento: "SL", domicilio: "C", telefono: "2664000000", email: `car${d}${i}@example.com`, trabaja: false, telefonoEmergencia: "2664111111", cantidadHijos: 0 });
   const rs = await Promise.all([0, 1, 2, 3, 4, 5].map((i) => D("POST", "/alumnos", body(i))));
   check("Alumnos", "6 altas simultáneas con el mismo DNI: 1 creada y 5 rechazadas", rs.filter((r) => r.s === 201).length === 1 && rs.filter((r) => r.s === 409).length === 5, rs.map((r) => r.s).join(","));
-  // Mismo correo con otras mayúsculas
+  // Dos alumnos no pueden tener el mismo correo (sin distinguir mayúsculas).
   const a = await nuevoAlumno(); const d2 = dni();
   const r2 = await D("POST", "/alumnos", { ...body(9), dni: d2, cuil: cuil(d2), email: a.email.toUpperCase() });
-  check("Observación", "Dos alumnos con el mismo correo: se acepta (puede ser un correo familiar)", true, `-> ${r2.s}`);
+  check("Alumnos", "Otro alumno con el mismo correo (en mayúsculas): 409 en el campo correo", r2.s === 409 && r2.b?.campo === "email", `-> ${r2.s} ${JSON.stringify(r2.b).slice(0, 110)}`);
+  const otro = await nuevoAlumno();
+  const fo = await ficha(otro.id);
+  const datosOtro = { nombre: fo.nombre, apellido: fo.apellido, dni: fo.dni, cuil: fo.cuil, fechaNacimiento: fo.fechaNacimiento, lugarNacimiento: fo.lugarNacimiento, domicilio: fo.domicilio, telefono: fo.telefono, email: fo.email, trabaja: fo.trabaja, telefonoEmergencia: fo.telefonoEmergencia, cantidadHijos: fo.cantidadHijos };
+  let r3 = await D("PUT", `/alumnos/${otro.id}`, { ...datosOtro, email: ` ${a.email} ` });
+  check("Alumnos", "Cambiar el correo al de otro alumno: 409", r3.s === 409, `-> ${r3.s}`);
+  r3 = await D("PUT", `/alumnos/${otro.id}`, { ...datosOtro, domicilio: "Calle nueva 9" });
+  check("Alumnos", "Editar otro dato sin tocar su correo: 200", r3.s === 200, `-> ${r3.s} ${JSON.stringify(r3.b).slice(0, 110)}`);
+  const d3 = dni(); const mismo = `carrera${d3}@example.com`;
+  const rsc = await Promise.all([0, 1, 2, 3].map(() => { const dd = dni(); return D("POST", "/alumnos", { ...body(0), dni: dd, cuil: cuil(dd), email: mismo }); }));
+  check("Alumnos", "4 altas simultáneas con el mismo correo: 1 creada y 3 rechazadas", rsc.filter((r) => r.s === 201).length === 1 && rsc.filter((r) => r.s === 409).length === 3, rsc.map((r) => r.s).join(","));
 }
 
 // ==================================================== 6. CORRELATIVIDADES Y MATRÍCULA (backend)
 {
+  // Sin equivalencias: el primer módulo es el de ingreso, puede ser cualquiera.
+  for (const mod of [1, 2, 3, 4, 5, 6]) {
+    const x = await nuevoAlumno();
+    const r1 = await matricular(x.id, mod);
+    check("Ingreso", `Alumno nuevo directo al módulo ${mod}`, r1.s === 201 && r1.b.tipo === "NUEVA", `-> ${r1.s} ${JSON.stringify(r1.b).slice(0, 100)}`);
+  }
   const a = await nuevoAlumno();
-  let r = await matricular(a.id, 3); check("Correlatividades", "Alumno nuevo directo a III sin equivalencias", r.s === 409, `-> ${r.s}`);
-  r = await matricular(a.id, 5, { equivalencias: [3, 4] }); check("Correlatividades", "Directo a V con equivalencias III y IV solamente (falta I y II)", r.s === 409 || r.s === 400, `-> ${r.s} ${JSON.stringify(r.b).slice(0, 100)}`);
-  r = await matricular(a.id, 5, { equivalencias: [1, 2, 3] }); check("Correlatividades", "Directo a V sin la equivalencia de IV", r.s === 409 || r.s === 400, `-> ${r.s}`);
-  r = await matricular(a.id, 5, { equivalencias: [1, 2, 3, 4] }); check("Correlatividades", "Directo a V con I a IV por equivalencia", r.s === 201, `-> ${r.s} ${JSON.stringify(r.b).slice(0, 100)}`);
+  let r = await matricular(a.id, 5, { equivalencias: [1, 2, 3, 4], observacionEquivalencia: "vieja" }); check("Ingreso", "Si llega el campo equivalencias se ignora (alta en V)", r.s === 201, `-> ${r.s} ${JSON.stringify(r.b).slice(0, 100)}`);
   r = await matricular(a.id, 5); check("Correlatividades", "Matricular de nuevo en V estando en curso", r.s === 409, `-> ${r.s}`);
-  r = await D("POST", `/alumnos/${a.id}/equivalencias`, { modulosIds: [5] }); check("Equivalencias", "Equivalencia de un módulo que está cursando", [400, 409].includes(r.s), `-> ${r.s}`);
-  r = await D("POST", `/alumnos/${a.id}/equivalencias`, { modulosIds: [1] }); check("Equivalencias", "Equivalencia repetida", [200, 201, 409].includes(r.s), `-> ${r.s}`);
-  r = await D("POST", `/alumnos/${a.id}/equivalencias`, { modulosIds: [] }); check("Equivalencias", "Equivalencias vacías", r.s === 400, `-> ${r.s}`);
-  r = await D("POST", `/alumnos/${a.id}/equivalencias`, { modulosIds: [99] }); check("Equivalencias", "Equivalencia de módulo 99", [400, 404].includes(r.s), `-> ${r.s}`);
-  r = await D("POST", `/alumnos/${a.id}/equivalencias`, { modulosIds: ["1; DROP TABLE x"] }); check("Equivalencias", "Equivalencia con texto", r.s === 400, `-> ${r.s}`);
+  r = await D("POST", `/alumnos/${a.id}/equivalencias`, { modulosIds: [1] }); check("Ingreso", "La ruta de equivalencias ya no existe", r.s === 404, `-> ${r.s}`);
+  const fa = await ficha(a.id);
+  check("Ingreso", "La ficha informa el módulo de ingreso y no trae equivalencias", fa.moduloIngresoId === 5 && fa.equivalencias === undefined && JSON.stringify(fa.modulosAcreditados) === "[1,2,3,4]", `-> ingreso ${fa.moduloIngresoId} acreditados ${JSON.stringify(fa.modulosAcreditados)}`);
+
+  // Desde el ingreso, las correlatividades se aplican.
+  const i1 = await nuevoAlumno(); await matricular(i1.id, 1); await aprobarModulo(i1.id, 1);
+  r = await rematricular(i1.id, 3); check("Ingreso", "Ingresó en I, aprobó I y nunca cursó II: III se rechaza", r.s === 409 && /Modulo II/.test(r.b.error) && /sin cursar/.test(r.b.error), `-> ${r.s} ${r.b?.error}`);
+  r = await rematricular(i1.id, 2); check("Ingreso", "El mismo alumno sí puede pasar a II", r.s === 200, `-> ${r.s}`);
+  await aprobarModulo(i1.id, 2);
+  r = await rematricular(i1.id, 3); check("Ingreso", "Con I y II aprobados pasa a III", r.s === 200, `-> ${r.s} ${r.b?.error ?? ""}`);
+
+  const i3 = await nuevoAlumno(); await matricular(i3.id, 3); await aprobarModulo(i3.id, 3);
+  r = await rematricular(i3.id, 5); check("Ingreso", "Ingresó en III con III aprobado: V se rechaza por IV", r.s === 409 && /Modulo IV/.test(r.b.error) && !/Modulo I /.test(r.b.error), `-> ${r.s} ${r.b?.error}`);
+  await rematricular(i3.id, 4); await aprobarModulo(i3.id, 4);
+  r = await rematricular(i3.id, 5); check("Ingreso", "Ingresó en III con III y IV aprobados: pasa a V (no pide I ni II)", r.s === 200, `-> ${r.s} ${r.b?.error ?? ""}`);
+  const c3 = await activa(i3.id, 5);
+  check("Ingreso", "En V puede rendir: no le faltan correlativas", c3.correlativosPendientes.length === 0, JSON.stringify(c3.correlativosPendientes));
+
+  // Corrección de una matrícula vacía y salto con datos.
+  const k = await nuevoAlumno(); await matricular(k.id, 1);
+  r = await rematricular(k.id, 5); check("Ingreso", "Registrado en I por error (sin datos): se corrige a V", r.s === 200 && r.b.matricula === "CORREGIDA", `-> ${r.s} ${r.b?.matricula ?? r.b?.error}`);
+  const k2 = await nuevoAlumno(); await matricular(k2.id, 1);
+  await D("POST", "/asistencias", { cursadaModuloId: (await activa(k2.id, 1)).idCursada, fecha: "2026-04-06", valorFalta: 0 });
+  r = await rematricular(k2.id, 5); check("Ingreso", "Con una asistencia cargada en I ya no puede saltar a V", r.s === 409, `-> ${r.s} ${r.b?.error}`);
+
+  // Egresa al aprobar desde su ingreso hasta el VI.
+  const eg = await nuevoAlumno(); await matricular(eg.id, 5); await aprobarModulo(eg.id, 5);
+  check("Ingreso", "Ingresó en V y aprobó V: todavía no egresa", (await ficha(eg.id)).egresado === false, "");
+  await rematricular(eg.id, 6); await aprobarModulo(eg.id, 6);
+  const feg = await ficha(eg.id);
+  const egresados = (await D("GET", "/alumnos?egresados=true")).b;
+  check("Ingreso", "Ingresó en V y aprobó V y VI: egresa", feg.egresado === true && egresados.some((x) => x.id === eg.id), `-> egresado ${feg.egresado}`);
+  r = await rematricular(eg.id, 1); check("Ingreso", "Un egresado no se matricula", r.s === 409, `-> ${r.s}`);
 
   const b = await nuevoAlumno();
   r = await matricular(b.id, 2); check("Correlatividades", "Alumno nuevo directo a II (backend: II no tiene correlativas)", r.s === 201, `-> ${r.s} ${JSON.stringify(r.b).slice(0, 100)}`);
@@ -269,7 +310,6 @@ for (const [nombre, body] of Object.entries({
   // Alumno dado de baja
   await D("DELETE", `/alumnos/${g.id}`);
   r = await rematricular(g.id, 2); check("Matrícula", "Matricular a un alumno dado de baja", r.s === 409, `-> ${r.s}`);
-  r = await D("POST", `/alumnos/${g.id}/equivalencias`, { modulosIds: [3] }); check("Equivalencias", "Equivalencia a un alumno dado de baja", r.s === 409, `-> ${r.s}`);
 
   // Cambio de curso (división) en el mismo módulo, con faltas cargadas
   const h = await nuevoAlumno(); await matricular(h.id, 1);
@@ -296,10 +336,25 @@ for (const [nombre, body] of Object.entries({
   check("Asistencias", "Fecha en el futuro (2030)", fut.s === 400, `-> ${fut.s} ${JSON.stringify(fut.b).slice(0, 90)}`);
   const otroCiclo = await D("POST", "/asistencias", { cursadaModuloId: c, fecha: "2019-05-05", valorFalta: 1 });
   check("Asistencias", "Fecha de otro ciclo lectivo (2019)", otroCiclo.s === 400, `-> ${otroCiclo.s} ${JSON.stringify(otroCiclo.b).slice(0, 90)}`);
-  const fueraPeriodo = await D("POST", "/asistencias", { cursadaModuloId: c, fecha: "2026-10-15", valorFalta: 1 });
-  check("Observación", "Módulo I (marzo a julio) con falta en octubre: se acepta", true, `-> ${fueraPeriodo.s}`);
-  const domingo = await D("POST", "/asistencias", { cursadaModuloId: c, fecha: "2026-03-08", valorFalta: 1 });
-  check("Observación", "Falta un domingo (2026-03-08): se acepta", true, `-> ${domingo.s}`);
+  // Días de clase: I, III y V de marzo a julio; II, IV y VI de agosto a diciembre; sin fines de semana.
+  for (const [fecha, nombre] of [["2026-10-15", "Módulo I en octubre"], ["2026-08-03", "Módulo I en agosto"], ["2026-02-27", "Módulo I en febrero"], ["2026-03-08", "un domingo"], ["2026-03-07", "un sábado"], ["2026-07-04", "el último sábado de julio"]]) {
+    const r = await D("POST", "/asistencias", { cursadaModuloId: c, fecha, valorFalta: 1 });
+    check("Asistencias", `Falta en ${nombre} (${fecha}): 400`, r.s === 400, `-> ${r.s} ${JSON.stringify(r.b).slice(0, 100)}`);
+  }
+  for (const fecha of ["2026-03-02", "2026-07-31"]) {
+    const r = await D("POST", "/asistencias", { cursadaModuloId: c, fecha, valorFalta: 0 });
+    check("Asistencias", `Módulo I el ${fecha} (lunes a viernes, dentro del período): se carga`, r.s === 201, `-> ${r.s} ${JSON.stringify(r.b).slice(0, 100)}`);
+  }
+  const a2 = await nuevoAlumno(); await matricular(a2.id, 2); const c2 = (await activa(a2.id, 2)).idCursada;
+  for (const [fecha, esperado, nombre] of [["2026-05-05", 400, "en mayo"], ["2026-08-01", 400, "un sábado de agosto"], ["2026-08-03", 201, "un lunes de agosto"], ["2026-11-17", 201, "un martes de noviembre"]]) {
+    const r = await D("POST", "/asistencias", { cursadaModuloId: c2, fecha, valorFalta: 0 });
+    check("Asistencias", `Módulo II ${nombre} (${fecha}): ${esperado}`, r.s === esperado, `-> ${r.s} ${JSON.stringify(r.b).slice(0, 100)}`);
+  }
+  const regII = (await D("GET", `/asistencias?cursadaModuloId=${c2}`)).b[0];
+  let rm = await D("PUT", `/asistencias/${regII.id}`, { valorFalta: 1, fecha: "2026-11-14" });
+  check("Asistencias", "Mover una asistencia a un sábado: 400", rm.s === 400, `-> ${rm.s}`);
+  rm = await D("PUT", `/asistencias/${regII.id}`, { valorFalta: 1 });
+  check("Asistencias", "Corregir solo el valor de una asistencia: 200", rm.s === 200, `-> ${rm.s}`);
   // Limpieza de lo anterior
   for (const reg of (await D("GET", `/asistencias?cursadaModuloId=${c}`)).b) await D("DELETE", `/asistencias/${reg.id}`);
 
@@ -444,7 +499,27 @@ for (const [nombre, body] of Object.entries({
   r = await D("POST", "/docentes", base({ asignaciones: [{ moduloId: 1, division: "A", materia: "Historia" }, { moduloId: 1, division: "A", materia: "Historia" }] })); check("Docentes", "Asignación repetida", [201, 400].includes(r.s), `-> ${r.s}`);
   if (r.s === 201) check("Docentes", "  ...y no se duplica (Módulo I División A una sola vez)", r.b.asignaciones.filter((x) => x.moduloId === 1 && x.division === "A").length === 1, JSON.stringify(r.b.asignaciones));
   r = await D("POST", "/docentes", base({ antiguedad: -3 })); check("Docentes", "Antigüedad negativa", r.s === 400, `-> ${r.s}`);
-  r = await D("POST", "/docentes", base({ antiguedad: 80 })); check("Observación", "Antigüedad 80 años (no hay tope)", true, `-> ${r.s}`);
+  for (const [ant, esperado] of [[80, 400], [36, 400], [35, 201], [0, 201]]) {
+    r = await D("POST", "/docentes", base({ antiguedad: ant })); check("Docentes", `Antigüedad de ${ant} años: ${esperado}`, r.s === esperado, `-> ${r.s} ${JSON.stringify(r.b).slice(0, 90)}`);
+    const rp = await D("POST", "/preceptores", base({ antiguedad: ant })); check("Preceptores", `Antigüedad de ${ant} años: ${esperado}`, rp.s === esperado, `-> ${rp.s} ${JSON.stringify(rp.b).slice(0, 90)}`);
+  }
+  // Asignación por módulo: asignar Módulo I División A no asigna Módulo II A.
+  const soloI = base({ asignaciones: [{ moduloId: 1, division: "A", materia: "Matematica" }] });
+  const dI = await D("POST", "/docentes", soloI);
+  check("Docentes", "Asignado a Módulo I A: solo figura ese módulo", dI.s === 201 && dI.b.asignaciones.length === 1 && dI.b.asignaciones[0].moduloId === 1, JSON.stringify(dI.b?.asignaciones));
+  const tI = (await login(soloI.email, "clave1")).b.token;
+  const modsI = (await req("GET", "/calificaciones/modulos?anio=2026", { token: tI })).b;
+  const vistos = JSON.stringify(modsI);
+  const gI = await req("GET", "/calificaciones/modulos/1/divisiones/A?anio=2026", { token: tI });
+  const gII = await req("GET", "/calificaciones/modulos/2/divisiones/A?anio=2026", { token: tI });
+  check("Docentes", "Con Módulo I A ve la grilla de I A y NO la de II A (403)", gI.s === 200 && gII.s === 403, `I ${gI.s}, II ${gII.s} ${vistos.slice(0, 120)}`);
+  const alII = await nuevoAlumno(); await matricular(alII.id, 2); const cII = await activa(alII.id, 2);
+  const mat = cII.materias.find((m) => m.nombre === "Matematica") ?? cII.materias[0];
+  const calII = await req("PUT", "/calificaciones", { token: tI, body: { cursadaModuloId: cII.idCursada, materiaId: mat.id, estado: "Aprobado", anio: 2026 } });
+  check("Docentes", "Tampoco puede calificar en Módulo II A (403)", calII.s === 403, `-> ${calII.s}`);
+  const conII = await D("PUT", `/docentes/${dI.b.id}`, { ...soloI, dni: dI.b.dni, cuil: dI.b.cuil, asignaciones: [{ moduloId: 1, division: "A", materia: "Matematica" }, { moduloId: 2, division: "A", materia: "Matematica" }] });
+  const gII2 = await req("GET", "/calificaciones/modulos/2/divisiones/A?anio=2026", { token: tI });
+  check("Docentes", "Si el directivo le agrega Módulo II A, ahora sí lo ve", conII.s === 200 && conII.b.asignaciones.length === 2 && gII2.s === 200, `PUT ${conII.s}, II ${gII2.s}`);
   r = await D("POST", "/docentes", base({ password: "1" })); check("Docentes", "Contraseña de 1 carácter", r.s === 400, `-> ${r.s}`);
   const pre = await D("POST", "/preceptores", base());
   r = await D("PUT", `/preceptores/${pre.b.id}/cursos`, { cursoIds: [99999] }); check("Preceptores", "Curso inexistente", [400, 404].includes(r.s), `-> ${r.s}`);
@@ -462,6 +537,47 @@ for (const [nombre, body] of Object.entries({
 
 // ==================================================== 11. PLAN, CICLO, REPORTES
 {
+  // Alumnos en riesgo: regulares con 20 faltas o más (no los libres).
+  const enRiesgo = async () => (await D("GET", "/reportes/inasistencias?anio=2026&situacion=riesgo")).b;
+  const libres = async () => (await D("GET", "/reportes/inasistencias?anio=2026")).b;
+  // Faltas en días de clase del Módulo I (marzo a julio, de lunes a viernes).
+  const cargarFaltas = async (cursada, total) => {
+    let dia = new Date("2026-03-02T12:00:00Z");
+    let cargadas = 0;
+    while (cargadas < total) {
+      if (dia.getUTCDay() === 0 || dia.getUTCDay() === 6) {
+        dia = new Date(dia.getTime() + 86400000);
+        continue;
+      }
+      const valor = total - cargadas >= 1 ? 1 : 0.5;
+      const fecha = dia.toISOString().slice(0, 10);
+      const x = await D("POST", "/asistencias", { cursadaModuloId: cursada, fecha, valorFalta: valor });
+      if (x.s !== 201) throw new Error(`falta ${fecha}: ${JSON.stringify(x.b)}`);
+      cargadas += valor;
+      dia = new Date(dia.getTime() + 86400000);
+    }
+  };
+  const casos = {};
+  for (const [clave, faltas] of [["f19", 19.5], ["f20", 20], ["f25", 25], ["f26", 26]]) {
+    const x = await nuevoAlumno(); await matricular(x.id, 1);
+    await cargarFaltas((await activa(x.id, 1)).idCursada, faltas);
+    casos[clave] = x.id;
+  }
+  const baja = await nuevoAlumno(); await matricular(baja.id, 1);
+  await cargarFaltas((await activa(baja.id, 1)).idCursada, 21);
+  await D("DELETE", `/alumnos/${baja.id}`);
+  const riesgo = await enRiesgo();
+  const ids = new Set(riesgo.alertas.map((x) => x.alumnoId));
+  check("Riesgo", "El reporte informa el umbral de riesgo (20) y la situación", riesgo.umbralRiesgo === 20 && riesgo.situacion === "riesgo", JSON.stringify({ u: riesgo.umbralRiesgo, s: riesgo.situacion }));
+  check("Riesgo", "19,5 faltas: todavía no está en riesgo", !ids.has(casos.f19), "");
+  check("Riesgo", "20 faltas: en riesgo", ids.has(casos.f20), "");
+  check("Riesgo", "25 faltas (regular): en riesgo", ids.has(casos.f25), "");
+  check("Riesgo", "26 faltas: ya es libre, no figura en riesgo", !ids.has(casos.f26), "");
+  check("Riesgo", "Dado de baja con 21 faltas: no figura", !ids.has(baja.id), "");
+  check("Riesgo", "Todos los de riesgo son regulares con 20 o más", riesgo.alertas.every((x) => x.condicion === "REGULAR" && x.faltas >= 20), "");
+  const lib = new Set((await libres()).alertas.map((x) => x.alumnoId));
+  check("Riesgo", "El de 26 faltas figura en el reporte de libres (por defecto)", lib.has(casos.f26) && !lib.has(casos.f25), "");
+
   let r = await D("POST", "/ciclo-lectivo", { anio: 2026 }); check("Ciclo", "Crear el ciclo 2026 que ya existe devuelve el mismo (no duplica)", [200, 201].includes(r.s) && r.b.id === 1, `-> ${r.s} ${JSON.stringify(r.b)}`);
   r = await D("POST", "/ciclo-lectivo", { anio: 1800 }); check("Ciclo", "Ciclo 1800", r.s === 400, `-> ${r.s}`);
   r = await D("POST", "/ciclo-lectivo", { anio: "dos mil" }); check("Ciclo", "Ciclo con texto", r.s === 400, `-> ${r.s}`);
