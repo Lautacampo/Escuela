@@ -13,6 +13,9 @@ router.get("/:id", controlador.obtenerPorId);
 router.post("/", controlador.crear);
 router.put("/:id", controlador.actualizar);
 router.put("/:id/cursos",controlador.asignarCursos);
+router.patch("/:id/inactivar", controlador.inactivar);
+router.patch("/:id/reactivar", controlador.reactivar);
+// Eliminación definitiva: solo para un preceptor inactivo.
 router.delete("/:id", controlador.eliminar);
 
 export default router;
