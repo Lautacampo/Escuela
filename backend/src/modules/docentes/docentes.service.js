@@ -7,13 +7,16 @@ import {
   esTelefonoValido,
   normalizarCuil,
   normalizarDni,
+  sinCambios,
+  soloDigitos,
 } from "../../utils/validacionesPersona.js";
 import * as repo from "./docentes.repository.js";
 
 const PASSWORD_SALT_ROUNDS = 10;
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validarDatosDocente(datos) {
+// `anterior`: el docente tal como está guardado (solo al modificar).
+function validarDatosDocente(datos, anterior = null) {
   const nombre = String(datos.nombre ?? "").trim();
   const apellido = String(datos.apellido ?? "").trim();
   const dniIngresado = String(datos.dni ?? "").trim();
@@ -45,7 +48,10 @@ function validarDatosDocente(datos) {
     if (!valor) throw new HttpError(400, mensaje, { campo });
   }
 
-  if (!esDniValido(dniIngresado)) {
+  const mismoDni = sinCambios(anterior, "dni", dniIngresado, soloDigitos);
+  const mismoCuil = sinCambios(anterior, "cuil", cuilIngresado, soloDigitos);
+
+  if (!mismoDni && !esDniValido(dniIngresado)) {
     throw new HttpError(
       400,
       "El DNI debe tener entre 7 y 8 dígitos numéricos",
@@ -57,7 +63,7 @@ function validarDatosDocente(datos) {
       campo: "cuil",
     });
   }
-  if (!esCuilValido(cuilIngresado, dni)) {
+  if (!(mismoDni && mismoCuil) && !esCuilValido(cuilIngresado, dni)) {
     throw new HttpError(
       400,
       "El CUIL debe tener 11 dígitos y corresponder al DNI",
@@ -86,14 +92,20 @@ function validarDatosDocente(datos) {
       { campo: "especialidad" },
     );
   }
-  if (!REGEX_EMAIL.test(email) || email.length > 150) {
+  if (
+    (!sinCambios(anterior, "email", email) && !REGEX_EMAIL.test(email)) ||
+    email.length > 150
+  ) {
     throw new HttpError(
       400,
       "Ingrese un correo válido de hasta 150 caracteres",
       { campo: "email" },
     );
   }
-  if (!esTelefonoValido(telefono) || telefono.length > 20) {
+  if (
+    (!sinCambios(anterior, "telefono", telefono) && !esTelefonoValido(telefono)) ||
+    telefono.length > 20
+  ) {
     throw new HttpError(
       400,
       "El teléfono debe tener entre 8 y 15 dígitos",
@@ -149,11 +161,20 @@ export const listarModulos = async () => {
   return repo.listarModulosConDivisionesYMaterias();
 };
 
+const ESTADOS = ["activos", "inactivos", "todos"];
+
 export const listar = async (query = {}) => {
+  const estado = String(query.estado ?? "todos").toLowerCase();
+  if (!ESTADOS.includes(estado)) {
+    throw new HttpError(400, "estado debe ser activos, inactivos o todos");
+  }
   const docentes = await repo.listarDocentes();
 
-  // Filtros opcionales por query params (?moduloId=1&division=A&materia=Historia)
+  // Filtros opcionales por query params
+  // (?estado=activos&moduloId=1&division=A&materia=Historia)
   return docentes.filter((d) => {
+    if (estado === "activos" && !d.activo) return false;
+    if (estado === "inactivos" && d.activo) return false;
     if (query.dni && d.dni !== String(query.dni).trim()) return false;
     if (query.moduloId) {
       const modId = Number(query.moduloId);
@@ -218,14 +239,23 @@ export const actualizar = async (id, body) => {
   if (!existe) {
     throw new HttpError(404, "Docente no encontrado");
   }
+  if (!existe.activo) {
+    throw new HttpError(
+      409,
+      "El docente está inactivo: reactivalo para modificar sus datos",
+    );
+  }
 
-  const datos = validarDatosDocente({
-    ...existe,
-    ...body,
-    cuil: body.cuil ?? existe.cuil,
-    domicilio: body.domicilio ?? existe.domicilio,
-    antiguedad: body.antiguedad ?? existe.antiguedad,
-  });
+  const datos = validarDatosDocente(
+    {
+      ...existe,
+      ...body,
+      cuil: body.cuil ?? existe.cuil,
+      domicilio: body.domicilio ?? existe.domicilio,
+      antiguedad: body.antiguedad ?? existe.antiguedad,
+    },
+    existe,
+  );
 
   try {
     return await repo.actualizarDocente(id, datos);
@@ -239,14 +269,28 @@ export const actualizar = async (id, body) => {
   }
 };
 
-export const eliminar = async (id) => {
-  if (!Number.isInteger(id)) {
-    throw new HttpError(400, "ID de docente inválido");
-  }
+// PATCH /docentes/:id/inactivar  -> baja lógica (licencia, pedido particular)
+export const inactivar = async (id) => {
+  const docente = await obtenerPorId(id);
+  if (docente.activo) await repo.cambiarEstadoDocente(id, false);
+  return repo.buscarDocentePorId(id);
+};
 
-  const existe = await repo.buscarDocentePorId(id);
-  if (!existe) {
-    throw new HttpError(404, "Docente no encontrado");
+// PATCH /docentes/:id/reactivar  -> vuelve a estar activo y a poder entrar
+export const reactivar = async (id) => {
+  const docente = await obtenerPorId(id);
+  if (!docente.activo) await repo.cambiarEstadoDocente(id, true);
+  return repo.buscarDocentePorId(id);
+};
+
+// DELETE /docentes/:id  -> eliminación definitiva, solo si está inactivo
+export const eliminar = async (id) => {
+  const docente = await obtenerPorId(id);
+  if (docente.activo) {
+    throw new HttpError(
+      409,
+      "Para eliminar definitivamente a un docente primero hay que darlo de baja (inactivo)",
+    );
   }
 
   await repo.eliminarDocente(id);
