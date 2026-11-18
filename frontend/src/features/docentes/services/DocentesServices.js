@@ -15,6 +15,16 @@ export async function setDocente(docente) {
   });
 }
 
+// Baja lógica: el docente queda inactivo (no inicia sesión) y conserva sus datos.
+export async function inactivarDocente(id) {
+  return apiFetch(`/docentes/${id}/inactivar`, { method: "PATCH" });
+}
+
+export async function reactivarDocente(id) {
+  return apiFetch(`/docentes/${id}/reactivar`, { method: "PATCH" });
+}
+
+// Eliminación definitiva: el backend solo la permite si el docente está inactivo.
 export async function borrarDocente(id) {
   await apiFetch(`/docentes/${id}`, { method: "DELETE" });
 }
